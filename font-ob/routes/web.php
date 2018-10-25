@@ -12,9 +12,24 @@
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('top');
 });
 
-Auth::routes();
+// Auth::routes();
 
-Route::get('/home', 'HomeController@index')->name('home');
+
+Route::group(['prefix' => 'home', 'middleware' => ['auth']], function() {
+    Route::get('/', 'HomeController@index')->name('home');
+});
+
+Route::group(['prefix' => '-'], function() {
+
+    Route::get('test', 'TestController@test')->name('test');
+
+    Route::get('hello', function() {
+        return 'Hello!';
+    });
+    Route::get('bye', function() {
+        return 'bye!';
+    });
+});
