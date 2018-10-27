@@ -33,12 +33,13 @@ class TestController extends Controller
 		$binCmap = substr($file, $cmapInfo['offset'], $cmapInfo['length']);
 		$cmapHeader = unpack('nvar/nnumTables', $binCmap);
 		$cmapTableCount = $cmapHeader['numTables'];
+
+		$cmaps = [];
 		for ($i = 0; $i < $cmapTableCount; $i++) {
 			$binEncordingRecord = substr($binCmap, 4 + $i * 8, 8);
 			$encodingRecord = unpack('nplatformID/nencodingID/Noffset', $binEncordingRecord);
-			$a = $this->dumpCmapSubTable($encodingRecord, $binCmap);
+			$cmaps[] = $this->dumpCmapSubTable($encodingRecord, $binCmap);
 		}
-
 
 
         // foreach ($tableRecords as $key => $t) {
@@ -48,22 +49,33 @@ class TestController extends Controller
         // }
 
 
-		$maxp = $tableRecords['maxp'];
-
-		$binMaxp = substr($file, $maxp['offset'], $maxp['length']);
-
+		$maxpInfo = $tableRecords['maxp'];
+		$binMaxp = substr($file, $maxpInfo['offset'], $maxpInfo['length']);
 		$maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
 
-		$loca = $tableRecords['loca'];
-		$l = substr($file, $loca['offset'], $loca['length']);
 
+
+		$locaInfo = $tableRecords['loca'];
+		$binLoca = substr($file, $locaInfo['offset'], $locaInfo['length']);
 		$locaCount = $maxList['numGlyphs'] + 1;
+		$loca = unpack("n{$locaCount}", $binLoca);	//indexToLocFormatでshort or long
 
-		$loca = unpack("n{$locaCount}", $l);	//indexToLocFormatでshort or long
+
 
 		$glyf = $tableRecords['glyf'];
 		$g = substr($file, $glyf['offset'], $glyf['length']);
 		// $glyph
+
+
+
+		/////////////////////////////////
+dd($cmaps);
+		$map = $cmaps[0];
+		$count = count($map);
+		$charCode = 0x0063;
+		for ($i = 0; $i < $count; $i++) {
+			dump($i);
+		}
 
 
 		// $c = substr($g, xxx)
@@ -97,25 +109,33 @@ echo 'hello !';die;
 
 			$binSubTableBody = substr($binCmap, $encodingRecord['offset'] + 14);
 
-
-			$subTableBody = [];
-			$subTableBody['endCount'] = array_values(unpack("n{$count}", $binSubTableBody));
+			$endCountList = array_values(unpack("n{$count}", $binSubTableBody));
 			$binSubTableBody = substr($binSubTableBody, $count * 2 + 2); // add reserved pad 2bytes
 
-			$subTableBody['startCount'] = array_values(unpack("n{$count}", $binSubTableBody));
+			$startCountList = array_values(unpack("n{$count}", $binSubTableBody));
 			$binSubTableBody = substr($binSubTableBody, $count * 2);
 
-			$subTableBody['idDelta'] = array_values(unpack("n{$count}", $binSubTableBody));
+			$idDeltaList = array_values(unpack("n{$count}", $binSubTableBody));
 			$binSubTableBody = substr($binSubTableBody, $count * 2);
-			foreach ($subTableBody['idDelta'] as &$idDelta) {
+			foreach ($idDeltaList as &$idDelta) {
 				if ($idDelta > 0x7fff) {
 					$idDelta = -(0x8000 - ($idDelta & 0x7fff));
 				}
 			}
 			unset($idDelta);
 
-			$subTableBody['idRangeOffset'] = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
+			$idRangeOffsetList = array_values(unpack("n{$count}", $binSubTableBody));
+			// $binSubTableBody = substr($binSubTableBody, $count * 2);
+
+			$subTableBody = [];
+			for ($i = 0; $i < $count; $i++) {
+				$subTableBody[] = [
+					'startCount' => $startCountList[$i],
+					'endCount' => $endCountList[$i],
+					'idDelta' => $idDeltaList[$i],
+					'idRangeOffsetList' => $idRangeOffsetList[$i],
+				];
+			}
 
 			return $subTableBody;
 		}
