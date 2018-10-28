@@ -96,7 +96,9 @@ class TestController extends Controller
 		$glyphOffset = $locaList[$glyphIndex] * 2;
 
 		$binGlyph = substr($binGlyphsData, $glyphOffset);
-		$this->dumpGlyph($binGlyph);
+		$g = $this->dumpGlyph($binGlyph);
+
+		dd($g);
 
 // dd($glyphIndex);
 // dd($cmaps);
@@ -183,6 +185,7 @@ echo 'hello !';die;
 		$instructionLength = unpack("n{$glyphHeader['numberOfContours']}", $binGlyph)[1];
 		$binGlyph = substr($binGlyph, 2);
 
+		// $instructions = substr($binGlyph, 0, $instructionLength);
 		$instructions = array_values(unpack("C{$instructionLength}", $binGlyph));
 		$binGlyph = substr($binGlyph, $instructionLength);
 
@@ -253,8 +256,12 @@ echo 'hello !';die;
 			];
 		}
 
-dd($glyphCoordinatesList);
-		return  $glyphCoordinatesList;
+		return  [
+			'header' => $glyphHeader,
+			'endPtsOfContours' => $endPtsOfContoursList,
+			'instructions' => $instructions,
+			'coordinates' => $glyphCoordinatesList
+		];
 	}
 
 }
