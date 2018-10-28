@@ -68,43 +68,52 @@ class TestController extends Controller
 
 
 		/////////////////////////////////
-		$charCode = 0x0063;
-		$glyphIndex = 0;
 
-		$index = 0;
-		$map = $cmaps[0];
-		$count = count($map);
-		foreach ($map as $m) {
-			if ($m['endCount'] >= $charCode) {
-				if ($m['startCount'] <= $charCode) {
-
-					// TODO: set offset to glyf id array !
-
-
-					$glyphIndex = $charCode + $m['idDelta'];
-
-					break;
-				}
-			}
-		}
+		$charCodeList = [
+			0x0063,
+			0x0061,
+			0x0074,
+		];
 
 
 		$glyfInfo = $tableRecords['glyf'];
 		$binGlyphsData = substr($file, $glyfInfo['offset'], $glyfInfo['length']);
 
+		$map = $cmaps[0];
+		foreach ($charCodeList as $i => $charCode) {
+			$glyphIndex = 0;
+			$index = 0;
+			foreach ($map as $m) {
+				if ($m['endCount'] >= $charCode) {
+					if ($m['startCount'] <= $charCode) {
 
-		$glyphOffset = $locaList[$glyphIndex] * 2;
+						// TODO: set offset to glyf id array !
 
-		$binGlyph = substr($binGlyphsData, $glyphOffset);
-		$g = $this->dumpGlyph($binGlyph);
+						$glyphIndex = $charCode + $m['idDelta'];
 
-		dd($g);
+						break;
+					}
+				}
+			}
+
+
+
+			$glyphOffset = $locaList[$glyphIndex] * 2;
+dump(chr($charCode).' '.$glyphIndex);
+dump('0x'.sprintf('%08x', $glyphOffset));
+
+			$binGlyph = substr($binGlyphsData, $glyphOffset);
+			$g = $this->dumpGlyph($binGlyph);
+dump($g);
+			$svg = $this->glyphToSvg($g);
+			echo $svg;
+
+		}
+
+		echo '<hr />';
 
 // dd($glyphIndex);
-// dd($cmaps);
 
-		// $c = substr($g, xxx)
-// echo '<hr />';
 
 echo 'hello !';die;
 
@@ -262,6 +271,34 @@ echo 'hello !';die;
 			'instructions' => $instructions,
 			'coordinates' => $glyphCoordinatesList
 		];
+	}
+
+	protected function glyphToSvg($glyph)
+	{
+
+		$svg = '<svg x="100px" y="100px" width="300px" height="300px">';
+
+
+		$svg .= '<path d="';
+
+		$coordinates = $glyph['coordinates'];
+		foreach ($coordinates as $index => $c) {
+			if ($index <= 0) {
+				$cmd = 'M';
+			} else {
+				$cmd = 'l';
+			}
+			$x = $c['x'] / 	9;
+			$y = $c['y'] / 9;
+			$svg .= "{$cmd} {$x} {$y} ";
+		}
+
+		// $svg .= 'M 100 100 L 300 100 L 200 300 ';
+
+		$svg .= 'z" fill="red" stroke="blue" stroke-width="1" />';
+		$svg .= '</svg>';
+
+		return $svg;
 	}
 
 }
