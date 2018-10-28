@@ -22,10 +22,10 @@ class TestController extends Controller
             $tableRecords[$tag] = unpack('Nsum/Noffset/Nlength', $tableRecordData);
             $readOffset += 16;
         }
-		echo '<hr />';
-		dump('header');
-		dump($header);
-		echo '<hr />';
+		// echo '<hr />';
+		// dump('header');
+		// dump($header);
+		// echo '<hr />';
 
 
 
@@ -99,12 +99,10 @@ class TestController extends Controller
 
 
 			$glyphOffset = $locaList[$glyphIndex] * 2;
-dump(chr($charCode).' '.$glyphIndex);
-dump('0x'.sprintf('%08x', $glyphOffset));
 
 			$binGlyph = substr($binGlyphsData, $glyphOffset);
 			$g = $this->dumpGlyph($binGlyph);
-dump($g);
+// dump($g);
 			$svg = $this->glyphToSvg($g);
 			echo $svg;
 
@@ -198,9 +196,6 @@ echo 'hello !';die;
 		$instructions = array_values(unpack("C{$instructionLength}", $binGlyph));
 		$binGlyph = substr($binGlyph, $instructionLength);
 
-		$pointCount = max($endPtsOfContoursList) + 1;
-		$flagsList = array_values(unpack("C{$pointCount}", $binGlyph));
-		$binGlyph = substr($binGlyph, $pointCount);
 
 		// TODO: 定数を定義
 		$ON_CURVE_POINT = (0x01 << 0);
@@ -210,6 +205,27 @@ echo 'hello !';die;
 		$X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR = (0x01 << 4);
 		$Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR = (0x01 << 5);
 		$OVERLAP_SIMPLE = (0x01 << 6);
+
+		$pointCount = max($endPtsOfContoursList) + 1;
+		$flagsList = [];
+
+		$index = 0;
+		while (count($flagsList) < $pointCount) {
+			// TODO: repeatがあるのでなおす
+			$flag = unpack('C',substr($binGlyph, $index, 1))[1];
+			$flagsList[] = $flag;
+			if ($flag & $REPEAT_FLAG) {
+				$index++;
+				$repeatCount = unpack('C',substr($binGlyph, $index, 1))[1];
+				for ($j = 0; $j < $repeatCount; $j++) {
+					$flagsList[] = $flag;
+				}
+			}
+			$index++;
+		}
+
+		$binGlyph = substr($binGlyph, $index);	// NOTE: $pointCount進めるのが謎
+
 
 		$xCoordinatesList = [];
 		foreach ($flagsList as $index => $flags) {
@@ -276,20 +292,21 @@ echo 'hello !';die;
 	protected function glyphToSvg($glyph)
 	{
 
-		$svg = '<svg x="100px" y="100px" width="300px" height="300px">';
+		$svg = '<svg x="100px" y="100px" width="200px" height="300px">';
 
 
 		$svg .= '<path d="';
-
 		$coordinates = $glyph['coordinates'];
 		foreach ($coordinates as $index => $c) {
 			if ($index <= 0) {
 				$cmd = 'M';
+				$x = $c['x'] / 	9;
+				$y = -$c['y'] / 9 + 280;
 			} else {
 				$cmd = 'l';
+				$x = $c['x'] / 	9;
+				$y = -$c['y'] / 9;
 			}
-			$x = $c['x'] / 	9;
-			$y = $c['y'] / 9;
 			$svg .= "{$cmd} {$x} {$y} ";
 		}
 
