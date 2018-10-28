@@ -297,23 +297,44 @@ echo 'hello !';die;
 		$svg = '<svg x="100px" y="100px" width="200px" height="300px">';
 
 
-		$svg .= '<path d="';
+		$endPoints = $glyph['endPtsOfContours'];
 		$coordinates = $glyph['coordinates'];
-		foreach ($coordinates as $index => $c) {
-			$x = $c['x'] / 	9;
-			$y = -$c['y'] / 9;
-			if ($index <= 0) {
-				$cmd = 'M';
-				$y += 200;
-			} else {
-				$cmd = 'l';
+
+		$index = 0;
+		$svg .= '<path d="';
+		foreach ($endPoints as $e) {
+			$isFirst = true;
+			while ($index <= $e) {
+				$c = $coordinates[$index];
+
+				$x = $c['x'] / 	9;
+				$y = -$c['y'] / 9;
+				if ($isFirst) {
+
+					$isFirst = false;
+					$cmd = 'M';
+					$y += 200;
+					if ($index > 0) {
+						$x += 30 + $prevX;
+						$y += $prevY;
+					}
+				} else {
+					$cmd = 'l';
+				}
+				$svg .= "{$cmd} {$x} {$y} ";
+
+				$index++;
+				$prevX = $x;
+				$prevY = $y;
 			}
-			$svg .= "{$cmd} {$x} {$y} ";
+			$svg .= 'z ';
 		}
+
+
+		$svg .= '" fill="#e0e0e0" stroke="black" stroke-width="1" />';
 
 		// $svg .= 'M 100 100 L 300 100 L 200 300 ';
 
-		$svg .= 'z" fill="#e0e0e0" stroke="black" stroke-width="1" />';
 		$svg .= '</svg>';
 
 		return $svg;
