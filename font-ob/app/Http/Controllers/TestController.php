@@ -70,9 +70,11 @@ class TestController extends Controller
 		/////////////////////////////////
 
 		$charCodeList = [
-			0x0063,
-			0x0061,
-			0x0074,
+			// ord(' '),
+			ord('c'),
+			ord('a'),
+			ord('t'),
+
 		];
 
 
@@ -298,21 +300,20 @@ echo 'hello !';die;
 		$svg .= '<path d="';
 		$coordinates = $glyph['coordinates'];
 		foreach ($coordinates as $index => $c) {
+			$x = $c['x'] / 	9;
+			$y = -$c['y'] / 9;
 			if ($index <= 0) {
 				$cmd = 'M';
-				$x = $c['x'] / 	9;
-				$y = -$c['y'] / 9 + 280;
+				$y += 200;
 			} else {
 				$cmd = 'l';
-				$x = $c['x'] / 	9;
-				$y = -$c['y'] / 9;
 			}
 			$svg .= "{$cmd} {$x} {$y} ";
 		}
 
 		// $svg .= 'M 100 100 L 300 100 L 200 300 ';
 
-		$svg .= 'z" fill="red" stroke="blue" stroke-width="1" />';
+		$svg .= 'z" fill="#e0e0e0" stroke="black" stroke-width="1" />';
 		$svg .= '</svg>';
 
 		return $svg;
