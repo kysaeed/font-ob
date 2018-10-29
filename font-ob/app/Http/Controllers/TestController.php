@@ -311,30 +311,57 @@ echo 'hello !';die;
 			$curvePoints = [];
 			while ($index <= $e) {
 				$c = $coordinates[$index];
-				$x = $c['x'] / 	9;
-				$y = -$c['y'] / 9;
+				$x = $c['x'] / 	10;
+				$y = -$c['y'] / 10;
 
 				if ($isCurve) {
 					if ($c['flags'] & $ON_CURVE_POINT) {
 						if ($isFirst) {
 dd($curvePoints);
-						} else {
-							$cmd = 'c';
 						}
 
 						// 's' ３次ペジェ
 
 
 						// $svg .= "{$cmd} {$x},{$y} {$curvePoints['x']},{$curvePoints['y']} ";
-
-
-						foreach ($curvePoints as $cp) {
-							$svg .= "l {$cp['x']},{$cp['y']} ";
+						if (true) {
+							if (count($curvePoints) <= 1) {
+								$cmd = 'q';
+							} else {
+								$cmd = 'c';
+							}
+							$svg .= "{$cmd} ";
+							$cpx = 0;
+							$cpy = 0;
+							foreach ($curvePoints as $point) {
+								$cpx += $point['x'];
+								$cpy += $point['y'];
+								$svg .= "{$cpx},{$cpy} ";
+							}
+							$cpx += $x;
+							$cpy += $y;
+							$svg .= "{$cpx},{$cpy} ";
+						} else {
+							foreach ($curvePoints as $cp) {
+								$svg .= "l {$cp['x']},{$cp['y']} ";
+							}
+							$svg .= "l {$x},{$y} ";
 						}
-						$svg .= "l {$x},{$y} ";
-						$curvePoints = [];
 
 						$isCurve = false;
+						$curvePoints = [];
+
+						if ($index < $e) {
+							$nextFlags = $coordinates[$index + 1]['flags'];
+							if (!($nextFlags & $ON_CURVE_POINT)) {
+								$isCurve = true;
+								$cusrveStartX = $x;
+								$cusrveStartY = $y;
+
+								$curvePoints = [];
+							}
+						}
+
 					} else {
 						$curvePoints[] = [
 							'x' => $x,
@@ -346,6 +373,9 @@ dd($curvePoints);
 						$nextFlags = $coordinates[$index + 1]['flags'];
 						if (!($nextFlags & $ON_CURVE_POINT)) {
 							$isCurve = true;
+							$cusrveStartX = $x;
+							$cusrveStartY = $y;
+
 							$curvePoints = [];
 						}
 					}
@@ -374,9 +404,14 @@ dd($curvePoints);
 
 
 			if ($isCurve) {
+				$endX = 0;
+				$endY = 0;
+
 				foreach ($curvePoints as $cp) {
 					$svg .= "l {$cp['x']},{$cp['y']} ";
 				}
+
+
 			}
 
 
