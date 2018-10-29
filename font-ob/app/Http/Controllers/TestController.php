@@ -293,6 +293,7 @@ echo 'hello !';die;
 
 	protected function glyphToSvg($glyph)
 	{
+		$ON_CURVE_POINT = (0x01 << 0);
 
 		$svg = '<svg x="100px" y="100px" width="200px" height="300px">';
 
@@ -302,30 +303,72 @@ echo 'hello !';die;
 
 		$index = 0;
 		$svg .= '<path d="';
+		$prevX = 0;
+		$prevY = 0;
 		foreach ($endPoints as $e) {
 			$isFirst = true;
+			$isCurve = false;
+			$curvePoints = [];
 			while ($index <= $e) {
-				$c = $coordinates[$index];
 
+				$c = $coordinates[$index];
 				$x = $c['x'] / 	9;
 				$y = -$c['y'] / 9;
-				if ($isFirst) {
 
-					$isFirst = false;
-					$cmd = 'M';
-					$y += 200;
-					if ($index > 0) {
-						$x += 30 + $prevX;
-						$y += $prevY;
-					}
+				if ($isCurve) {
+					// if ($c['flags'] & $ON_CURVE_POINT) {
+						if ($isFirst) {
+							$cmd = 'S';
+						} else {
+							$cmd = 's';
+						}
+
+						// $svg .= "{$cmd} {$x},{$y} {$curvePoints['x']},{$curvePoints['y']} ";
+
+						$svg .= "l {$curvePoints['x']},{$curvePoints['y']} l {$x},{$y} ";
+
+						$isCurve = false;
+						// $isFirst = false;
+					// } else {
+					// 	$curvePoints = [
+					// 		'x' => $x,
+					// 		'y' => $y,
+					// 	];
+					// }
 				} else {
-					$cmd = 'l';
-				}
-				$svg .= "{$cmd} {$x} {$y} ";
+					// if ($index < $e) {
+					// 	if ($c['flags'] & $ON_CURVE_POINT) {
+					// 		$nextFlags = $coordinates[$index + 1]['flags'];
+					// 		if (!($nextFlags & $ON_CURVE_POINT)) {
+					// 			$isCurve = true;
+					// 			$curvePoints = [
+					// 				'x' => $c['x'],
+					// 				'y' => $c['y'],
+					// 			];
+					// 		}
+					// 	}
+					// }
 
+					if ($isFirst) {
+						$isFirst = false;
+						$cmd = 'M';
+						if ($index <= 0) {
+							$y += 200;
+						} else {
+							$x += $prevX;
+							$y += $prevY;
+							$prevX = $x;
+							$prevY = $y;
+						}
+					} else {
+						$cmd = 'l';
+					}
+					$svg .= "{$cmd} {$x},{$y} ";
+				}
+
+				$prevX += $x;
+				$prevY += $y;
 				$index++;
-				$prevX = $x;
-				$prevY = $y;
 			}
 			$svg .= 'z ';
 		}
