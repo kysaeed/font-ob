@@ -293,15 +293,34 @@ echo 'hello !';die;
 		}
 
 
+		// $endPtsOfContoursList   <= ソートする
 		$glyphCoordinatesList = [];
+		$contours = [];
+		$endPoint = $endPtsOfContoursList[0];
 		foreach ($flagsList as $index => $flags) {
-			$glyphCoordinatesList[] = [
+			$contours[] = [
 				'x' => $xCoordinatesList[$index],
 				'y' => $yCoordinatesList[$index],
 				'flags' => $flags,
 			];
-		}
 
+			// $glyphCoordinatesList[] = [
+			// 	'x' => $xCoordinatesList[$index],
+			// 	'y' => $yCoordinatesList[$index],
+			// 	'flags' => $flags,
+			// ];
+
+
+			if ($index >= $endPoint) {
+				$glyphCoordinatesList[] = $contours;
+				$contours = [];
+				$endPointIndex = count($glyphCoordinatesList);
+				if ($endPointIndex >= count($endPtsOfContoursList)) {
+					break;
+				}
+				$endPoint = $endPtsOfContoursList[$endPointIndex];
+			}
+		}
 		return  [
 			'header' => $glyphHeader,
 			'endPtsOfContours' => $endPtsOfContoursList,
@@ -320,16 +339,15 @@ echo 'hello !';die;
 		$endPoints = $glyph['endPtsOfContours'];
 		$coordinates = $glyph['coordinates'];
 
-		$index = 0;
 		$svg .= '<path d="';
 		$prevX = 0;
 		$prevY = 0;
-		foreach ($endPoints as $con => $e) {
+		foreach ($coordinates as $indexEndPonts => $contours) {
 			$isFirst = true;
 			$isCurve = false;
 			$curvePoints = [];
-			while ($index <= $e) {
-				$c = $coordinates[$index];
+			$maxIndexContours = count($contours) - 1;
+			foreach ($contours as $index => $c) {
 				$x = $c['x'] / 	10;
 				$y = -$c['y'] / 10;
 				$y += 200;
@@ -339,10 +357,6 @@ echo 'hello !';die;
 						if ($isFirst) {
 dd($curvePoints);
 						}
-
-						// 's' ３次ペジェ
-
-
 						// $svg .= "{$cmd} {$x},{$y} {$curvePoints['x']},{$curvePoints['y']} ";
 						if (true) {
 							if (count($curvePoints) <= 1) {
@@ -371,8 +385,8 @@ dd($curvePoints);
 						$isCurve = false;
 						$curvePoints = [];
 
-						if ($index < $e) {
-							$nextFlags = $coordinates[$index + 1]['flags'];
+						if ($index < $maxIndexContours) {
+							$nextFlags = $contours[$index + 1]['flags'];
 							if (!($nextFlags & $ON_CURVE_POINT)) {
 								$isCurve = true;
 								$cusrveStartX = $x;
@@ -389,8 +403,8 @@ dd($curvePoints);
 						];
 					}
 				} else {
-					if ($index < $e) {
-						$nextFlags = $coordinates[$index + 1]['flags'];
+					if ($index < $maxIndexContours) {
+						$nextFlags = $contours[$index + 1]['flags'];
 						if (!($nextFlags & $ON_CURVE_POINT)) {
 							$isCurve = true;
 							$cusrveStartX = $x;
@@ -403,23 +417,14 @@ dd($curvePoints);
 					if ($isFirst) {
 						$isFirst = false;
 						$cmd = 'M';
-						if ($index <= 0) {
-
-
-						} else {
-							// $x += $prevX;
-							// $y += $prevY;
-							$prevX = $x;
-							$prevY = $y;
-						}
 					} else {
 						$cmd = 'L';
 					}
 					$svg .= "{$cmd} {$x},{$y} ";
 				}
 
-				$prevX += $x;
-				$prevY += $y;
+				$prevX = $x;
+				$prevY = $y;
 				$index++;
 			}
 
@@ -430,10 +435,6 @@ dd($curvePoints);
 
 				if (true) {
 					$startIndex = 0;
-					if ($con > 0) {
-						$startIndex = $endPoints[$con - 1] + 1;
-					}
-
 					if (count($curvePoints) <= 1) {
 						$cmd = 'Q';
 					} else {
@@ -441,28 +442,22 @@ dd($curvePoints);
 					}
 					$svg .= "{$cmd} ";
 					foreach ($curvePoints as $cp) {
-
 						$svg .= "{$cp['x']},{$cp['y']} ";
-
 					}
-					$startCoodinate = $coordinates[$startIndex];
-					$x = ($coordinates[$startIndex]['x'] / 10);
-					$y = -($coordinates[$startIndex]['y'] / 10);
+					$startCoodinate = $contours[$startIndex];
+					$x = ($contours[$startIndex]['x'] / 10);
+					$y = -($contours[$startIndex]['y'] / 10);
 					$y += 200;
 					$svg .= "{$x},{$y} ";
 
 				} else {
 					$startIndex = 0;
-					if ($con > 0) {
-						$startIndex = $endPoints[$con - 1] + 1;
-					}
-
 					foreach ($curvePoints as $cp) {
 						$svg .= "L {$cp['x']},{$cp['y']} ";
 					}
-					$startCoodinate = $coordinates[$startIndex];
-					$x = ($coordinates[$startIndex]['x'] / 10);
-					$y = -($coordinates[$startIndex]['y'] / 10);
+					$startCoodinate = $contours[0];
+					$x = ($contours[$startIndex]['x'] / 10);
+					$y = -($contours[$startIndex]['y'] / 10);
 					$y += 200;
 					$svg .= "L {$x},{$y} ";
 
