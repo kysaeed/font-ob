@@ -70,11 +70,21 @@ class TestController extends Controller
 		/////////////////////////////////
 
 		$charCodeList = [
-			// ord(' '),
-			ord('c'),
 			ord('a'),
-			ord('t'),
+			ord('b'),
+			ord('c'),
+			ord('d'),
+			ord('e'),
+			ord('f'),
+			ord('g'),
+			ord('h'),
+			ord('i'),
+			ord('m'),
+			ord('w'),
 
+			ord('x'),
+			ord('y'),
+			ord('z'),
 		];
 
 
@@ -214,13 +224,17 @@ echo 'hello !';die;
 		$index = 0;
 		while (count($flagsList) < $pointCount) {
 			// TODO: repeatがあるのでなおす
-			$flag = unpack('C',substr($binGlyph, $index, 1))[1];
-			$flagsList[] = $flag;
-			if ($flag & $REPEAT_FLAG) {
+			$flags = unpack('C',substr($binGlyph, $index, 1))[1];
+			$flagsList[] = $flags;
+			if ($flags & $REPEAT_FLAG) {
 				$index++;
 				$repeatCount = unpack('C',substr($binGlyph, $index, 1))[1];
+// dump('repeat '.$repeatCount.' times');
 				for ($j = 0; $j < $repeatCount; $j++) {
-					$flagsList[] = $flag;
+					if ($j > 0) {
+						$flags |= $ON_CURVE_POINT;
+					}
+					$flagsList[] = $flags;
 				}
 			}
 			$index++;
@@ -230,6 +244,7 @@ echo 'hello !';die;
 
 
 		$xCoordinatesList = [];
+		$x = 0;
 		foreach ($flagsList as $index => $flags) {
 			if ($flags & $X_SHORT_VECTOR) {
 				$xCoordinate = unpack('C', $binGlyph)[1];
@@ -248,10 +263,13 @@ echo 'hello !';die;
 					$xCoordinate = 0;
 				}
 			}
-			$xCoordinatesList[] = $xCoordinate;
+
+			$x += $xCoordinate;
+			$xCoordinatesList[] = $x;
 		}
 
 		$yCoordinatesList = [];
+		$y = 0;
 		foreach ($flagsList as $index => $flags) {
 			if ($flags & $Y_SHORT_VECTOR) {
 				$yCoordinate = unpack('C', $binGlyph)[1];
@@ -270,7 +288,8 @@ echo 'hello !';die;
 					$yCoordinate = 0;
 				}
 			}
-			$yCoordinatesList[] = $yCoordinate;
+			$y += $yCoordinate;
+			$yCoordinatesList[] = $y;
 		}
 
 
@@ -305,7 +324,7 @@ echo 'hello !';die;
 		$svg .= '<path d="';
 		$prevX = 0;
 		$prevY = 0;
-		foreach ($endPoints as $e) {
+		foreach ($endPoints as $con => $e) {
 			$isFirst = true;
 			$isCurve = false;
 			$curvePoints = [];
@@ -313,6 +332,7 @@ echo 'hello !';die;
 				$c = $coordinates[$index];
 				$x = $c['x'] / 	10;
 				$y = -$c['y'] / 10;
+				$y += 200;
 
 				if ($isCurve) {
 					if ($c['flags'] & $ON_CURVE_POINT) {
@@ -326,20 +346,20 @@ dd($curvePoints);
 						// $svg .= "{$cmd} {$x},{$y} {$curvePoints['x']},{$curvePoints['y']} ";
 						if (true) {
 							if (count($curvePoints) <= 1) {
-								$cmd = 'q';
+								$cmd = 'Q';
 							} else {
-								$cmd = 'c';
+								$cmd = 'C';
 							}
 							$svg .= "{$cmd} ";
 							$cpx = 0;
 							$cpy = 0;
 							foreach ($curvePoints as $point) {
-								$cpx += $point['x'];
-								$cpy += $point['y'];
+								$cpx = $point['x'];
+								$cpy = $point['y'];
 								$svg .= "{$cpx},{$cpy} ";
 							}
-							$cpx += $x;
-							$cpy += $y;
+							$cpx = $x;
+							$cpy = $y;
 							$svg .= "{$cpx},{$cpy} ";
 						} else {
 							foreach ($curvePoints as $cp) {
@@ -384,15 +404,16 @@ dd($curvePoints);
 						$isFirst = false;
 						$cmd = 'M';
 						if ($index <= 0) {
-							$y += 200;
+
+
 						} else {
-							$x += $prevX;
-							$y += $prevY;
+							// $x += $prevX;
+							// $y += $prevY;
 							$prevX = $x;
 							$prevY = $y;
 						}
 					} else {
-						$cmd = 'l';
+						$cmd = 'L';
 					}
 					$svg .= "{$cmd} {$x},{$y} ";
 				}
@@ -407,11 +428,45 @@ dd($curvePoints);
 				$endX = 0;
 				$endY = 0;
 
-				foreach ($curvePoints as $cp) {
-					$svg .= "l {$cp['x']},{$cp['y']} ";
+				if (true) {
+					$startIndex = 0;
+					if ($con > 0) {
+						$startIndex = $endPoints[$con - 1] + 1;
+					}
+
+					if (count($curvePoints) <= 1) {
+						$cmd = 'Q';
+					} else {
+						$cmd = 'C';
+					}
+					$svg .= "{$cmd} ";
+					foreach ($curvePoints as $cp) {
+
+						$svg .= "{$cp['x']},{$cp['y']} ";
+
+					}
+					$startCoodinate = $coordinates[$startIndex];
+					$x = ($coordinates[$startIndex]['x'] / 10);
+					$y = -($coordinates[$startIndex]['y'] / 10);
+					$y += 200;
+					$svg .= "{$x},{$y} ";
+
+				} else {
+					$startIndex = 0;
+					if ($con > 0) {
+						$startIndex = $endPoints[$con - 1] + 1;
+					}
+
+					foreach ($curvePoints as $cp) {
+						$svg .= "L {$cp['x']},{$cp['y']} ";
+					}
+					$startCoodinate = $coordinates[$startIndex];
+					$x = ($coordinates[$startIndex]['x'] / 10);
+					$y = -($coordinates[$startIndex]['y'] / 10);
+					$y += 200;
+					$svg .= "L {$x},{$y} ";
+
 				}
-
-
 			}
 
 
