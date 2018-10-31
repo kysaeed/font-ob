@@ -28,9 +28,11 @@ class TestController extends Controller
 		// echo '<hr />';
 
 
+		$binHead = $this->readTableBody($file, $tableRecords['head']);
+		$head = unpack('nmajorVersion/nminorVersion/NfontRevision/NcheckSumAdjustment/NmagicNumber/nflags/nunitsPerEm/Jcreated/Jmodified/nxMin/nyMin/nxMax/nyMax/nmacStyle/nlowestRecPPEM/nfontDirectionHint/nindexToLocFormat/nglyphDataFormat', $binHead);
+// dd($head);
 
-		$cmapInfo = $tableRecords['cmap'];
-		$binCmap = substr($file, $cmapInfo['offset'], $cmapInfo['length']);
+		$binCmap = $this->readTableBody($file, $tableRecords['cmap']);
 		$cmapHeader = unpack('nvar/nnumTables', $binCmap);
 		$cmapTableCount = $cmapHeader['numTables'];
 
@@ -49,14 +51,12 @@ class TestController extends Controller
         // }
 
 
-		$maxpInfo = $tableRecords['maxp'];
-		$binMaxp = substr($file, $maxpInfo['offset'], $maxpInfo['length']);
+		$binMaxp = $this->readTableBody($file, $tableRecords['maxp']);
 		$maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
 
 
 
-		$locaInfo = $tableRecords['loca'];
-		$binLoca = substr($file, $locaInfo['offset'], $locaInfo['length']);
+		$binLoca = $this->readTableBody($file, $tableRecords['loca']);
 		$locaCount = $maxList['numGlyphs'] + 1;
 		$locaList = array_values(unpack("n{$locaCount}", $binLoca));	//indexToLocFormatでshort or long
 
@@ -70,6 +70,12 @@ class TestController extends Controller
 		/////////////////////////////////
 
 		$charCodeList = [
+			ord('m'),
+			ord('a'),
+			ord('y'),
+			ord('a'),
+
+
 			ord('a'),
 			ord('b'),
 			ord('c'),
@@ -88,8 +94,7 @@ class TestController extends Controller
 		];
 
 
-		$glyfInfo = $tableRecords['glyf'];
-		$binGlyphsData = substr($file, $glyfInfo['offset'], $glyfInfo['length']);
+		$binGlyphsData = $this->readTableBody($file, $tableRecords['glyf']);
 
 		$map = $cmaps[0];
 		foreach ($charCodeList as $i => $charCode) {
@@ -109,13 +114,24 @@ class TestController extends Controller
 			}
 
 
+			$binHhea = $this->readTableBody($file, $tableRecords['hhea']);
+			$horizontalHeaderTable = $this->dumpHorizontalHeaderTable($binHhea);
+
+
+			$binHmtx = $this->readTableBody($file, $tableRecords['hmtx']);
+			$HorizontalMetrixList = $this->dumpHorizontalMetrix($horizontalHeaderTable, $binHmtx);
+
+			$hm = $HorizontalMetrixList[$glyphIndex];
+
+
 
 			$glyphOffset = $locaList[$glyphIndex] * 2;
 
 			$binGlyph = substr($binGlyphsData, $glyphOffset);
 			$g = $this->dumpGlyph($binGlyph);
 // dump($g);
-			$svg = $this->glyphToSvg($g);
+
+			$svg = $this->glyphToSvg($g, $hm);
 			echo $svg;
 
 		}
@@ -129,6 +145,15 @@ echo 'hello !';die;
 
 		return '';
     }
+
+	protected function readTableBody($binFile, $tableInfo)
+	{
+		$binBody = substr($binFile, $tableInfo['offset'], $tableInfo['length']);
+
+		// TODO: チェックサム
+
+		return $binBody;
+	}
 
 	protected function dumpCmapSubTable($encodingRecord, $binCmap)
 	{
@@ -329,11 +354,14 @@ echo 'hello !';die;
 		];
 	}
 
-	protected function glyphToSvg($glyph)
+	protected function glyphToSvg($glyph, $hmtx)
 	{
+		$lsb = $hmtx['lsb'] / 10;
+		$width = $hmtx['advanceWidth']  / 10;
+
 		$ON_CURVE_POINT = (0x01 << 0);
 
-		$svg = '<svg x="100px" y="100px" width="200px" height="300px">';
+		$svg = '<svg x="100px" y="100px" width="'.($width + $lsb).'px" height="300px">';
 
 
 		$endPoints = $glyph['endPtsOfContours'];
@@ -350,6 +378,7 @@ echo 'hello !';die;
 			foreach ($contours as $index => $c) {
 				$x = $c['x'] / 	10;
 				$y = -$c['y'] / 10;
+				$x += $lsb;
 				$y += 200;
 
 				if ($isCurve) {
@@ -447,6 +476,7 @@ dd($curvePoints);
 					$startCoodinate = $contours[$startIndex];
 					$x = ($contours[$startIndex]['x'] / 10);
 					$y = -($contours[$startIndex]['y'] / 10);
+					$x += $lsb;
 					$y += 200;
 					$svg .= "{$x},{$y} ";
 
@@ -458,6 +488,7 @@ dd($curvePoints);
 					$startCoodinate = $contours[0];
 					$x = ($contours[$startIndex]['x'] / 10);
 					$y = -($contours[$startIndex]['y'] / 10);
+					$x += $lsb;
 					$y += 200;
 					$svg .= "L {$x},{$y} ";
 
@@ -477,6 +508,27 @@ dd($curvePoints);
 		$svg .= '</svg>';
 
 		return $svg;
+	}
+
+	protected function dumpHorizontalHeaderTable($binHhea)
+	{
+		$horizontalHeaderTable = unpack('nmajorVersion/nminorVersion/nascender/ndescender/nlineGap/nadvanceWidthMax/nminLeftSideBearing/nminRightSideBearing/nxMaxExtent/ncaretSlopeRise/ncaretSlopeRun/ncaretOffset/n4reserve/nmetricDataFormat/nnumberOfHMetrics', $binHhea);
+		return $horizontalHeaderTable;
+	}
+
+
+	protected function dumpHorizontalMetrix($horizontalHeaderTable, $binHmtx)
+	{
+		$hmtcCount = $horizontalHeaderTable['numberOfHMetrics'];
+
+		$HorizontalMetrixList = [];
+		for ($i = 0; $i < $hmtcCount; $i++) {
+			$HorizontalMetrixList[] = unpack('nadvanceWidth/nlsb', $binHmtx);
+			$binHmtx = substr($binHmtx, 4);
+		}
+
+		// TODO: leftSideBearing
+		return $HorizontalMetrixList;
 	}
 
 }
