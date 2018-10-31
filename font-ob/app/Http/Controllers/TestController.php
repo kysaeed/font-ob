@@ -11,7 +11,11 @@ class TestController extends Controller
 {
 	public function test(Request $request)
     {
-        $file = Storage::disk('local')->get('strokes/font.ttf');
+		// font
+		// mplus-1c-light
+
+        // $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
+		$file = Storage::disk('local')->get('strokes/font.ttf');
 
         $header = unpack('Nver/nnum/nrange/nselector/nshift', $file);
 		$tableRecords = [];
@@ -42,7 +46,7 @@ class TestController extends Controller
 			$encodingRecord = unpack('nplatformID/nencodingID/Noffset', $binEncordingRecord);
 			$cmaps[] = $this->dumpCmapSubTable($encodingRecord, $binCmap);
 		}
-
+// dd($cmaps[0]);
 
         // foreach ($tableRecords as $key => $t) {
         //     $test = substr($f, $t['offset'], $t['length']);
@@ -58,7 +62,13 @@ class TestController extends Controller
 
 		$binLoca = $this->readTableBody($file, $tableRecords['loca']);
 		$locaCount = $maxList['numGlyphs'] + 1;
-		$locaList = array_values(unpack("n{$locaCount}", $binLoca));	//indexToLocFormatでshort or long
+
+		if (!$head['indexToLocFormat']) {
+			$locaFormat = "n{$locaCount}";
+		} else {
+			$locaFormat = "N{$locaCount}";
+		}
+		$locaList = array_values(unpack($locaFormat, $binLoca));
 
 
 		$glyf = $tableRecords['glyf'];
@@ -113,6 +123,8 @@ class TestController extends Controller
 				}
 			}
 
+// $glyphIndex = $i + 10;
+// dd($locaList);
 
 			$binHhea = $this->readTableBody($file, $tableRecords['hhea']);
 			$horizontalHeaderTable = $this->dumpHorizontalHeaderTable($binHhea);
@@ -128,10 +140,10 @@ class TestController extends Controller
 			$glyphOffset = $locaList[$glyphIndex] * 2;
 
 			$binGlyph = substr($binGlyphsData, $glyphOffset);
-			$g = $this->dumpGlyph($binGlyph);
+			$glyfData = $this->dumpGlyph($binGlyph);
 // dump($g);
 
-			$svg = $this->glyphToSvg($g, $hm);
+			$svg = $this->glyphToSvg($glyfData, $hm);
 			echo $svg;
 
 		}
@@ -159,7 +171,7 @@ echo 'hello !';die;
 	{
 		$binSub = substr($binCmap, $encodingRecord['offset'], 2);
 		$subFormat = unpack('nformat', $binSub);
-
+// dump('format = '.$subFormat['format']);
 
 		if ($subFormat['format'] == 0x00) {
 			$binSubTable = substr($binCmap, $encodingRecord['offset']);
@@ -225,6 +237,11 @@ echo 'hello !';die;
 
 		$endPtsOfContoursList = array_values(unpack("n{$glyphHeader['numberOfContours']}", $binGlyph));
 		$binGlyph = substr($binGlyph, 2 * $glyphHeader['numberOfContours']);
+
+// dump($glyphHeader['numberOfContours']);
+if ($glyphHeader['numberOfContours'] < 0) {
+	return null;
+}
 
 		$instructionLength = unpack("n{$glyphHeader['numberOfContours']}", $binGlyph)[1];
 		$binGlyph = substr($binGlyph, 2);
@@ -356,6 +373,9 @@ echo 'hello !';die;
 
 	protected function glyphToSvg($glyph, $hmtx)
 	{
+if (!$glyph) {
+	return '';
+}
 		$lsb = $hmtx['lsb'] / 10;
 		$width = $hmtx['advanceWidth']  / 10;
 
