@@ -84,8 +84,8 @@ class TestController extends Controller
 			ord('a'),
 			ord('y'),
 			ord('a'),
-
-
+			//
+			//
 			ord('a'),
 			ord('b'),
 			ord('c'),
@@ -137,7 +137,10 @@ class TestController extends Controller
 
 
 
-			$glyphOffset = $locaList[$glyphIndex] * 2;
+			$glyphOffset = $locaList[$glyphIndex];
+			if (!$head['indexToLocFormat']) {
+				$glyphOffset *= 2;
+			}
 
 			$binGlyph = substr($binGlyphsData, $glyphOffset);
 			$glyfData = $this->dumpGlyph($binGlyph);
