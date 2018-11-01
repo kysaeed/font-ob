@@ -14,8 +14,8 @@ class TestController extends Controller
 		// font
 		// mplus-1c-light
 
-        // $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
-		$file = Storage::disk('local')->get('strokes/font.ttf');
+        $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
+		// $file = Storage::disk('local')->get('strokes/font.ttf');
 
         $header = unpack('Nver/nnum/nrange/nselector/nshift', $file);
 		$tableRecords = [];
@@ -80,12 +80,6 @@ class TestController extends Controller
 		/////////////////////////////////
 
 		$charCodeList = [
-			ord('m'),
-			ord('a'),
-			ord('y'),
-			ord('a'),
-			//
-			//
 			ord('a'),
 			ord('b'),
 			ord('c'),
@@ -94,6 +88,7 @@ class TestController extends Controller
 			ord('f'),
 			ord('g'),
 			ord('h'),
+			ord('s'),
 			ord('i'),
 			ord('m'),
 			ord('w'),
@@ -276,9 +271,9 @@ if ($glyphHeader['numberOfContours'] < 0) {
 				$repeatCount = unpack('C',substr($binGlyph, $index, 1))[1];
 // dump('repeat '.$repeatCount.' times');
 				for ($j = 0; $j < $repeatCount; $j++) {
-					if ($j > 0) {
-						$flags |= $ON_CURVE_POINT;
-					}
+					// if ($j > 0) {
+					// 	$flags |= $ON_CURVE_POINT;
+					// }
 					$flagsList[] = $flags;
 				}
 			}
@@ -379,30 +374,31 @@ if ($glyphHeader['numberOfContours'] < 0) {
 if (!$glyph) {
 	return '';
 }
-		$lsb = $hmtx['lsb'] / 10;
-		$width = $hmtx['advanceWidth']  / 10;
+		$sizeBase = 10;
+
+		$lsb = $hmtx['lsb'] / $sizeBase;
+		$width = $hmtx['advanceWidth'] / $sizeBase;
 
 		$ON_CURVE_POINT = (0x01 << 0);
 
-		$svg = '<svg x="100px" y="100px" width="'.($width + $lsb).'px" height="300px">';
-
+		$h = 2800 / $sizeBase;
+		$svg = '<svg width="'.($width + $lsb).'px" height="'.$h.'px">';
 
 		$endPoints = $glyph['endPtsOfContours'];
 		$coordinates = $glyph['coordinates'];
 
 		$svg .= '<path d="';
-		$prevX = 0;
-		$prevY = 0;
+
 		foreach ($coordinates as $indexEndPonts => $contours) {
 			$isFirst = true;
 			$isCurve = false;
 			$curvePoints = [];
 			$maxIndexContours = count($contours) - 1;
 			foreach ($contours as $index => $c) {
-				$x = $c['x'] / 	10;
-				$y = -$c['y'] / 10;
+				$x = $c['x'] / $sizeBase;
+				$y = -$c['y'] / $sizeBase;
 				$x += $lsb;
-				$y += 200;
+				$y += (2000 / $sizeBase);
 
 				if ($isCurve) {
 					if ($c['flags'] & $ON_CURVE_POINT) {
@@ -411,27 +407,26 @@ dd($curvePoints);
 						}
 						// $svg .= "{$cmd} {$x},{$y} {$curvePoints['x']},{$curvePoints['y']} ";
 						if (true) {
+// dump('$index='.$index);
+// dump($curvePoints);
 							if (count($curvePoints) <= 1) {
 								$cmd = 'Q';
 							} else {
-								$cmd = 'C';
+								$cmd = 'C';	// NOTE: ２時曲線のみ
+dd('２次曲線のみ');
 							}
 							$svg .= "{$cmd} ";
-							$cpx = 0;
-							$cpy = 0;
 							foreach ($curvePoints as $point) {
 								$cpx = $point['x'];
 								$cpy = $point['y'];
 								$svg .= "{$cpx},{$cpy} ";
 							}
-							$cpx = $x;
-							$cpy = $y;
-							$svg .= "{$cpx},{$cpy} ";
+							$svg .= "{$x},{$y} ";
 						} else {
 							foreach ($curvePoints as $cp) {
-								$svg .= "l {$cp['x']},{$cp['y']} ";
+								$svg .= "L {$cp['x']},{$cp['y']} ";
 							}
-							$svg .= "l {$x},{$y} ";
+							$svg .= "L {$x},{$y} ";
 						}
 
 						$isCurve = false;
@@ -448,6 +443,22 @@ dd($curvePoints);
 							}
 						}
 
+					} else if (count($curvePoints) >= 1) {
+
+						$diffX = $x - $curvePoints[0]['x'];
+						$diffY = $y - $curvePoints[0]['y'];
+
+						$middleX = $curvePoints[0]['x'] + ($diffX / 2);
+						$middleY = $curvePoints[0]['y'] + ($diffY / 2);
+
+						$svg .= "Q {$curvePoints[0]['x']},{$curvePoints[0]['y']} {$middleX},{$middleY} ";
+						$curvePoints = [
+							[
+								'x' => $x,
+								'y' => $y,
+							]
+						];
+
 					} else {
 						$curvePoints[] = [
 							'x' => $x,
@@ -458,10 +469,9 @@ dd($curvePoints);
 					if ($index < $maxIndexContours) {
 						$nextFlags = $contours[$index + 1]['flags'];
 						if (!($nextFlags & $ON_CURVE_POINT)) {
-							$isCurve = true;
+							$isCurve = true;	// @@カーブ開始
 							$cusrveStartX = $x;
 							$cusrveStartY = $y;
-
 							$curvePoints = [];
 						}
 					}
@@ -475,44 +485,39 @@ dd($curvePoints);
 					$svg .= "{$cmd} {$x},{$y} ";
 				}
 
-				$prevX = $x;
-				$prevY = $y;
 				$index++;
 			}
 
 
 			if ($isCurve) {
-				$endX = 0;
-				$endY = 0;
-
 				if (true) {
-					$startIndex = 0;
 					if (count($curvePoints) <= 1) {
 						$cmd = 'Q';
-					} else {
+					} else if (count($curvePoints) == 2) {
 						$cmd = 'C';
+					} else {
+						dd($curvePoints);
 					}
 					$svg .= "{$cmd} ";
 					foreach ($curvePoints as $cp) {
 						$svg .= "{$cp['x']},{$cp['y']} ";
 					}
-					$startCoodinate = $contours[$startIndex];
-					$x = ($contours[$startIndex]['x'] / 10);
-					$y = -($contours[$startIndex]['y'] / 10);
+					$startCoodinate = $contours[0];
+					$x = ($contours[0]['x'] / $sizeBase);
+					$y = -($contours[0]['y'] / $sizeBase);
 					$x += $lsb;
-					$y += 200;
+					$y += 2000 / $sizeBase;
 					$svg .= "{$x},{$y} ";
 
 				} else {
-					$startIndex = 0;
 					foreach ($curvePoints as $cp) {
 						$svg .= "L {$cp['x']},{$cp['y']} ";
 					}
 					$startCoodinate = $contours[0];
-					$x = ($contours[$startIndex]['x'] / 10);
-					$y = -($contours[$startIndex]['y'] / 10);
+					$x = ($contours[0]['x'] / $sizeBase);
+					$y = -($contours[0]['y'] / $sizeBase);
 					$x += $lsb;
-					$y += 200;
+					$y += 2000 / $sizeBase;
 					$svg .= "L {$x},{$y} ";
 
 				}
