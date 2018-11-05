@@ -14,8 +14,10 @@ class TestController extends Controller
 		// font
 		// mplus-1c-light
 
-        $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
+        // $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
 		// $file = Storage::disk('local')->get('strokes/font.ttf');
+		// $file = Storage::disk('local')->get('strokes/Glamor-Light.ttf');
+		$file = Storage::disk('local')->get('strokes/fancyheart_regular.ttf');
 
         $header = unpack('Nver/nnum/nrange/nselector/nshift', $file);
 		$tableRecords = [];
@@ -80,49 +82,51 @@ class TestController extends Controller
 		/////////////////////////////////
 
 		$charCodeList = [
+			// ord('-'),
+
 			ord('M'),
 			ord('A'),
 			ord('Y'),
 			ord('A'),
 			//
-			ord('-'),
-
-			ord('m'),
-			ord('a'),
-			ord('y'),
-			ord('a'),
-
-			ord('-'),
+			// ord(' '),
 			//
-			ord('a'),
-			ord('b'),
-			ord('c'),
-			ord('d'),
-			ord('e'),
-			ord('f'),
-			ord('g'),
-			ord('h'),
-			ord('s'),
-			ord('i'),
-			ord('m'),
-			ord('w'),
-			ord('o'),
-
-			ord('x'),
-			ord('y'),
-			ord('z'),
-
-			ord('A'),
-			ord('W'),
-			ord('S'),
-			ord('O'),
-			ord('Q'),
+			// ord('m'),
+			// ord('a'),
+			// ord('y'),
+			// ord('a'),
+			//
+			// ord('-'),
+			// //
+			// ord('a'),
+			// ord('b'),
+			// ord('c'),
+			// ord('d'),
+			// ord('e'),
+			// ord('f'),
+			// ord('g'),
+			// ord('h'),
+			// ord('s'),
+			// ord('i'),
+			// ord('m'),
+			// ord('w'),
+			// ord('o'),
+			//
+			// ord('x'),
+			// ord('y'),
+			// ord('z'),
+			//
+			// ord('A'),
+			// ord('W'),
+			// ord('S'),
+			// ord('O'),
+			// ord('Q'),
 		];
 
 
 		$binGlyphsData = $this->readTableBody($file, $tableRecords['glyf']);
 
-		$map = $cmaps[0];
+		$map = $cmaps[0]['body'];
 		foreach ($charCodeList as $i => $charCode) {
 			$glyphIndex = 0;
 			$index = 0;
@@ -131,8 +135,8 @@ class TestController extends Controller
 					if ($m['startCount'] <= $charCode) {
 
 						// TODO: set offset to glyf id array !
-
-						$glyphIndex = $charCode + $m['idDelta'];
+// dump($m['idRangeOffset']);
+						$glyphIndex = $charCode + $m['idDelta'] /* - 33 */;
 
 						break;
 					}
@@ -235,11 +239,14 @@ echo 'hello !';die;
 					'startCount' => $startCountList[$i],
 					'endCount' => $endCountList[$i],
 					'idDelta' => $idDeltaList[$i],
-					'idRangeOffsetList' => $idRangeOffsetList[$i],
+					'idRangeOffset' => $idRangeOffsetList[$i],
 				];
 			}
 
-			return $subTableBody;
+			return [
+				'header' => $subHeader,
+				'body' => $subTableBody,
+			];
 		}
 
 		return null;
