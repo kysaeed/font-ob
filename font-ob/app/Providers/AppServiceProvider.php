@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Providers;
+namespace FontObscure\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
