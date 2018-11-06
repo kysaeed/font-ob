@@ -3,8 +3,9 @@
 namespace FontObscure\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use Storage;
+
+use FontObscure\GlyphSvg;
 
 
 class TestController extends Controller
@@ -89,62 +90,53 @@ class TestController extends Controller
 			ord('Y'),
 			ord('A'),
 			//
-			// ord(' '),
+			ord('-'),
+
+			ord('m'),
+			ord('a'),
+			ord('y'),
+			ord('a'),
+
+			ord('-'),
 			//
-			// ord('m'),
-			// ord('a'),
-			// ord('y'),
-			// ord('a'),
-			//
-			// ord('-'),
-			// //
-			// ord('a'),
-			// ord('b'),
-			// ord('c'),
-			// ord('d'),
-			// ord('e'),
-			// ord('f'),
-			// ord('g'),
-			// ord('h'),
-			// ord('s'),
-			// ord('i'),
-			// ord('m'),
-			// ord('w'),
-			// ord('o'),
-			//
-			// ord('x'),
-			// ord('y'),
-			// ord('z'),
-			//
-			// ord('A'),
-			// ord('W'),
-			// ord('S'),
-			// ord('O'),
-			// ord('Q'),
+			ord('a'),
+			ord('b'),
+			ord('c'),
+			ord('d'),
+			ord('e'),
+			ord('f'),
+			ord('g'),
+			ord('h'),
+			ord('s'),
+			ord('i'),
+			ord('m'),
+			ord('w'),
+			ord('o'),
+
+			ord('x'),
+			ord('y'),
+			ord('z'),
+
+			ord('A'),
+			ord('W'),
+			ord('S'),
+			ord('O'),
+			ord('Q'),
 		];
 
 
 		$binGlyphsData = $this->readTableBody($file, $tableRecords['glyf']);
 
+		$header = $cmaps[0]['body'];
 		$map = $cmaps[0]['body'];
 		foreach ($charCodeList as $i => $charCode) {
 			$glyphIndex = 0;
 			$index = 0;
-			foreach ($map as $m) {
-				if ($m['endCount'] >= $charCode) {
-					if ($m['startCount'] <= $charCode) {
+			$glyphIndex = $this->getGlyphIndex($cmaps[0], $charCode);
 
-						// TODO: set offset to glyf id array !
-// dump($m['idRangeOffset']);
-						$glyphIndex = $charCode + $m['idDelta'] /* - 33 */;
-
-						break;
-					}
-				}
+			if ($glyphIndex < 0) {
+				continue;
 			}
-
-// $glyphIndex = $i + 10;
-// dd($locaList);
 
 			$binHhea = $this->readTableBody($file, $tableRecords['hhea']);
 			$horizontalHeaderTable = $this->dumpHorizontalHeaderTable($binHhea);
@@ -164,9 +156,8 @@ class TestController extends Controller
 
 			$binGlyph = substr($binGlyphsData, $glyphOffset);
 			$glyfData = $this->dumpGlyph($binGlyph);
-// dump($g);
 
-			$gs = new \FontObscure\GlyphSvg($glyfData, $hm);
+			$gs = new GlyphSvg($glyfData, $hm);
 
 			$svg = $gs->getSvg();
 			echo $svg;
@@ -178,9 +169,7 @@ class TestController extends Controller
 // dd($glyphIndex);
 
 
-echo 'hello !';die;
-
-		return '';
+		return 'hello !';
     }
 
 	protected function readTableBody($binFile, $tableInfo)
@@ -231,7 +220,18 @@ echo 'hello !';die;
 			unset($idDelta);
 
 			$idRangeOffsetList = array_values(unpack("n{$count}", $binSubTableBody));
-			// $binSubTableBody = substr($binSubTableBody, $count * 2);
+			$binSubTableBody = substr($binSubTableBody, $count * 2);
+
+// dump($idRangeOffsetList);
+			$offsetCount = count($idRangeOffsetList);
+			foreach ($idRangeOffsetList as $index => &$offset) {
+				if ($offset > 0) {
+					$offset = ($offset / 2) - ($offsetCount - $index);
+				} else {
+					$offset = -1;
+				}
+			}
+			unset($offset);
 
 			$subTableBody = [];
 			for ($i = 0; $i < $count; $i++) {
@@ -243,9 +243,19 @@ echo 'hello !';die;
 				];
 			}
 
+			$count = count($idRangeOffsetList);
+			$len = ($subHeader['length'] - ($subHeader['segCountX2'] * 4 + 16)) / 2;
+// dd($len);
+			if ($len > 0) {
+				$glyphIdArray = array_values(unpack("n{$len}", $binSubTableBody));
+			} else {
+				$glyphIdArray = [];
+			}
+// dd($glyphIdArray);
 			return [
 				'header' => $subHeader,
 				'body' => $subTableBody,
+				'glyphIdArray' => $glyphIdArray,
 			];
 		}
 
@@ -418,6 +428,40 @@ if ($glyphHeader['numberOfContours'] < 0) {
 
 		// TODO: leftSideBearing
 		return $HorizontalMetrixList;
+	}
+
+	protected function getGlyphIndex($cmap, $charCode)
+	{
+		$header = $cmap['header'];
+
+		if ($header['format'] == 0) {
+			dd('未対応');
+		}
+
+		if ($header['format'] == 4) {
+			$map = $cmap['body'];
+			$glyphIdArray = $cmap['glyphIdArray'];
+
+			$glyphIndex = 0;
+			$index = 0;
+			foreach ($map as $index => $m) {
+				if ($m['endCount'] >= $charCode) {
+					if ($m['startCount'] <= $charCode) {
+						if ($m['idRangeOffset'] > -1) {
+							// TODO: + $m['idDelta']が必要か確認
+							$glyphIdArrayIndex = $m['idRangeOffset'] + ($charCode - $m['startCount']);
+							return $glyphIdArray[$glyphIdArrayIndex];
+						} else {
+							$glyphIndex = ($charCode) + $m['idDelta'] /* - 33 */;
+							return $glyphIndex;
+						}
+					}
+				}
+			}
+			return -1;
+		}
+
+		return -1;
 	}
 
 }
