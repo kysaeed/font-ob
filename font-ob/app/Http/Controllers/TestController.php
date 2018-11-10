@@ -5,6 +5,7 @@ namespace FontObscure\Http\Controllers;
 use Illuminate\Http\Request;
 use Storage;
 
+use FontObscure\TffFile;
 use FontObscure\GlyphSvg;
 
 
@@ -15,69 +16,62 @@ class TestController extends Controller
 		// font
 		// mplus-1c-light
 
-        // $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
 		// $file = Storage::disk('local')->get('strokes/font.ttf');
-		// $file = Storage::disk('local')->get('strokes/Glamor-Light.ttf');
-		$file = Storage::disk('local')->get('strokes/fancyheart_regular.ttf');
+        // $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
+		$file = Storage::disk('local')->get('strokes/Glamor-Light.ttf');
+		// $file = Storage::disk('local')->get('strokes/fancyheart_regular.ttf');
 
-        $header = unpack('Nver/nnum/nrange/nselector/nshift', $file);
-		$tableRecords = [];
-        $readOffset = 12;
-        for ($i = 0; $i < $header['num']; $i++) {
-            $tag = substr($file, $readOffset, 4);
-            $tableRecordData = substr($file, ($readOffset + 4), (16 - 4));
-            $tableRecords[$tag] = unpack('Nsum/Noffset/Nlength', $tableRecordData);
-            $readOffset += 16;
-        }
+		$ttf = new TffFile($file);
+
+        // $header = unpack('Nver/nnum/nrange/nselector/nshift', $file);
+		// $tableRecords = [];
+        // $readOffset = 12;
+        // for ($i = 0; $i < $header['num']; $i++) {
+        //     $tag = substr($file, $readOffset, 4);
+        //     $tableRecordData = substr($file, ($readOffset + 4), (16 - 4));
+        //     $tableRecords[$tag] = unpack('Nsum/Noffset/Nlength', $tableRecordData);
+        //     $readOffset += 16;
+        // }
+
 		// echo '<hr />';
 		// dump('header');
 		// dump($header);
 		// echo '<hr />';
 
+		// $binHead = $this->readTableBody($file, $tableRecords['head']);
+		// $head = unpack('nmajorVersion/nminorVersion/NfontRevision/NcheckSumAdjustment/NmagicNumber/nflags/nunitsPerEm/Jcreated/Jmodified/nxMin/nyMin/nxMax/nyMax/nmacStyle/nlowestRecPPEM/nfontDirectionHint/nindexToLocFormat/nglyphDataFormat', $binHead);
 
-		$binHead = $this->readTableBody($file, $tableRecords['head']);
-		$head = unpack('nmajorVersion/nminorVersion/NfontRevision/NcheckSumAdjustment/NmagicNumber/nflags/nunitsPerEm/Jcreated/Jmodified/nxMin/nyMin/nxMax/nyMax/nmacStyle/nlowestRecPPEM/nfontDirectionHint/nindexToLocFormat/nglyphDataFormat', $binHead);
-// dd($head);
+		// $binCmap = $this->readTableBody($file, $tableRecords['cmap']);
+		// $cmapHeader = unpack('nvar/nnumTables', $binCmap);
+		// $cmapTableCount = $cmapHeader['numTables'];
 
-		$binCmap = $this->readTableBody($file, $tableRecords['cmap']);
-		$cmapHeader = unpack('nvar/nnumTables', $binCmap);
-		$cmapTableCount = $cmapHeader['numTables'];
-
-		$cmaps = [];
-		for ($i = 0; $i < $cmapTableCount; $i++) {
-			$binEncordingRecord = substr($binCmap, 4 + $i * 8, 8);
-			$encodingRecord = unpack('nplatformID/nencodingID/Noffset', $binEncordingRecord);
-			$cmaps[] = $this->dumpCmapSubTable($encodingRecord, $binCmap);
-		}
+		// $cmaps = [];
+		// for ($i = 0; $i < $cmapTableCount; $i++) {
+		// 	$binEncordingRecord = substr($binCmap, 4 + $i * 8, 8);
+		// 	$encodingRecord = unpack('nplatformID/nencodingID/Noffset', $binEncordingRecord);
+		// 	$cmaps[] = $this->dumpCmapSubTable($encodingRecord, $binCmap);
+		// }
 // dd($cmaps[0]);
 
-        // foreach ($tableRecords as $key => $t) {
-        //     $test = substr($f, $t['offset'], $t['length']);
-        //     $mySum = $this->calculateCheckSum($test);
-		// 	// dump( sprintf('calculated-sum=%08x , org-sum=%08x', $mySum, $t['sum']) );
-        // }
 
-
-		$binMaxp = $this->readTableBody($file, $tableRecords['maxp']);
-		$maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
+		// $binMaxp = $this->readTableBody($file, $tableRecords['maxp']);
+		// $maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
 
 
 
-		$binLoca = $this->readTableBody($file, $tableRecords['loca']);
-		$locaCount = $maxList['numGlyphs'] + 1;
+		// $binLoca = $this->readTableBody($file, $tableRecords['loca']);
+		// $locaCount = $maxList['numGlyphs'] + 1;
 
-		if (!$head['indexToLocFormat']) {
-			$locaFormat = "n{$locaCount}";
-		} else {
-			$locaFormat = "N{$locaCount}";
-		}
-		$locaList = array_values(unpack($locaFormat, $binLoca));
+		// if (!$head['indexToLocFormat']) {
+		// 	$locaFormat = "n{$locaCount}";
+		// } else {
+		// 	$locaFormat = "N{$locaCount}";
+		// }
+		// $locaList = array_values(unpack($locaFormat, $binLoca));
 
 
-		$glyf = $tableRecords['glyf'];
-		$g = substr($file, $glyf['offset'], $glyf['length']);
-		// $glyph
-
+		// $glyf = $tableRecords['glyf'];
+		// $g = substr($file, $glyf['offset'], $glyf['length']);
 
 
 		/////////////////////////////////
@@ -125,38 +119,41 @@ class TestController extends Controller
 		];
 
 
-		$binGlyphsData = $this->readTableBody($file, $tableRecords['glyf']);
+		// $binHhea = $this->readTableBody($file, $tableRecords['hhea']);
+		// $horizontalHeaderTable = $this->dumpHorizontalHeaderTable($binHhea);
 
-		$header = $cmaps[0]['body'];
-		$map = $cmaps[0]['body'];
+
+		// $binHmtx = $this->readTableBody($file, $tableRecords['hmtx']);
+		// $horizontalMetrixList = $this->dumpHorizontalMetrix($horizontalHeaderTable, $binHmtx);
+
+
+		// $binGlyphsData = $this->readTableBody($file, $tableRecords['glyf']);
+		// $header = $cmaps[0]['body'];
+		// $map = $cmaps[0]['body'];
 		foreach ($charCodeList as $i => $charCode) {
-			$glyphIndex = 0;
-			$index = 0;
-			$glyphIndex = $this->getGlyphIndex($cmaps[0], $charCode);
+			// $glyphIndex = 0;
+			// $index = 0;
 
+			$glyphIndex = $ttf->getGlyphIndex($charCode);
 			if ($glyphIndex < 0) {
 				continue;
 			}
 
-			$binHhea = $this->readTableBody($file, $tableRecords['hhea']);
-			$horizontalHeaderTable = $this->dumpHorizontalHeaderTable($binHhea);
+//
+//
+// 			$hm = $horizontalMetrixList[$glyphIndex];
+//
+// 			$glyphOffset = $locaList[$glyphIndex];
+// 			if (!$head['indexToLocFormat']) {
+// 				$glyphOffset *= 2;
+// 			}
+// // dump("offset = {$glyphOffset}");
+// 			$binGlyph = substr($binGlyphsData, $glyphOffset);
+// 			$glyfData = $this->dumpGlyph($binGlyph);
+// dd($ttf->ttf['glyphList']);
 
-
-			$binHmtx = $this->readTableBody($file, $tableRecords['hmtx']);
-			$HorizontalMetrixList = $this->dumpHorizontalMetrix($horizontalHeaderTable, $binHmtx);
-
-			$hm = $HorizontalMetrixList[$glyphIndex];
-
-
-
-			$glyphOffset = $locaList[$glyphIndex];
-			if (!$head['indexToLocFormat']) {
-				$glyphOffset *= 2;
-			}
-
-			$binGlyph = substr($binGlyphsData, $glyphOffset);
-			$glyfData = $this->dumpGlyph($binGlyph);
-
+$glyfData = $ttf->ttf['glyphList'][$glyphIndex];
+$hm = $ttf->ttf['hmtx'][$glyphIndex];
 			$gs = new GlyphSvg($glyfData, $hm);
 
 			$svg = $gs->getSvg();
@@ -171,6 +168,12 @@ class TestController extends Controller
 
 		return 'hello !';
     }
+
+
+
+
+
+
 
 	protected function readTableBody($binFile, $tableInfo)
 	{
