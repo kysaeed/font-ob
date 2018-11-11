@@ -16,65 +16,12 @@ class TestController extends Controller
 		// font
 		// mplus-1c-light
 
-		// $file = Storage::disk('local')->get('strokes/font.ttf');
-        // $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
-		$file = Storage::disk('local')->get('strokes/Glamor-Light.ttf');
+		$file = Storage::disk('local')->get('strokes/font.ttf');
+		// $file = Storage::disk('local')->get('strokes/Glamor-Light.ttf');
 		// $file = Storage::disk('local')->get('strokes/fancyheart_regular.ttf');
+		// $file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
 
 		$ttf = new TffFile($file);
-
-        // $header = unpack('Nver/nnum/nrange/nselector/nshift', $file);
-		// $tableRecords = [];
-        // $readOffset = 12;
-        // for ($i = 0; $i < $header['num']; $i++) {
-        //     $tag = substr($file, $readOffset, 4);
-        //     $tableRecordData = substr($file, ($readOffset + 4), (16 - 4));
-        //     $tableRecords[$tag] = unpack('Nsum/Noffset/Nlength', $tableRecordData);
-        //     $readOffset += 16;
-        // }
-
-		// echo '<hr />';
-		// dump('header');
-		// dump($header);
-		// echo '<hr />';
-
-		// $binHead = $this->readTableBody($file, $tableRecords['head']);
-		// $head = unpack('nmajorVersion/nminorVersion/NfontRevision/NcheckSumAdjustment/NmagicNumber/nflags/nunitsPerEm/Jcreated/Jmodified/nxMin/nyMin/nxMax/nyMax/nmacStyle/nlowestRecPPEM/nfontDirectionHint/nindexToLocFormat/nglyphDataFormat', $binHead);
-
-		// $binCmap = $this->readTableBody($file, $tableRecords['cmap']);
-		// $cmapHeader = unpack('nvar/nnumTables', $binCmap);
-		// $cmapTableCount = $cmapHeader['numTables'];
-
-		// $cmaps = [];
-		// for ($i = 0; $i < $cmapTableCount; $i++) {
-		// 	$binEncordingRecord = substr($binCmap, 4 + $i * 8, 8);
-		// 	$encodingRecord = unpack('nplatformID/nencodingID/Noffset', $binEncordingRecord);
-		// 	$cmaps[] = $this->dumpCmapSubTable($encodingRecord, $binCmap);
-		// }
-// dd($cmaps[0]);
-
-
-		// $binMaxp = $this->readTableBody($file, $tableRecords['maxp']);
-		// $maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
-
-
-
-		// $binLoca = $this->readTableBody($file, $tableRecords['loca']);
-		// $locaCount = $maxList['numGlyphs'] + 1;
-
-		// if (!$head['indexToLocFormat']) {
-		// 	$locaFormat = "n{$locaCount}";
-		// } else {
-		// 	$locaFormat = "N{$locaCount}";
-		// }
-		// $locaList = array_values(unpack($locaFormat, $binLoca));
-
-
-		// $glyf = $tableRecords['glyf'];
-		// $g = substr($file, $glyf['offset'], $glyf['length']);
-
-
-		/////////////////////////////////
 
 		$charCodeList = [
 			// ord('-'),
@@ -118,42 +65,24 @@ class TestController extends Controller
 			ord('Q'),
 		];
 
+		// for ($glyphIndex = 0; $glyphIndex < 10; $glyphIndex++) {
+		// 	$glyfData = $ttf->ttf['glyphList'][$glyphIndex];
+		// 	$hm = $ttf->ttf['hmtx'][$glyphIndex];
+		// 	$gs = new GlyphSvg($glyfData, $hm);
+		//
+		// 	$svg = $gs->getSvg();
+		// 	echo $svg;
+		// }
 
-		// $binHhea = $this->readTableBody($file, $tableRecords['hhea']);
-		// $horizontalHeaderTable = $this->dumpHorizontalHeaderTable($binHhea);
-
-
-		// $binHmtx = $this->readTableBody($file, $tableRecords['hmtx']);
-		// $horizontalMetrixList = $this->dumpHorizontalMetrix($horizontalHeaderTable, $binHmtx);
-
-
-		// $binGlyphsData = $this->readTableBody($file, $tableRecords['glyf']);
-		// $header = $cmaps[0]['body'];
-		// $map = $cmaps[0]['body'];
 		foreach ($charCodeList as $i => $charCode) {
-			// $glyphIndex = 0;
-			// $index = 0;
-
 			$glyphIndex = $ttf->getGlyphIndex($charCode);
+// dump($glyphIndex);
 			if ($glyphIndex < 0) {
 				continue;
 			}
 
-//
-//
-// 			$hm = $horizontalMetrixList[$glyphIndex];
-//
-// 			$glyphOffset = $locaList[$glyphIndex];
-// 			if (!$head['indexToLocFormat']) {
-// 				$glyphOffset *= 2;
-// 			}
-// // dump("offset = {$glyphOffset}");
-// 			$binGlyph = substr($binGlyphsData, $glyphOffset);
-// 			$glyfData = $this->dumpGlyph($binGlyph);
-// dd($ttf->ttf['glyphList']);
-
-$glyfData = $ttf->ttf['glyphList'][$glyphIndex];
-$hm = $ttf->ttf['hmtx'][$glyphIndex];
+			$glyfData = $ttf->ttf['glyphList'][$glyphIndex];
+			$hm = $ttf->ttf['hmtx'][$glyphIndex];
 			$gs = new GlyphSvg($glyfData, $hm);
 
 			$svg = $gs->getSvg();
@@ -165,306 +94,6 @@ $hm = $ttf->ttf['hmtx'][$glyphIndex];
 
 // dd($glyphIndex);
 
-
 		return 'hello !';
     }
-
-
-
-
-
-
-
-	protected function readTableBody($binFile, $tableInfo)
-	{
-		$binBody = substr($binFile, $tableInfo['offset'], $tableInfo['length']);
-
-		// TODO: チェックサム
-
-		return $binBody;
-	}
-
-	protected function dumpCmapSubTable($encodingRecord, $binCmap)
-	{
-		$binSub = substr($binCmap, $encodingRecord['offset'], 2);
-		$subFormat = unpack('nformat', $binSub);
-// dump('format = '.$subFormat['format']);
-
-		if ($subFormat['format'] == 0x00) {
-			$binSubTable = substr($binCmap, $encodingRecord['offset']);
-			$subHeader = unpack('nformat/nlength/nlanguage', $binSubTable);
-			$binSubTable = substr($binSubTable, 6);
-
-			$binSubTableBody = array_values(unpack('C256charcode', $binSubTable));	// NOTE: table char-code -> glyf-index
-			return $binSubTableBody;
-		}
-
-		if ($subFormat['format'] == 0x04) {
-			$binSubHeader = substr($binCmap, $encodingRecord['offset'], 14);
-			$subHeader = unpack('nformat/nlength/nlanguage/nsegCountX2/nsearchRange/nentrySelector/nrangeShift', $binSubHeader);
-			$count = $subHeader['segCountX2'] / 2;
-			// ArrayAccess
-
-			$binSubTableBody = substr($binCmap, $encodingRecord['offset'] + 14);
-
-			$endCountList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2 + 2); // add reserved pad 2bytes
-
-			$startCountList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
-
-			$idDeltaList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
-			foreach ($idDeltaList as &$idDelta) {
-				if ($idDelta > 0x7fff) {
-					$idDelta = -(0x8000 - ($idDelta & 0x7fff));
-				}
-			}
-			unset($idDelta);
-
-			$idRangeOffsetList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
-
-// dump($idRangeOffsetList);
-			$offsetCount = count($idRangeOffsetList);
-			foreach ($idRangeOffsetList as $index => &$offset) {
-				if ($offset > 0) {
-					$offset = ($offset / 2) - ($offsetCount - $index);
-				} else {
-					$offset = -1;
-				}
-			}
-			unset($offset);
-
-			$subTableBody = [];
-			for ($i = 0; $i < $count; $i++) {
-				$subTableBody[] = [
-					'startCount' => $startCountList[$i],
-					'endCount' => $endCountList[$i],
-					'idDelta' => $idDeltaList[$i],
-					'idRangeOffset' => $idRangeOffsetList[$i],
-				];
-			}
-
-			$count = count($idRangeOffsetList);
-			$len = ($subHeader['length'] - ($subHeader['segCountX2'] * 4 + 16)) / 2;
-// dd($len);
-			if ($len > 0) {
-				$glyphIdArray = array_values(unpack("n{$len}", $binSubTableBody));
-			} else {
-				$glyphIdArray = [];
-			}
-// dd($glyphIdArray);
-			return [
-				'header' => $subHeader,
-				'body' => $subTableBody,
-				'glyphIdArray' => $glyphIdArray,
-			];
-		}
-
-		return null;
-	}
-
-	protected function dumpGlyph($binGlyph)
-	{
-		$glyphHeader = unpack('nnumberOfContours/nxMin/nyMin/nxMax/nyMax', $binGlyph);
-		$binGlyph = substr($binGlyph, 10);
-		foreach ($glyphHeader as &$param) {
-			if ($param >= 0x7fff) {
-				$param = -(0x8000 - ($param & 0x7fff));
-			}
-		}
-		unset($param);
-
-		$endPtsOfContoursList = array_values(unpack("n{$glyphHeader['numberOfContours']}", $binGlyph));
-		$binGlyph = substr($binGlyph, 2 * $glyphHeader['numberOfContours']);
-
-// dump($glyphHeader['numberOfContours']);
-if ($glyphHeader['numberOfContours'] < 0) {
-	return null;
-}
-
-		$instructionLength = unpack("n{$glyphHeader['numberOfContours']}", $binGlyph)[1];
-		$binGlyph = substr($binGlyph, 2);
-
-		// $instructions = substr($binGlyph, 0, $instructionLength);
-		$instructions = array_values(unpack("C{$instructionLength}", $binGlyph));
-		$binGlyph = substr($binGlyph, $instructionLength);
-
-
-		// TODO: 定数を定義
-		$ON_CURVE_POINT = (0x01 << 0);
-		$X_SHORT_VECTOR = (0x01 << 1);
-		$Y_SHORT_VECTOR = (0x01 << 2);
-		$REPEAT_FLAG = (0x01 << 3);
-		$X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR = (0x01 << 4);
-		$Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR = (0x01 << 5);
-		$OVERLAP_SIMPLE = (0x01 << 6);
-
-		$pointCount = max($endPtsOfContoursList) + 1;
-		$flagsList = [];
-
-		$index = 0;
-		while (count($flagsList) < $pointCount) {
-			// TODO: repeatがあるのでなおす
-			$flags = unpack('C',substr($binGlyph, $index, 1))[1];
-			$flagsList[] = $flags;
-			if ($flags & $REPEAT_FLAG) {
-				$index++;
-				$repeatCount = unpack('C',substr($binGlyph, $index, 1))[1];
-// dump('repeat '.$repeatCount.' times');
-				for ($j = 0; $j < $repeatCount; $j++) {
-					// if ($j > 0) {
-					// 	$flags |= $ON_CURVE_POINT;
-					// }
-					$flagsList[] = $flags;
-				}
-			}
-			$index++;
-		}
-
-		$binGlyph = substr($binGlyph, $index);	// NOTE: $pointCount進めるのが謎
-
-
-		$xCoordinatesList = [];
-		$x = 0;
-		foreach ($flagsList as $index => $flags) {
-			if ($flags & $X_SHORT_VECTOR) {
-				$xCoordinate = unpack('C', $binGlyph)[1];
-				$binGlyph = substr($binGlyph, 1);
-				if (!($flags & $X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
-					$xCoordinate = -$xCoordinate;
-				}
-			} else {
-				if (!($flags & $X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
-					$xCoordinate = unpack('n', $binGlyph)[1];
-					$binGlyph = substr($binGlyph, 2);
-					if ($xCoordinate > 0x7fff) {
-						$xCoordinate = -(0x8000 - ($xCoordinate & 0x7fff));
-					}
-				} else {
-					$xCoordinate = 0;
-				}
-			}
-
-			$x += $xCoordinate;
-			$xCoordinatesList[] = $x;
-		}
-
-		$yCoordinatesList = [];
-		$y = 0;
-		foreach ($flagsList as $index => $flags) {
-			if ($flags & $Y_SHORT_VECTOR) {
-				$yCoordinate = unpack('C', $binGlyph)[1];
-				$binGlyph = substr($binGlyph, 1);
-				if (!($flags & $Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
-					$yCoordinate = -$yCoordinate;
-				}
-			} else {
-				if (!($flags & $Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
-					$yCoordinate = unpack('n', $binGlyph)[1];
-					$binGlyph = substr($binGlyph, 2);
-					if ($yCoordinate > 0x7fff) {
-						$yCoordinate = -(0x8000 - ($yCoordinate & 0x7fff));
-					}
-				} else {
-					$yCoordinate = 0;
-				}
-			}
-			$y += $yCoordinate;
-			$yCoordinatesList[] = $y;
-		}
-
-
-		// $endPtsOfContoursList   <= ソートする
-		$glyphCoordinatesList = [];
-		$contours = [];
-		$endPoint = $endPtsOfContoursList[0];
-		foreach ($flagsList as $index => $flags) {
-			$contours[] = [
-				'x' => $xCoordinatesList[$index],
-				'y' => $yCoordinatesList[$index],
-				'flags' => $flags,
-			];
-
-			// $glyphCoordinatesList[] = [
-			// 	'x' => $xCoordinatesList[$index],
-			// 	'y' => $yCoordinatesList[$index],
-			// 	'flags' => $flags,
-			// ];
-
-
-			if ($index >= $endPoint) {
-				$glyphCoordinatesList[] = $contours;
-				$contours = [];
-				$endPointIndex = count($glyphCoordinatesList);
-				if ($endPointIndex >= count($endPtsOfContoursList)) {
-					break;
-				}
-				$endPoint = $endPtsOfContoursList[$endPointIndex];
-			}
-		}
-		return  [
-			'header' => $glyphHeader,
-			'endPtsOfContours' => $endPtsOfContoursList,
-			'instructions' => $instructions,
-			'coordinates' => $glyphCoordinatesList
-		];
-	}
-
-	protected function dumpHorizontalHeaderTable($binHhea)
-	{
-		$horizontalHeaderTable = unpack('nmajorVersion/nminorVersion/nascender/ndescender/nlineGap/nadvanceWidthMax/nminLeftSideBearing/nminRightSideBearing/nxMaxExtent/ncaretSlopeRise/ncaretSlopeRun/ncaretOffset/n4reserve/nmetricDataFormat/nnumberOfHMetrics', $binHhea);
-		return $horizontalHeaderTable;
-	}
-
-
-	protected function dumpHorizontalMetrix($horizontalHeaderTable, $binHmtx)
-	{
-		$hmtcCount = $horizontalHeaderTable['numberOfHMetrics'];
-
-		$HorizontalMetrixList = [];
-		for ($i = 0; $i < $hmtcCount; $i++) {
-			$HorizontalMetrixList[] = unpack('nadvanceWidth/nlsb', $binHmtx);
-			$binHmtx = substr($binHmtx, 4);
-		}
-
-		// TODO: leftSideBearing
-		return $HorizontalMetrixList;
-	}
-
-	protected function getGlyphIndex($cmap, $charCode)
-	{
-		$header = $cmap['header'];
-
-		if ($header['format'] == 0) {
-			dd('未対応');
-		}
-
-		if ($header['format'] == 4) {
-			$map = $cmap['body'];
-			$glyphIdArray = $cmap['glyphIdArray'];
-
-			$glyphIndex = 0;
-			$index = 0;
-			foreach ($map as $index => $m) {
-				if ($m['endCount'] >= $charCode) {
-					if ($m['startCount'] <= $charCode) {
-						if ($m['idRangeOffset'] > -1) {
-							// TODO: + $m['idDelta']が必要か確認
-							$glyphIdArrayIndex = $m['idRangeOffset'] + ($charCode - $m['startCount']);
-							return $glyphIdArray[$glyphIdArrayIndex];
-						} else {
-							$glyphIndex = ($charCode) + $m['idDelta'] /* - 33 */;
-							return $glyphIndex;
-						}
-					}
-				}
-			}
-			return -1;
-		}
-
-		return -1;
-	}
-
 }

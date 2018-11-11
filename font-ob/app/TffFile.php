@@ -109,40 +109,42 @@ class TffFile extends Model
 
         $binTableRecords = substr($binTtfFile, 12, $offsetTable['numTables'] * 16);
         $tableRecords = $this->parseTableRecords($binTableRecords, $offsetTable);
-// dump($tableRecords);
 
         $binHead = $this->getTableBody($binTtfFile, $tableRecords['head']);
         $head = $this->parseHead($binHead);
+        unset($binHead);
 
         $binMaxp = $this->getTableBody($binTtfFile, $tableRecords['maxp']);
 		$maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
+        unset($binMaxp);
 
-        $binCmap = $this->getTableBody($binTtfFile, $tableRecords['cmap']);
-        $cmap = $this->parseCmap($binCmap);
+        // $binCmap = $this->getTableBody($binTtfFile, $tableRecords['cmap']);
+        $cmap = $this->parseCmap($tableRecords['cmap'], $binTtfFile);
 
         $binHhea = $this->getTableBody($binTtfFile, $tableRecords['hhea']);
         $hhea = $this->parseHorizontalHeaderTable($binHhea);
+        unset($binHhea);
 
         $binHmtx = $this->getTableBody($binTtfFile, $tableRecords['hmtx']);
         $hmtx = $this->parseHorizontalMetrix($hhea, $binHmtx);
+        unset($binHmtx);
 
         $binLoca = $this->getTableBody($binTtfFile, $tableRecords['loca']);
         $locationList = $this->parseLocation($binLoca, $head, $maxList);
+        unset($binLoca);
 
-// dd($locationList);
-// dd($tableRecords['glyf']);
-// dd($locationList);
-        $binGlyphsData = $this->getTableBody($binTtfFile, $tableRecords['glyf']);
+
+        // $binGlyphsData = $this->getTableBody($binTtfFile, $tableRecords['glyf']);
+
         $glyphList = [];
         foreach ($locationList as $index => $offset) {
             if (!$head['indexToLocFormat']) {
                 $offset *= 2;
             }
-            $binGlyph = substr($binGlyphsData, $offset);
-            $glyphList[$index] = $this->parseGlyph($binGlyph);
-// dump($binGlyph);
+            $glyphList[] = $this->parseGlyph($tableRecords['glyf']['offset'] + $offset, $binTtfFile);
+// echo "glyph-index={$index} : created !<br />\n";
         }
-
+// dd('OK!');
         return [
             'offsetTable' => $offsetTable,
             'tableRecords' => $tableRecords,
@@ -202,8 +204,8 @@ class TffFile extends Model
         }
 
         for ($i = 0; $i < $recordCount; $i++) {
-            $record = unpack($unpackFormat, $binTableRecords);
-            $binTableRecords = substr($binTableRecords, 4 + 4 + 4 + 4);
+            $offset = $i * 16;
+            $record = unpack("@{$offset}/".$unpackFormat, $binTableRecords);
 
             $tag = $record['tag'];
             $tableRecords[$tag] = [
@@ -212,7 +214,6 @@ class TffFile extends Model
                 'length' => $record['length'],
             ];
         }
-
         return $tableRecords;
     }
 
@@ -231,7 +232,7 @@ class TffFile extends Model
         return $head;
     }
 
-    protected function unpackBinData($format, $binData)
+    protected function unpackBinData($format, $binData, $offset = 0)
     {
         $unpackFormat = '';
         foreach ($format as $name => $param) {
@@ -240,7 +241,7 @@ class TffFile extends Model
             }
             $unpackFormat .= $param[0].$param[1].$name;
         }
-        $unpacked = unpack($unpackFormat, $binData);
+        $unpacked = unpack("@{$offset}/".$unpackFormat, $binData);
 
         foreach ($unpacked as $name => &$value) {
             $formatParam = $format[$name];
@@ -265,22 +266,24 @@ class TffFile extends Model
         return $unpacked;
     }
 
-    protected function parseCmap($binCmap)
+    protected function parseCmap($info, $binCmap)
     {
+        $baseOffset = $info['offset'];
         $formatCmap = $this->fileFormat['cmap'];
 
-        $header = $this->unpackBinData($formatCmap['cmapHeader'], $binCmap);
+        $offset = $baseOffset;
+        $header = $this->unpackBinData($formatCmap['cmapHeader'], $binCmap, $offset);
+        $offset += 8;
 
         $encodingRecords = [];
         $count = $header['numTables'];
         for ($i = 0; $i < $count; $i++) {
-            $recordInfo = $this->unpackBinData($formatCmap['encodingRecord'], substr($binCmap, 4 + ($i * 8)));
+            $offset = $info['offset'] + 4 + ($i * 8);
+            $recordInfo = $this->unpackBinData($formatCmap['encodingRecord'], $binCmap, $offset);
             $encodingRecords[] = $recordInfo;
 
-            $subTables[] = $this->parseCmapSubTable($recordInfo, $binCmap);
+            $subTables[] = $this->parseCmapSubTable($baseOffset, $recordInfo, $binCmap);
         }
-// dd($encodingRecord);
-
 
         return [
             'header' => $header,
@@ -289,39 +292,35 @@ class TffFile extends Model
         ];
     }
 
-
-
-	protected function parseCmapSubTable($encodingRecord, $binCmap)
+	protected function parseCmapSubTable($baseOffset, $encodingRecord, $binCmap)
 	{
-		$binSub = substr($binCmap, $encodingRecord['offset'], 2);
-		$subFormat = unpack('nformat', $binSub);
-// dump('format = '.$subFormat['format']);
+        $offset = $baseOffset + $encodingRecord['offset'];
+		$subFormat = unpack("@{$offset}/nformat", $binCmap);
 
 		if ($subFormat['format'] == 0x00) {
-			$binSubTable = substr($binCmap, $encodingRecord['offset']);
-			$subHeader = unpack('nformat/nlength/nlanguage', $binSubTable);
-			$binSubTable = substr($binSubTable, 6);
+            $offset = $baseOffset + $encodingRecord['offset'];
+			$subHeader = unpack("@{$offset}/nformat/nlength/nlanguage", $binCmap);
+            $offset += 6;
 
-			$binSubTableBody = array_values(unpack('C256charcode', $binSubTable));	// NOTE: table char-code -> glyf-index
+			$binSubTableBody = array_values(unpack("@{$offset}/C256charcode", $binCmap));	// NOTE: table char-code -> glyf-index
 			return $binSubTableBody;
 		}
 
 		if ($subFormat['format'] == 0x04) {
-			$binSubHeader = substr($binCmap, $encodingRecord['offset'], 14);
-			$subHeader = unpack('nformat/nlength/nlanguage/nsegCountX2/nsearchRange/nentrySelector/nrangeShift', $binSubHeader);
+            $offset = $baseOffset + $encodingRecord['offset'];
+			$subHeader = unpack("@{$offset}/nformat/nlength/nlanguage/nsegCountX2/nsearchRange/nentrySelector/nrangeShift", $binCmap);
 			$count = $subHeader['segCountX2'] / 2;
-			// ArrayAccess
+            $offset += 14;
 
-			$binSubTableBody = substr($binCmap, $encodingRecord['offset'] + 14);
+			$endCountList = array_values(unpack("@{$offset}/n{$count}", $binCmap));
+            $offset += ($count * 2);
+            $offset += 2;
 
-			$endCountList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2 + 2); // add reserved pad 2bytes
+			$startCountList = array_values(unpack("@{$offset}/n{$count}", $binCmap));
+            $offset += ($count * 2);
 
-			$startCountList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
-
-			$idDeltaList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
+			$idDeltaList = array_values(unpack("@{$offset}/n{$count}", $binCmap));
+            $offset += ($count * 2);
 			foreach ($idDeltaList as &$idDelta) {
 				if ($idDelta > 0x7fff) {
 					$idDelta = -(0x8000 - ($idDelta & 0x7fff));
@@ -329,19 +328,18 @@ class TffFile extends Model
 			}
 			unset($idDelta);
 
-			$idRangeOffsetList = array_values(unpack("n{$count}", $binSubTableBody));
-			$binSubTableBody = substr($binSubTableBody, $count * 2);
+			$idRangeOffsetList = array_values(unpack("@{$offset}/n{$count}", $binCmap));
+            $offset += ($count * 2);
 
-// dump($idRangeOffsetList);
-			$offsetCount = count($idRangeOffsetList);
-			foreach ($idRangeOffsetList as $index => &$offset) {
-				if ($offset > 0) {
-					$offset = ($offset / 2) - ($offsetCount - $index);
+			$rangeOffsetCount = count($idRangeOffsetList);
+			foreach ($idRangeOffsetList as $index => &$rangeOffset) {
+				if ($rangeOffset > 0) {
+					$rangeOffset = ($rangeOffset / 2) - ($rangeOffsetCount - $index);
 				} else {
-					$offset = -1;
+					$rangeOffset = -1;
 				}
 			}
-			unset($offset);
+			unset($rangeOffset);
 
 			$subTableBody = [];
 			for ($i = 0; $i < $count; $i++) {
@@ -355,13 +353,12 @@ class TffFile extends Model
 
 			$count = count($idRangeOffsetList);
 			$len = ($subHeader['length'] - ($subHeader['segCountX2'] * 4 + 16)) / 2;
-// dd($len);
 			if ($len > 0) {
-				$glyphIdArray = array_values(unpack("n{$len}", $binSubTableBody));
+				$glyphIdArray = array_values(unpack("@{$offset}/n{$len}", $binCmap));
 			} else {
 				$glyphIdArray = [];
 			}
-// dd($glyphIdArray);
+
 			return [
 				'header' => $subHeader,
 				'body' => $subTableBody,
@@ -372,12 +369,10 @@ class TffFile extends Model
 		return null;
 	}
 
-	protected function parseGlyph($binGlyph)
+	protected function parseGlyph($offset, $binGlyph)
 	{
-// dump(strlen($binGlyph));
-
-		$glyphHeader = unpack('nnumberOfContours/nxMin/nyMin/nxMax/nyMax', $binGlyph);
-		$binGlyph = substr($binGlyph, 10);
+		$glyphHeader = unpack("@{$offset}/nnumberOfContours/nxMin/nyMin/nxMax/nyMax", $binGlyph);
+        $offset += 10;
 		foreach ($glyphHeader as &$param) {
 			if ($param >= 0x7fff) {
 				$param = -(0x8000 - ($param & 0x7fff));
@@ -385,20 +380,19 @@ class TffFile extends Model
 		}
 		unset($param);
 
-		$endPtsOfContoursList = array_values(unpack("n{$glyphHeader['numberOfContours']}", $binGlyph));
-		$binGlyph = substr($binGlyph, 2 * $glyphHeader['numberOfContours']);
-
 // dump($glyphHeader['numberOfContours']);
-if ($glyphHeader['numberOfContours'] < 0) {
-	return null;
-}
+        if ($glyphHeader['numberOfContours'] < 0) {
+        	return null;
+        }
 
-		$instructionLength = unpack("n{$glyphHeader['numberOfContours']}", $binGlyph)[1];
-		$binGlyph = substr($binGlyph, 2);
+		$endPtsOfContoursList = array_values(unpack("@{$offset}/n{$glyphHeader['numberOfContours']}", $binGlyph));
+        $offset += (2 * $glyphHeader['numberOfContours']);
 
-		// $instructions = substr($binGlyph, 0, $instructionLength);
-		$instructions = array_values(unpack("C{$instructionLength}", $binGlyph));
-		$binGlyph = substr($binGlyph, $instructionLength);
+		$instructionLength = unpack("@{$offset}/n{$glyphHeader['numberOfContours']}", $binGlyph)[1];
+        $offset += 2;
+
+		$instructions = array_values(unpack("@{$offset}/C{$instructionLength}", $binGlyph));
+        $offset += $instructionLength;
 
 
 		// TODO: 定数を定義
@@ -416,38 +410,31 @@ if ($glyphHeader['numberOfContours'] < 0) {
 		$index = 0;
 		while (count($flagsList) < $pointCount) {
 			// TODO: repeatがあるのでなおす
-			$flags = unpack('C',substr($binGlyph, $index, 1))[1];
+			$flags = unpack("@{$offset}/C", $binGlyph)[1];
+            $offset++;
 			$flagsList[] = $flags;
 			if ($flags & $REPEAT_FLAG) {
-				$index++;
-				$repeatCount = unpack('C',substr($binGlyph, $index, 1))[1];
-// dump('repeat '.$repeatCount.' times');
+				$repeatCount = unpack("@{$offset}/C", $binGlyph)[1];
+                $offset++;
 				for ($j = 0; $j < $repeatCount; $j++) {
-					// if ($j > 0) {
-					// 	$flags |= $ON_CURVE_POINT;
-					// }
 					$flagsList[] = $flags;
 				}
 			}
-			$index++;
 		}
-
-		$binGlyph = substr($binGlyph, $index);	// NOTE: $pointCount進めるのが謎
-
 
 		$xCoordinatesList = [];
 		$x = 0;
 		foreach ($flagsList as $index => $flags) {
 			if ($flags & $X_SHORT_VECTOR) {
-				$xCoordinate = unpack('C', $binGlyph)[1];
-				$binGlyph = substr($binGlyph, 1);
+				$xCoordinate = unpack("@{$offset}/C", $binGlyph)[1];
+                $offset++;
 				if (!($flags & $X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
 					$xCoordinate = -$xCoordinate;
 				}
 			} else {
 				if (!($flags & $X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
-					$xCoordinate = unpack('n', $binGlyph)[1];
-					$binGlyph = substr($binGlyph, 2);
+					$xCoordinate = unpack("@{$offset}/n", $binGlyph)[1];
+                    $offset += 2;
 					if ($xCoordinate > 0x7fff) {
 						$xCoordinate = -(0x8000 - ($xCoordinate & 0x7fff));
 					}
@@ -464,15 +451,15 @@ if ($glyphHeader['numberOfContours'] < 0) {
 		$y = 0;
 		foreach ($flagsList as $index => $flags) {
 			if ($flags & $Y_SHORT_VECTOR) {
-				$yCoordinate = unpack('C', $binGlyph)[1];
-				$binGlyph = substr($binGlyph, 1);
+				$yCoordinate = unpack("@{$offset}/C", $binGlyph)[1];
+                $offset++;
 				if (!($flags & $Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
 					$yCoordinate = -$yCoordinate;
 				}
 			} else {
 				if (!($flags & $Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
-					$yCoordinate = unpack('n', $binGlyph)[1];
-					$binGlyph = substr($binGlyph, 2);
+					$yCoordinate = unpack("@{$offset}/n", $binGlyph)[1];
+                    $offset += 2;
 					if ($yCoordinate > 0x7fff) {
 						$yCoordinate = -(0x8000 - ($yCoordinate & 0x7fff));
 					}
@@ -532,14 +519,15 @@ if ($glyphHeader['numberOfContours'] < 0) {
 	{
 		$hmtcCount = $horizontalHeaderTable['numberOfHMetrics'];
 
-		$HorizontalMetrixList = [];
+		$horizontalMetrixList = [];
+        $offset = 0;
 		for ($i = 0; $i < $hmtcCount; $i++) {
-			$HorizontalMetrixList[] = unpack('nadvanceWidth/nlsb', $binHmtx);
-			$binHmtx = substr($binHmtx, 4);
+			$horizontalMetrixList[] = unpack("@{$offset}/".'nadvanceWidth/nlsb', $binHmtx);
+            $offset += 4;
 		}
 
 		// TODO: leftSideBearing
-		return $HorizontalMetrixList;
+		return $horizontalMetrixList;
 	}
 
 
