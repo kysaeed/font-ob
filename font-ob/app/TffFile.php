@@ -141,7 +141,23 @@ class TffFile extends Model
             if (!$head['indexToLocFormat']) {
                 $offset *= 2;
             }
-            $glyphList[] = $this->parseGlyph($tableRecords['glyf']['offset'] + $offset, $binTtfFile);
+            $glyph = $this->parseGlyph($tableRecords['glyf']['offset'] + $offset, $binTtfFile);
+            
+            if (!empty($glyph)) {
+                $g = new TtfGlyph([
+                    'glyph_index' => $index,
+            		'numberOfContours' => $glyph['header']['numberOfContours'],
+            		'xMin' => $glyph['header']['xMin'],
+            		'yMin' => $glyph['header']['yMin'],
+            		'xMax' => $glyph['header']['xMax'],
+            		'yMax' => $glyph['header']['yMax'],
+            		'coordinates' => json_encode($glyph['coordinates']),
+            		'instructions' => json_encode($glyph['instructions']),
+                ]);
+                $g->save();
+            }
+
+            // $glyphList[] = $glyph;
 // echo "glyph-index={$index} : created !<br />\n";
         }
 // dd('OK!');
