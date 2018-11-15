@@ -80,7 +80,6 @@ class TestController extends Controller
 			$g = TtfGlyph::where('glyph_index', $glyphIndex)->first();
 
 			if (!$g) continue;
-// echo var_dump(); die;
 // dd(json_encode($g->coordinates));
 
 			$c = json_decode($g->coordinates, true);
@@ -107,51 +106,73 @@ class TestController extends Controller
 
 		echo '<hr />';
 
-// dd($glyphIndex);
+		// dd($glyphIndex);
 
 		return 'hello !';
     }
 
+	protected function foo()
+	{
+		$t1 = [
+			['x'=> 10, 'y' => 10],
+			['x'=> 100, 'y' => 10],
+		];
+		$t2 = [
+			['x'=> 30, 'y' =>  130],
+			['x'=> 30, 'y' => 40],
+		];
+
+		$p = $this->getCrossPoint($t1, $t2);
+		$svg = '<svg>';
+		$svg .= $this->getSvgPolygon($t1);
+		$svg .= $this->getSvgPolygon($t2);
+		dump($p);
+		$svg .= "<circle cx=\"{$p['x']}\" cy=\"{$p['y']}\" r=\"3\" stroke='red'/>";
+		$svg .= '</svg>';
+		echo $svg;
+	}
+
 	public function cross(Request $request)
 	{
-		$v1 = [
-			['x'=> 10, 'y'=>10],
-			['x'=> 20, 'y'=>20],
-		];
-		$v2 = [
-			['x'=> 20, 'y'=>10],
-			['x'=> 10, 'y'=>20],
-		];
+		// $this->foo();
+		// die;
 
-		$a = $this->crossProduct(
-				$v2,
-				[$v2[0], $v1[0]]
-		) / 2;
-		dump($a);
+		// $a = $this->crossProduct(
+		// 	[['x'=>0, 'y'=>0], ['x'=>123, 'y'=>456]],
+		// 	[['x'=>0, 'y'=>0], ['x'=>100, 'y'=>77]]
+		// );
+		// dd($a);
 
-		$b = $this->crossProduct(
-				$v2,
-				[$v1[1], $v2[0]]
-		) / 2;
-		dump($b);
+		echo 'この２つの四角を足し算します<br />';
 
-		$crossVectorLengthBase = $a / ($a + $b);
+		$svg = '<svg>';
 
-		$r = [
-			[
-				'x' => $v1[0]['x'],
-				'y' => $v1[0]['y'],
-			],
-			[
-				'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
-				'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
-			],
-		];
+		$rectangle1 = $this->getRectangle(
+			['x' => 10, 'y' => 10],
+			['x' => 70, 'y' => 100]
+		);
+		$rectangle2 = $this->getRectangle(
+			['x' => 30, 'y' => 50],
+			['x' => 120, 'y' => 130]
+		);
 
-		dump($crossVectorLengthBase);
-		dump($r);
+		$svg .= $this->getSvgPolygon($rectangle1);
+		$svg .= $this->getSvgPolygon($rectangle2);
 
-		return 'cross !';
+		$svg .= '</svg>';
+		echo $svg;
+
+		echo '<hr />';
+		echo 'こうなるよ！<br />';
+
+		$svg = '<svg>';
+		$compoased = $this->compose($rectangle1, $rectangle2);
+		$svg .= $this->getSvgPolygon($compoased);
+		$svg .= '</svg>';
+		echo $svg;
+
+
+		return '<hr />OK !';
 	}
 
 	public function crossProduct($v1, $v2)
@@ -160,6 +181,162 @@ class TestController extends Controller
 			($v1[1]['x'] - $v1[0]['x']) * ($v2[1]['y'] - $v2[0]['y']) -
 			($v1[1]['y'] - $v1[0]['y']) * ($v2[1]['x'] - $v2[0]['x'])
 		);
+	}
 
+	public function getRectangle($s, $e)
+	{
+		return [
+			['x' => $s['x'], 'y' => $s['y']],
+			['x' => $e['x'], 'y' => $s['y']],
+			['x' => $e['x'], 'y' => $e['y']],
+			['x' => $s['x'], 'y' => $e['y']],
+		];
+	}
+
+
+	public function getCrossPoint($v1, $v2)
+	{
+// dump('getCrossPoint *********************');
+// dump($v1);
+// dump($v2);
+		$a = $this->crossProduct(
+			[$v2[0], $v1[0]],
+			$v2
+		) /* / 2 */;
+
+		// if ($a < 0) {
+		// 	$a = -$a;
+		// }
+
+// dump($a);
+		$b = $this->crossProduct(
+			$v2,
+			[$v2[0], $v1[1]]
+		) /* / 2 */;
+		// if ($b < 0) {
+		// 	$b = -$b;
+		// }
+// dump($b);
+
+// dump("a={$a}, b={$b}");
+		$ab = ($a + $b);
+		if (!$ab) {
+			return null;
+		}
+
+		$crossVectorLengthBase = ($a / $ab);
+// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
+		if (($crossVectorLengthBase < 0) || ($crossVectorLengthBase > 1)) {
+			return null;
+		}
+
+		$crossed = [
+			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
+			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+		];
+
+		if (!$this->isInsideBox($v2, $crossed)) {
+			return null;
+		}
+
+		return $crossed;
+	}
+
+	public function isInsideBox($box, $point)
+	{
+		$minX = $box[0]['x'];
+		$maxX = $box[1]['x'];
+		if ($minX > $maxX) {
+			list($minX, $maxX) = [$maxX, $minX];
+		}
+		if (($minX > $point['x']) || ($maxX < $point['x'])) {
+			return false;
+		}
+
+		$minY = $box[0]['y'];
+		$maxY = $box[1]['y'];
+		if ($minY > $maxY) {
+			list($minY, $maxY) = [$maxY, $minY];
+		}
+		if (($minY > $point['y']) || ($maxY < $point['y'])) {
+			return false;
+		}
+
+		return true;
+	}
+
+	public function getSvgPolygon($points)
+	{
+		$poly = '<polygon points="';
+		foreach ($points as $p) {
+			$poly .= "{$p['x']},{$p['y']} ";
+		}
+		$poly .= '" stroke="black" fill="none"/>';
+		return $poly;
+	}
+
+	public function compose($base, $addition)
+	{
+		$current = [
+			'coordinates' => $base,
+			'coordinatesCount' => count($base),
+			'debug' => 'BASE',
+		];
+		$other = [
+			'coordinates' => $addition,
+			'coordinatesCount' => count($addition),
+			'debug' => 'ADDTION',
+		];
+
+
+		$composed = [];
+
+		$prevCurrent = null;
+		$otherIngnoreIndex = -1;
+		for ($index = 0; $index <= $current['coordinatesCount']; $index++) {
+			$c = $current['coordinates'][$index % $current['coordinatesCount']];
+			$current['coordinates'];
+
+// dump("index:{$index} ({$current['debug']}) (ingnore={$otherIngnoreIndex})");
+
+			$isCrossed = false;
+			if ($prevCurrent) {
+				$prevOther = 0;
+				for ($otherIndex = 0; $otherIndex <= $other['coordinatesCount'];  $otherIndex++) {
+					$o = $other['coordinates'][$otherIndex % $current['coordinatesCount']];
+					if ($prevOther) {
+						if ($otherIndex != $otherIngnoreIndex) {
+// dump("hit check to = {$otherIndex}");
+							$cp = $this->getCrossPoint([$prevCurrent, $c], [$prevOther, $o]);
+// dump(compact('cp'));
+							if ($cp) {
+// dump('cross!!!');
+								$composed[] = $cp;
+								$prevCurrent = $cp;
+
+								$otherIngnoreIndex = $index;
+								list($current, $other) = [$other, $current];
+								$index = $otherIndex - 1;
+								$isCrossed = true;
+								break;
+							}
+						}
+					}
+
+					// dump($prevCurrent);
+					// dump($cp);
+					$prevOther = $o;
+				}
+			}
+
+			if (!$isCrossed) {
+				$composed[] = $c;
+				$prevCurrent = $c;
+				$otherIngnoreIndex = -1;
+			}
+		}
+
+
+		return $composed;
 	}
 }
