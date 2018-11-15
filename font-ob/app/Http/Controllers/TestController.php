@@ -156,6 +156,8 @@ class TestController extends Controller
 			['x' => 120, 'y' => 130]
 		);
 
+		$rectangle1[] = ['x' => 0, 'y' => 150];
+
 		$svg .= $this->getSvgPolygon($rectangle1);
 		$svg .= $this->getSvgPolygon($rectangle2);
 
@@ -204,18 +206,11 @@ class TestController extends Controller
 			$v2
 		) /* / 2 */;
 
-		// if ($a < 0) {
-		// 	$a = -$a;
-		// }
-
 // dump($a);
 		$b = $this->crossProduct(
 			$v2,
 			[$v2[0], $v1[1]]
 		) /* / 2 */;
-		// if ($b < 0) {
-		// 	$b = -$b;
-		// }
 // dump($b);
 
 // dump("a={$a}, b={$b}");
@@ -303,7 +298,7 @@ class TestController extends Controller
 			if ($prevCurrent) {
 				$prevOther = 0;
 				for ($otherIndex = 0; $otherIndex <= $other['coordinatesCount'];  $otherIndex++) {
-					$o = $other['coordinates'][$otherIndex % $current['coordinatesCount']];
+					$o = $other['coordinates'][$otherIndex % $other['coordinatesCount']];
 					if ($prevOther) {
 						if ($otherIndex != $otherIngnoreIndex) {
 // dump("hit check to = {$otherIndex}");
