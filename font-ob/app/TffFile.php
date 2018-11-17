@@ -62,6 +62,11 @@ class TffFile extends Model
             'numberOfHMetrics' => ['n', 1],
         ],
 
+        'hmtx' => [
+            'advanceWidth' => ['n', 1],
+            'lsb' => ['n', 1],
+        ],
+
         'cmap' => [
             'cmapHeader' => [
                 'version' => ['n', 1],
@@ -578,7 +583,7 @@ class TffFile extends Model
 		$horizontalMetrixList = [];
         $offset = 0;
 		for ($i = 0; $i < $hmtcCount; $i++) {
-			$horizontalMetrixList[] = unpack("@{$offset}/".'nadvanceWidth/nlsb', $binHmtx);
+			$horizontalMetrixList[] = $this->unpackBinData($this->fileFormat['hmtx'], $binHmtx, $offset);
             $offset += 4;
 		}
 		// TODO: leftSideBearing
