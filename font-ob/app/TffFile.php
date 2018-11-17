@@ -44,6 +44,24 @@ class TffFile extends Model
             'glyphDataFormat' => ['n', 1, true],
         ],
 
+        'hhea' => [
+            'majorVersion' => ['n', 1],
+            'minorVersion' => ['n', 1],
+            'ascender' => ['n', 1, true],
+            'descender' => ['n', 1, true],
+            'lineGap' => ['n', 1, true],
+            'advanceWidthMax' => ['n', 1],
+            'minLeftSideBearing' => ['n', 1, true],
+            'minRightSideBearing' => ['n', 1, true],
+            'xMaxExtent' => ['n', 1, true],
+            'caretSlopeRise' => ['n', 1, true],
+            'caretSlopeRun' => ['n', 1, true],
+            'caretOffset' => ['n', 1, true],
+            'reserve' => ['n', 4, true],
+            'metricDataFormat' => ['n', 1, true],
+            'numberOfHMetrics' => ['n', 1],
+        ],
+
         'cmap' => [
             'cmapHeader' => [
                 'version' => ['n', 1],
@@ -142,7 +160,7 @@ class TffFile extends Model
                 $offset *= 2;
             }
             $glyph = $this->parseGlyph($tableRecords['glyf']['offset'] + $offset, $binTtfFile);
-            
+
             if (!empty($glyph)) {
                 $g = new TtfGlyph([
                     'glyph_index' => $index,
@@ -250,35 +268,44 @@ class TffFile extends Model
 
     protected function unpackBinData($format, $binData, $offset = 0)
     {
-        $unpackFormat = '';
+        $sizeList = [
+            'n' => 2,
+            'N' => 4,
+            'J' => 8,
+        ];
+
+        $unpacked = [];
         foreach ($format as $name => $param) {
-            if (!empty($unpackFormat)) {
-                $unpackFormat .= '/';
-            }
-            $unpackFormat .= $param[0].$param[1].$name;
-        }
-        $unpacked = unpack("@{$offset}/".$unpackFormat, $binData);
+            $u = array_values(unpack("@{$offset}/{$param[0]}{$param[1]}", $binData));
+            if (array_key_exists(2, $param)) {
+                if ($param[2]) {
+                    switch ($param[0]) {
+                        case 'n':
+                            foreach ($u as &$value) {
+                                if ($value > 0x7FFF) {
+                                    $value = -(0x8000 - ($value & 0x7fff));
+                                }
+                            }
+                            unset($value);
+                            break;
 
-        foreach ($unpacked as $name => &$value) {
-            $formatParam = $format[$name];
-            if (array_key_exists(2, $formatParam)) {
-                switch ($formatParam[0]) {
-                    case 'n':
-                        if ($value > 0x7FFF) {
-                            $value = -(0x8000 - ($value & 0x7fff));
-                        }
-                        break;
-
-                    case 'N':
-                    if ($value > 0x7FFFFFFF) {
-                        $value = -(0x80000000 - ($value & 0x7FFFFFFF));
+                        case 'N':
+                            foreach ($u as &$value) {
+                                if ($value > 0x7FFFFFFF) {
+                                    $value = -(0x80000000 - ($value & 0x7FFFFFFF));
+                                }
+                            }
+                            unset($value);
+                            break;
                     }
-                        break;
                 }
             }
+            if (count($u) == 1) {
+                $u = $u[0];
+            }
+            $unpacked[$name] = $u;
+            $offset += $sizeList[$param[0]] * $param[1];
         }
-        unset($value);
-
         return $unpacked;
     }
 
@@ -526,7 +553,9 @@ class TffFile extends Model
 
 	protected function parseHorizontalHeaderTable($binHhea)
 	{
-		$horizontalHeaderTable = unpack('nmajorVersion/nminorVersion/nascender/ndescender/nlineGap/nadvanceWidthMax/nminLeftSideBearing/nminRightSideBearing/nxMaxExtent/ncaretSlopeRise/ncaretSlopeRun/ncaretOffset/n4reserve/nmetricDataFormat/nnumberOfHMetrics', $binHhea);
+        $horizontalHeaderTable = $this->unpackBinData($this->fileFormat['hhea'], $binHhea);
+		// $horizontalHeaderTable = unpack('nmajorVersion/nminorVersion/nascender/ndescender/nlineGap/nadvanceWidthMax/nminLeftSideBearing/nminRightSideBearing/nxMaxExtent/ncaretSlopeRise/ncaretSlopeRun/ncaretOffset/n4reserve/nmetricDataFormat/nnumberOfHMetrics', $binHhea);
+
 		return $horizontalHeaderTable;
 	}
 
@@ -541,7 +570,6 @@ class TffFile extends Model
 			$horizontalMetrixList[] = unpack("@{$offset}/".'nadvanceWidth/nlsb', $binHmtx);
             $offset += 4;
 		}
-
 		// TODO: leftSideBearing
 		return $horizontalMetrixList;
 	}
