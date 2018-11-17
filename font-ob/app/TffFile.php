@@ -95,6 +95,16 @@ class TffFile extends Model
 
         ],
 
+        'glyf' => [
+            'header' => [
+                'numberOfContours' => ['n', 1, true],
+                'xMin' => ['n', 1, true],
+                'yMin' => ['n', 1, true],
+                'xMax' => ['n', 1, true],
+                'yMax' => ['n', 1, true],
+            ],
+        ],
+
     ];
 
     public $ttf = null;
@@ -414,7 +424,8 @@ class TffFile extends Model
 
 	protected function parseGlyph($offset, $binGlyph)
 	{
-		$glyphHeader = unpack("@{$offset}/nnumberOfContours/nxMin/nyMin/nxMax/nyMax", $binGlyph);
+        $format = $this->fileFormat['glyf'];
+        $glyphHeader = $this->unpackBinData($format['header'], $binGlyph, $offset);
         $offset += 10;
 		foreach ($glyphHeader as &$param) {
 			if ($param >= 0x7fff) {
