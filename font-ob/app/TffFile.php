@@ -135,23 +135,29 @@ class TffFile extends Model
 
     }
 
+    protected function parseMaxp($binTtfFile, $offset)
+    {
+        $f = [
+            'ver' => ['N', 1],
+            'numGlyphs' => ['n', 1],
+            'maxPoints' => ['n', 1],
+        ];
+
+        // $maxList = $this->unpackBinData($f, $binTtfFile, $offset);
+        $maxList = unpack("@{$offset}/Nver/nnumGlyphs/nmaxPoints", $binTtfFile);
+        return $maxList;
+    }
+
     protected function parseTtf($binTtfFile)
     {
         $ttf = [];
         $offsetTable = $this->parseOffsetTable($binTtfFile);
 
-        $binTableRecords = substr($binTtfFile, 12, $offsetTable['numTables'] * 16);
-        $tableRecords = $this->parseTableRecords($binTableRecords, $offsetTable);
+        $tableRecords = $this->parseTableRecords($binTtfFile, $offsetTable, 12);
 
-        $binHead = $this->getTableBody($binTtfFile, $tableRecords['head']);
-        $head = $this->parseHead($binHead);
-        unset($binHead);
+        $head = $this->parseHead($binTtfFile, $tableRecords['head']['offset']);
+        $maxList = $this->parseMaxp($binTtfFile, $tableRecords['maxp']['offset']);
 
-        $binMaxp = $this->getTableBody($binTtfFile, $tableRecords['maxp']);
-		$maxList = unpack('Nver/nnumGlyphs/nmaxPoints', $binMaxp);
-        unset($binMaxp);
-
-        // $binCmap = $this->getTableBody($binTtfFile, $tableRecords['cmap']);
         $cmap = $this->parseCmap($tableRecords['cmap'], $binTtfFile);
 
         $binHhea = $this->getTableBody($binTtfFile, $tableRecords['hhea']);
@@ -238,30 +244,20 @@ class TffFile extends Model
         return $offsetTable;
     }
 
-    protected function parseTableRecords($binTableRecords, $offsetTable)
+    protected function parseTableRecords($binTableRecords, $offsetTable, $offset)
     {
         $recordCount = $offsetTable['numTables'];
 
         $tableRecords = [];
-
-        $unpackFormat = '';
-        foreach ($this->fileFormat['tablesRecoed'] as $name => $param) {
-            if (!empty($unpackFormat)) {
-                $unpackFormat .= '/';
-            }
-            $unpackFormat .= $param[0].$param[1].$name;
-        }
-
         for ($i = 0; $i < $recordCount; $i++) {
-            $offset = $i * 16;
-            $record = unpack("@{$offset}/".$unpackFormat, $binTableRecords);
-
+            $record = $this->unpackBinData($this->fileFormat['tablesRecoed'], $binTableRecords, $offset);
             $tag = $record['tag'];
             $tableRecords[$tag] = [
                 'sum' => $record['sum'],
                 'offset' => $record['offset'],
                 'length' => $record['length'],
             ];
+            $offset += 16;
         }
         return $tableRecords;
     }
@@ -275,9 +271,9 @@ class TffFile extends Model
 		return $binBody;
 	}
 
-    protected function parseHead($binHead)
+    protected function parseHead($binHead, $offset)
     {
-        $head = $this->unpackBinData($this->fileFormat['head'], $binHead);
+        $head = $this->unpackBinData($this->fileFormat['head'], $binHead, $offset);
         return $head;
     }
 
@@ -287,6 +283,7 @@ class TffFile extends Model
             'n' => 2,
             'N' => 4,
             'J' => 8,
+            'A' => 1,
         ];
 
         $unpacked = [];
