@@ -44,6 +44,12 @@ class TffFile extends Model
             'glyphDataFormat' => ['n', 1, true],
         ],
 
+        'maxp' => [
+            'ver' => ['N', 1],
+            'numGlyphs' => ['n', 1],
+            'maxPoints' => ['n', 1],
+        ],
+
         'hhea' => [
             'majorVersion' => ['n', 1],
             'minorVersion' => ['n', 1],
@@ -137,14 +143,8 @@ class TffFile extends Model
 
     protected function parseMaxp($binTtfFile, $offset)
     {
-        $f = [
-            'ver' => ['N', 1],
-            'numGlyphs' => ['n', 1],
-            'maxPoints' => ['n', 1],
-        ];
-
-        // $maxList = $this->unpackBinData($f, $binTtfFile, $offset);
-        $maxList = unpack("@{$offset}/Nver/nnumGlyphs/nmaxPoints", $binTtfFile);
+        $format = $this->fileFormat['maxp'];
+        $maxList = $this->unpackBinData($format, $binTtfFile, $offset);
         return $maxList;
     }
 
