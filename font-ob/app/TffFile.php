@@ -114,6 +114,15 @@ class TffFile extends Model
                 'xMax' => ['n', 1, true],
                 'yMax' => ['n', 1, true],
             ],
+
+            'description' => [
+                'endPtsOfContours' => ['n', 'numberOfContours'],
+                'instructionLength' => ['n', 1],
+                'instructions' => ['C', 'instructionLength'],
+                'flags' => ['C', 'instructionLength'],
+                'xCoordinates' => [['C', 'n'], 'flagsLength', true],
+                'yCoordinates' => [['C', 'n'], 'flagsLength', true],
+            ],
         ],
 
     ];
@@ -139,13 +148,6 @@ class TffFile extends Model
 
 
 
-    }
-
-    protected function parseMaxp($binTtfFile, $offset)
-    {
-        $format = $this->fileFormat['maxp'];
-        $maxList = $this->unpackBinData($format, $binTtfFile, $offset);
-        return $maxList;
     }
 
     protected function parseTtf($binTtfFile)
@@ -181,7 +183,6 @@ class TffFile extends Model
                 $offset *= 2;
             }
             $glyph = $this->parseGlyph($tableRecords['glyf']['offset'] + $offset, $binTtfFile);
-
             if (!empty($glyph)) {
                 $g = new TtfGlyph([
                     'glyph_index' => $index,
@@ -190,8 +191,8 @@ class TffFile extends Model
             		'yMin' => $glyph['header']['yMin'],
             		'xMax' => $glyph['header']['xMax'],
             		'yMax' => $glyph['header']['yMax'],
-            		'coordinates' => json_encode($glyph['coordinates']),
-            		'instructions' => json_encode($glyph['instructions']),
+            		'coordinates' => json_encode($glyph['description']['coordinates']),
+            		'instructions' => json_encode($glyph['description']['instructions']),
                 ]);
                 $g->save();
             }
@@ -213,17 +214,56 @@ class TffFile extends Model
         ];
     }
 
-    protected function parseLocation($binLocation, $head, $maxList)
+    protected function unpackBinData($format, $binData, $offset = 0, $lengthList = null)
     {
-        $locaCount = $maxList['numGlyphs']; // 46個？
-		if (!$head['indexToLocFormat']) {
-			$locaFormat = "n{$locaCount}";
-		} else {
-			$locaFormat = "N{$locaCount}";
-		}
-		$locaList = array_values(unpack($locaFormat, $binLocation));
+        $sizeList = [
+            'n' => 2,
+            'N' => 4,
+            'J' => 8,
+            'A' => 1,
+        ];
 
-        return $locaList;
+        $unpacked = [];
+        foreach ($format as $name => $param) {
+            $length = $param[1];
+            if (is_string($length)) {
+                if (array_key_exists($length, $unpacked)) {
+                    $length = $unpacked[$length];
+                } else {
+                    $length = $lengthList[$length];
+                }
+            }
+            $u = array_values(unpack("@{$offset}/{$param[0]}{$length}", $binData));
+            if (array_key_exists(2, $param)) {
+                if ($param[2]) {
+                    switch ($param[0]) {
+                        case 'n':
+                            foreach ($u as &$value) {
+                                if ($value > 0x7FFF) {
+                                    $value = -(0x8000 - ($value & 0x7fff));
+                                }
+                            }
+                            unset($value);
+                            break;
+
+                        case 'N':
+                            foreach ($u as &$value) {
+                                if ($value > 0x7FFFFFFF) {
+                                    $value = -(0x80000000 - ($value & 0x7FFFFFFF));
+                                }
+                            }
+                            unset($value);
+                            break;
+                    }
+                }
+            }
+            if (count($u) == 1) {
+                $u = $u[0];
+            }
+            $unpacked[$name] = $u;
+            $offset += $sizeList[$param[0]] * $param[1];
+        }
+        return $unpacked;
     }
 
     protected function parseOffsetTable($binTtfFile)
@@ -277,48 +317,24 @@ class TffFile extends Model
         return $head;
     }
 
-    protected function unpackBinData($format, $binData, $offset = 0)
+    protected function parseLocation($binLocation, $head, $maxList)
     {
-        $sizeList = [
-            'n' => 2,
-            'N' => 4,
-            'J' => 8,
-            'A' => 1,
-        ];
+        $locaCount = $maxList['numGlyphs']; // 46個？
+		if (!$head['indexToLocFormat']) {
+			$locaFormat = "n{$locaCount}";
+		} else {
+			$locaFormat = "N{$locaCount}";
+		}
+		$locaList = array_values(unpack($locaFormat, $binLocation));
 
-        $unpacked = [];
-        foreach ($format as $name => $param) {
-            $u = array_values(unpack("@{$offset}/{$param[0]}{$param[1]}", $binData));
-            if (array_key_exists(2, $param)) {
-                if ($param[2]) {
-                    switch ($param[0]) {
-                        case 'n':
-                            foreach ($u as &$value) {
-                                if ($value > 0x7FFF) {
-                                    $value = -(0x8000 - ($value & 0x7fff));
-                                }
-                            }
-                            unset($value);
-                            break;
+        return $locaList;
+    }
 
-                        case 'N':
-                            foreach ($u as &$value) {
-                                if ($value > 0x7FFFFFFF) {
-                                    $value = -(0x80000000 - ($value & 0x7FFFFFFF));
-                                }
-                            }
-                            unset($value);
-                            break;
-                    }
-                }
-            }
-            if (count($u) == 1) {
-                $u = $u[0];
-            }
-            $unpacked[$name] = $u;
-            $offset += $sizeList[$param[0]] * $param[1];
-        }
-        return $unpacked;
+    protected function parseMaxp($binTtfFile, $offset)
+    {
+        $format = $this->fileFormat['maxp'];
+        $maxList = $this->unpackBinData($format, $binTtfFile, $offset);
+        return $maxList;
     }
 
     protected function parseCmap($info, $binCmap)
@@ -429,27 +445,32 @@ class TffFile extends Model
         $format = $this->fileFormat['glyf'];
         $glyphHeader = $this->unpackBinData($format['header'], $binGlyph, $offset);
         $offset += 10;
-		foreach ($glyphHeader as &$param) {
-			if ($param >= 0x7fff) {
-				$param = -(0x8000 - ($param & 0x7fff));
-			}
-		}
-		unset($param);
 
 // dump($glyphHeader['numberOfContours']);
         if ($glyphHeader['numberOfContours'] < 0) {
         	return null;
         }
 
-		$endPtsOfContoursList = array_values(unpack("@{$offset}/n{$glyphHeader['numberOfContours']}", $binGlyph));
+        $description = $this->unpackGlyphDescription($glyphHeader, $offset, $binGlyph);
+
+		return  [
+			'header' => $glyphHeader,
+            'description' => $description,
+		];
+	}
+
+    protected function unpackGlyphDescription($glyphHeader, $offset, $binTtfFile)
+    {
+        $format = $this->fileFormat['glyf']['description'];
+
+		$endPtsOfContoursList = array_values(unpack("@{$offset}/{$format['endPtsOfContours'][0]}{$glyphHeader['numberOfContours']}", $binTtfFile));
         $offset += (2 * $glyphHeader['numberOfContours']);
 
-		$instructionLength = unpack("@{$offset}/n{$glyphHeader['numberOfContours']}", $binGlyph)[1];
+		$instructionLength = unpack("@{$offset}/{$format['instructionLength'][0]}", $binTtfFile)[1];
         $offset += 2;
 
-		$instructions = array_values(unpack("@{$offset}/C{$instructionLength}", $binGlyph));
+		$instructions = array_values(unpack("@{$offset}/{$format['instructions'][0]}{$instructionLength}", $binTtfFile));
         $offset += $instructionLength;
-
 
 		// TODO: 定数を定義
 		$ON_CURVE_POINT = (0x01 << 0);
@@ -466,11 +487,11 @@ class TffFile extends Model
 		$index = 0;
 		while (count($flagsList) < $pointCount) {
 			// TODO: repeatがあるのでなおす
-			$flags = unpack("@{$offset}/C", $binGlyph)[1];
+			$flags = unpack("@{$offset}/C", $binTtfFile)[1];
             $offset++;
 			$flagsList[] = $flags;
 			if ($flags & $REPEAT_FLAG) {
-				$repeatCount = unpack("@{$offset}/C", $binGlyph)[1];
+				$repeatCount = unpack("@{$offset}/C", $binTtfFile)[1];
                 $offset++;
 				for ($j = 0; $j < $repeatCount; $j++) {
 					$flagsList[] = $flags;
@@ -482,14 +503,14 @@ class TffFile extends Model
 		$x = 0;
 		foreach ($flagsList as $index => $flags) {
 			if ($flags & $X_SHORT_VECTOR) {
-				$xCoordinate = unpack("@{$offset}/C", $binGlyph)[1];
+				$xCoordinate = unpack("@{$offset}/C", $binTtfFile)[1];
                 $offset++;
 				if (!($flags & $X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
 					$xCoordinate = -$xCoordinate;
 				}
 			} else {
 				if (!($flags & $X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
-					$xCoordinate = unpack("@{$offset}/n", $binGlyph)[1];
+					$xCoordinate = unpack("@{$offset}/n", $binTtfFile)[1];
                     $offset += 2;
 					if ($xCoordinate > 0x7fff) {
 						$xCoordinate = -(0x8000 - ($xCoordinate & 0x7fff));
@@ -507,14 +528,14 @@ class TffFile extends Model
 		$y = 0;
 		foreach ($flagsList as $index => $flags) {
 			if ($flags & $Y_SHORT_VECTOR) {
-				$yCoordinate = unpack("@{$offset}/C", $binGlyph)[1];
+				$yCoordinate = unpack("@{$offset}/C", $binTtfFile)[1];
                 $offset++;
 				if (!($flags & $Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
 					$yCoordinate = -$yCoordinate;
 				}
 			} else {
 				if (!($flags & $Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
-					$yCoordinate = unpack("@{$offset}/n", $binGlyph)[1];
+					$yCoordinate = unpack("@{$offset}/n", $binTtfFile)[1];
                     $offset += 2;
 					if ($yCoordinate > 0x7fff) {
 						$yCoordinate = -(0x8000 - ($yCoordinate & 0x7fff));
@@ -539,13 +560,6 @@ class TffFile extends Model
 				'flags' => $flags,
 			];
 
-			// $glyphCoordinatesList[] = [
-			// 	'x' => $xCoordinatesList[$index],
-			// 	'y' => $yCoordinatesList[$index],
-			// 	'flags' => $flags,
-			// ];
-
-
 			if ($index >= $endPoint) {
 				$glyphCoordinatesList[] = $contours;
 				$contours = [];
@@ -556,13 +570,13 @@ class TffFile extends Model
 				$endPoint = $endPtsOfContoursList[$endPointIndex];
 			}
 		}
-		return  [
-			'header' => $glyphHeader,
-			'endPtsOfContours' => $endPtsOfContoursList,
+
+        return  [
 			'instructions' => $instructions,
 			'coordinates' => $glyphCoordinatesList
+            // 'endPtsOfContours' => $endPtsOfContoursList,
 		];
-	}
+    }
 
 	protected function parseHorizontalHeaderTable($binHhea)
 	{
