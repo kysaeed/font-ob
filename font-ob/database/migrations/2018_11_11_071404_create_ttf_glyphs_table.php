@@ -15,6 +15,7 @@ class CreateTtfGlyphsTable extends Migration
     {
         Schema::create('ttf_glyphs', function (Blueprint $table) {
             $table->increments('id');
+            $table->integer('ttf_file_id')->unsgned()->index();
             $table->integer('glyph_index')->index();
             $table->integer('numberOfContours');
             $table->integer('xMin');

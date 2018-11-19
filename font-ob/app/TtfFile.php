@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 use FontObscure\GlyphSvg;
 
-class TffFile extends Model
+class TtfFile extends Model
 {
     protected $fileFormat = [
         'offsetTable' => [
@@ -129,13 +129,27 @@ class TffFile extends Model
 
     public $ttf = null;
 
-    public function __construct($binTtfFile)
-	{
-        $this->ttf = $this->parseTtf($binTtfFile);
-// dump( $this->getGlyphIndex(0x30) );
+    public static function createFromFile($name, $binTtfFile)
+    {
+        $t = self::create([
+            'name' => $name,
+        ]);
 
-        // dd($this->ttf);
-	}
+        $t->ttf = $t->parseTtf($binTtfFile);
+
+        return $t;
+    }
+
+
+    public function ttfGlyphs()
+    {
+        return $this->hasMany('FontObscure\TtfGlyph');
+    }
+
+    public function cmapSubData()
+    {
+        return $this->hasMany('FontObscure\CmapSubData');
+    }
 
     protected function createSvg($charCode)
     {
@@ -145,13 +159,13 @@ class TffFile extends Model
         // TODO:
 
 
-
-
-
     }
 
     protected function parseTtf($binTtfFile)
     {
+        // $this->name = 'aaaa';
+        // $this->save();
+
         $ttf = [];
         $offsetTable = $this->parseOffsetTable($binTtfFile);
 
@@ -161,6 +175,7 @@ class TffFile extends Model
         $maxList = $this->parseMaxp($binTtfFile, $tableRecords['maxp']['offset']);
 
         $cmap = $this->parseCmap($tableRecords['cmap'], $binTtfFile);
+dd($cmap);
 
         $binHhea = $this->getTableBody($binTtfFile, $tableRecords['hhea']);
         $hhea = $this->parseHorizontalHeaderTable($binHhea);
@@ -194,7 +209,8 @@ class TffFile extends Model
             		'coordinates' => json_encode($glyph['description']['coordinates']),
             		'instructions' => json_encode($glyph['description']['instructions']),
                 ]);
-                $g->save();
+                // $g->save();
+                $this->TtfGlyphs()->save($g);
             }
 
             // $glyphList[] = $glyph;
@@ -636,4 +652,8 @@ class TffFile extends Model
 
 		return -1;
 	}
+
+    protected $fillable = [
+        'name',
+    ];
 }

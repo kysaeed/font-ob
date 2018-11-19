@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class TtfGlyph extends Model
 {
+	public function ttfFile()
+	{
+		return $this->belognsTo('FontObscure\TtfFile');
+	}
+
 	public static function createFromFileData()
 	{
 		return null;

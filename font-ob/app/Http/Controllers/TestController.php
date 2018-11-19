@@ -5,7 +5,7 @@ namespace FontObscure\Http\Controllers;
 use Illuminate\Http\Request;
 use Storage;
 
-use FontObscure\TffFile;
+use FontObscure\TtfFile;
 use FontObscure\TtfGlyph;
 use FontObscure\GlyphSvg;
 
@@ -22,7 +22,7 @@ class TestController extends Controller
 		// $file = Storage::disk('local')->get('strokes/fancyheart_regular.ttf');
 		$file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
 
-		$ttf = new TffFile($file);
+		$ttf = TtfFile::createFromFile('test', $file);
 
 		$charCodeList = [
 			// ord('-'),
