@@ -161,6 +161,20 @@ class TtfFile extends Model
 
     }
 
+    protected function calculateCheckSum($binData, $offset, $length)
+    {
+        // $length = (($length + 3) & ~3) / 4;
+        $length = (int)(($length + 3) / 4);
+
+        $sum = 0;
+        for ($i = 0; $i < $length; $i++) {
+            $p = unpack("@{$offset}/N", $binData)[1];
+            $sum = ($sum + $p) & 0xffffffff;
+            $offset += 4;
+        }
+        return $sum;
+    }
+
     protected function parseTtf($binTtfFile)
     {
         // $this->name = 'aaaa';
@@ -171,27 +185,15 @@ class TtfFile extends Model
 
         $tableRecords = $this->parseTableRecords($binTtfFile, $offsetTable, 12);
 
-        $head = $this->parseHead($binTtfFile, $tableRecords['head']['offset']);
-        $maxList = $this->parseMaxp($binTtfFile, $tableRecords['maxp']['offset']);
-
-        $cmap = $this->parseCmap($tableRecords['cmap'], $binTtfFile);
-dd($cmap);
-
-        $binHhea = $this->getTableBody($binTtfFile, $tableRecords['hhea']);
-        $hhea = $this->parseHorizontalHeaderTable($binHhea);
-        unset($binHhea);
-
-        $binHmtx = $this->getTableBody($binTtfFile, $tableRecords['hmtx']);
-        $hmtx = $this->parseHorizontalMetrix($hhea, $binHmtx);
-        unset($binHmtx);
-
-        $binLoca = $this->getTableBody($binTtfFile, $tableRecords['loca']);
-        $locationList = $this->parseLocation($binLoca, $head, $maxList);
-        unset($binLoca);
+        $head = $this->parseHead($binTtfFile, $tableRecords['head']);
+        $maxList = $this->parseMaxp($binTtfFile, $tableRecords['maxp']);
+        $cmap = $this->parseCmap($binTtfFile, $tableRecords['cmap']);
+        $hhea = $this->parseHorizontalHeaderTable($binTtfFile, $tableRecords['hhea']);
+        $hmtx = $this->parseHorizontalMetrix($hhea, $binTtfFile, $tableRecords['hmtx']);
+        $locationList = $this->parseLocation($binTtfFile, $head, $maxList, $tableRecords['loca']);
 
 
         // $binGlyphsData = $this->getTableBody($binTtfFile, $tableRecords['glyf']);
-
         $glyphList = [];
         foreach ($locationList as $index => $offset) {
             if (!$head['indexToLocFormat']) {
@@ -327,33 +329,39 @@ dd($cmap);
 		return $binBody;
 	}
 
-    protected function parseHead($binHead, $offset)
+    protected function parseHead($binHead, $info)
     {
-        $head = $this->unpackBinData($this->fileFormat['head'], $binHead, $offset);
+        $head = $this->unpackBinData($this->fileFormat['head'], $binHead, $info['offset']);
         return $head;
     }
 
-    protected function parseLocation($binLocation, $head, $maxList)
+    protected function parseLocation($binTtfFile, $head, $maxList, $info)
     {
+        $locaFormat = "@{$info['offset']}/";
         $locaCount = $maxList['numGlyphs']; // 46個？
 		if (!$head['indexToLocFormat']) {
-			$locaFormat = "n{$locaCount}";
+			$locaFormat .= "n{$locaCount}";
 		} else {
-			$locaFormat = "N{$locaCount}";
+			$locaFormat .= "N{$locaCount}";
 		}
-		$locaList = array_values(unpack($locaFormat, $binLocation));
+		$locaList = array_values(unpack($locaFormat, $binTtfFile));
 
         return $locaList;
     }
 
-    protected function parseMaxp($binTtfFile, $offset)
+    protected function parseMaxp($binTtfFile, $info)
     {
         $format = $this->fileFormat['maxp'];
-        $maxList = $this->unpackBinData($format, $binTtfFile, $offset);
+
+        $sum = $this->calculateCheckSum($binTtfFile, $info['offset'], $info['length']);
+
+dump("sum={$sum}");
+
+        $maxList = $this->unpackBinData($format, $binTtfFile, $info['offset']);
         return $maxList;
     }
 
-    protected function parseCmap($info, $binCmap)
+    protected function parseCmap($binCmap, $info)
     {
         $baseOffset = $info['offset'];
         $formatCmap = $this->fileFormat['cmap'];
@@ -594,21 +602,19 @@ dd($cmap);
 		];
     }
 
-	protected function parseHorizontalHeaderTable($binHhea)
+	protected function parseHorizontalHeaderTable($binHhea, $info)
 	{
-        $horizontalHeaderTable = $this->unpackBinData($this->fileFormat['hhea'], $binHhea);
-		// $horizontalHeaderTable = unpack('nmajorVersion/nminorVersion/nascender/ndescender/nlineGap/nadvanceWidthMax/nminLeftSideBearing/nminRightSideBearing/nxMaxExtent/ncaretSlopeRise/ncaretSlopeRun/ncaretOffset/n4reserve/nmetricDataFormat/nnumberOfHMetrics', $binHhea);
-
+        $horizontalHeaderTable = $this->unpackBinData($this->fileFormat['hhea'], $binHhea, $info['offset']);
 		return $horizontalHeaderTable;
 	}
 
 
-	protected function parseHorizontalMetrix($horizontalHeaderTable, $binHmtx)
+	protected function parseHorizontalMetrix($horizontalHeaderTable, $binHmtx, $info)
 	{
 		$hmtcCount = $horizontalHeaderTable['numberOfHMetrics'];
 
 		$horizontalMetrixList = [];
-        $offset = 0;
+        $offset = $info['offset'];
 		for ($i = 0; $i < $hmtcCount; $i++) {
 			$horizontalMetrixList[] = $this->unpackBinData($this->fileFormat['hmtx'], $binHmtx, $offset);
             $offset += 4;
