@@ -4,75 +4,21 @@ namespace FontObscure;
 
 use Illuminate\Database\Eloquent\Model;
 
+use FontObscure\TtfOffsetData;
+use FontObscure\TtfTableRecord;
+use FontObscure\TtfHead;
+use FontObscure\TtfMaxList;
+use FontObscure\TtfHorizontalHeaderData;
+use FontObscure\TtfHorizontalMetrix;
+use FontObscure\TtfIndexToLocation;
+
 use FontObscure\GlyphSvg;
 
 class TtfFile extends Model
 {
+    use TraitTtfFileElement;
+
     protected $fileFormat = [
-        'offsetTable' => [
-            'sfntVersion' => ['N', 1],
-            'numTables' => ['n', 1],
-            'searchRange' => ['n', 1],
-            'entrySelector' => ['n', 1],
-            'rangeShift' => ['n', 1],
-        ],
-        'tablesRecoed' => [
-            'tag' => ['A', 4],
-            'sum' => ['N', 1],
-            'offset' => ['N', 1],
-            'length' => ['N', 1],
-        ],
-
-        'head' => [
-            'majorVersion' => ['n', 1],
-            'minorVersion' => ['n', 1],
-            'fontRevision' => ['N', 1],
-            'checkSumAdjustment' => ['N', 1],
-            'magicNumber' => ['N', 1],
-            'flags' => ['n', 1],
-            'unitsPerEm' => ['n', 1],
-            'created' => ['J', 1],
-            'modified' => ['J', 1],
-            'xMin' => ['n', 1, true],
-            'yMin' => ['n', 1, true],
-            'xMax' => ['n', 1, true],
-            'yMax' => ['n', 1, true],
-            'macStyle' => ['n', 1],
-            'lowestRecPPEM' => ['n', 1],
-            'fontDirectionHint' => ['n', 1, true],
-            'indexToLocFormat' => ['n', 1, true],
-            'glyphDataFormat' => ['n', 1, true],
-        ],
-
-        'maxp' => [
-            'ver' => ['N', 1],
-            'numGlyphs' => ['n', 1],
-            'maxPoints' => ['n', 1],
-        ],
-
-        'hhea' => [
-            'majorVersion' => ['n', 1],
-            'minorVersion' => ['n', 1],
-            'ascender' => ['n', 1, true],
-            'descender' => ['n', 1, true],
-            'lineGap' => ['n', 1, true],
-            'advanceWidthMax' => ['n', 1],
-            'minLeftSideBearing' => ['n', 1, true],
-            'minRightSideBearing' => ['n', 1, true],
-            'xMaxExtent' => ['n', 1, true],
-            'caretSlopeRise' => ['n', 1, true],
-            'caretSlopeRun' => ['n', 1, true],
-            'caretOffset' => ['n', 1, true],
-            'reserve' => ['n', 4, true],
-            'metricDataFormat' => ['n', 1, true],
-            'numberOfHMetrics' => ['n', 1],
-        ],
-
-        'hmtx' => [
-            'advanceWidth' => ['n', 1],
-            'lsb' => ['n', 1],
-        ],
-
         'cmap' => [
             'cmapHeader' => [
                 'version' => ['n', 1],
@@ -181,22 +127,23 @@ class TtfFile extends Model
         // $this->save();
 
         $ttf = [];
-        $offsetTable = $this->parseOffsetTable($binTtfFile);
+        $offsetData = TtfOffsetData::createFromFile($binTtfFile, 0);
+        $tableRecords = $this->parseTableRecords($binTtfFile, $offsetData, 12);
 
-        $tableRecords = $this->parseTableRecords($binTtfFile, $offsetTable, 12);
-
-        $head = $this->parseHead($binTtfFile, $tableRecords['head']);
-        $maxList = $this->parseMaxp($binTtfFile, $tableRecords['maxp']);
+        $head = TtfHead::createFromFile($binTtfFile, $tableRecords['head']->offset);
+        $maxList = TtfMaxList::createFromFile($binTtfFile, $tableRecords['maxp']->offset);
         $cmap = $this->parseCmap($binTtfFile, $tableRecords['cmap']);
-        $hhea = $this->parseHorizontalHeaderTable($binTtfFile, $tableRecords['hhea']);
-        $hmtx = $this->parseHorizontalMetrix($hhea, $binTtfFile, $tableRecords['hmtx']);
-        $locationList = $this->parseLocation($binTtfFile, $head, $maxList, $tableRecords['loca']);
+
+        $horizontalHeader = TtfHorizontalHeaderData::createFromFile($binTtfFile, $tableRecords['hhea']->offset);
+
+        $hmtx = $this->parseHorizontalMetrix($horizontalHeader, $binTtfFile, $tableRecords['hmtx']);
+
+        $indexToLocation = TtfIndexToLocation::createFromFile($head, $maxList, $binTtfFile, $tableRecords['loca']->offset);
 
 
-        // $binGlyphsData = $this->getTableBody($binTtfFile, $tableRecords['glyf']);
         $glyphList = [];
-        foreach ($locationList as $index => $offset) {
-            if (!$head['indexToLocFormat']) {
+        foreach ($indexToLocation->offsets as $index => $offset) {
+            if (!$head->index_to_loc_format) {
                 $offset *= 2;
             }
             $glyph = $this->parseGlyph($tableRecords['glyf']['offset'] + $offset, $binTtfFile);
@@ -220,126 +167,43 @@ class TtfFile extends Model
         }
 // dd('OK!');
         return [
-            'offsetTable' => $offsetTable,
+            'offsetData' => $offsetData,
             'tableRecords' => $tableRecords,
-            'head' => $head,
-            'hhea' => $hhea,
-            'maxp' => $maxList,
+            'maxList' => $maxList,
+            'horizontalHeader' => $horizontalHeader,
             'hmtx' => $hmtx,
-            'loca' => $locationList,
+            'indexToLocation' => $indexToLocation,
             'cmap' => $cmap,
             'glyphList' => $glyphList,
         ];
     }
 
-    protected function unpackBinData($format, $binData, $offset = 0, $lengthList = null)
+    protected function parseTableRecords($binTtfFile, $offsetData, $offset)
     {
-        $sizeList = [
-            'n' => 2,
-            'N' => 4,
-            'J' => 8,
-            'A' => 1,
-        ];
-
-        $unpacked = [];
-        foreach ($format as $name => $param) {
-            $length = $param[1];
-            if (is_string($length)) {
-                if (array_key_exists($length, $unpacked)) {
-                    $length = $unpacked[$length];
-                } else {
-                    $length = $lengthList[$length];
-                }
-            }
-            $u = array_values(unpack("@{$offset}/{$param[0]}{$length}", $binData));
-            if (array_key_exists(2, $param)) {
-                if ($param[2]) {
-                    switch ($param[0]) {
-                        case 'n':
-                            foreach ($u as &$value) {
-                                if ($value > 0x7FFF) {
-                                    $value = -(0x8000 - ($value & 0x7fff));
-                                }
-                            }
-                            unset($value);
-                            break;
-
-                        case 'N':
-                            foreach ($u as &$value) {
-                                if ($value > 0x7FFFFFFF) {
-                                    $value = -(0x80000000 - ($value & 0x7FFFFFFF));
-                                }
-                            }
-                            unset($value);
-                            break;
-                    }
-                }
-            }
-            if (count($u) == 1) {
-                $u = $u[0];
-            }
-            $unpacked[$name] = $u;
-            $offset += $sizeList[$param[0]] * $param[1];
-        }
-        return $unpacked;
-    }
-
-    protected function parseOffsetTable($binTtfFile)
-    {
-        $unpackFormat = '';
-        foreach ($this->fileFormat['offsetTable'] as $name => $param) {
-            if (!empty($unpackFormat)) {
-                $unpackFormat .= '/';
-            }
-            $unpackFormat .= $param[0].$param[1].$name;
-        }
-        $offsetTable = unpack($unpackFormat, $binTtfFile);
-
-        if ($offsetTable['sfntVersion'] != 0x00010000) {
-            throw new \Exception("file format error.....", 1);
-        }
-
-        return $offsetTable;
-    }
-
-    protected function parseTableRecords($binTableRecords, $offsetTable, $offset)
-    {
-        $recordCount = $offsetTable['numTables'];
+        $recordCount = $offsetData->num_tables;
 
         $tableRecords = [];
         for ($i = 0; $i < $recordCount; $i++) {
-            $record = $this->unpackBinData($this->fileFormat['tablesRecoed'], $binTableRecords, $offset);
-            $tag = $record['tag'];
-            $tableRecords[$tag] = [
-                'sum' => $record['sum'],
-                'offset' => $record['offset'],
-                'length' => $record['length'],
-            ];
+
+            $record = TtfTableRecord::createFromFile($binTtfFile, $offset);
+            $tableRecords[$record->tag] = $record;
+
             $offset += 16;
         }
         return $tableRecords;
     }
 
-    protected function getTableBody($binTtfFile, $tableInfo)
-	{
-		$binBody = substr($binTtfFile, $tableInfo['offset'], $tableInfo['length']);
-
-		// TODO: チェックサム
-
-		return $binBody;
-	}
-
     protected function parseHead($binHead, $info)
     {
-        $head = $this->unpackBinData($this->fileFormat['head'], $binHead, $info['offset']);
+        $head = self::unpackBinData($this->fileFormat['head'], $binHead, $info['offset']);
         return $head;
     }
 
     protected function parseLocation($binTtfFile, $head, $maxList, $info)
     {
         $locaFormat = "@{$info['offset']}/";
-        $locaCount = $maxList['numGlyphs']; // 46個？
-		if (!$head['indexToLocFormat']) {
+        $locaCount = $maxList->num_glyphs; // 46個？
+		if (!$head->index_to_loc_format) {
 			$locaFormat .= "n{$locaCount}";
 		} else {
 			$locaFormat .= "N{$locaCount}";
@@ -349,32 +213,20 @@ class TtfFile extends Model
         return $locaList;
     }
 
-    protected function parseMaxp($binTtfFile, $info)
-    {
-        $format = $this->fileFormat['maxp'];
-
-        $sum = $this->calculateCheckSum($binTtfFile, $info['offset'], $info['length']);
-
-dump("sum={$sum}");
-
-        $maxList = $this->unpackBinData($format, $binTtfFile, $info['offset']);
-        return $maxList;
-    }
-
     protected function parseCmap($binCmap, $info)
     {
         $baseOffset = $info['offset'];
         $formatCmap = $this->fileFormat['cmap'];
 
         $offset = $baseOffset;
-        $header = $this->unpackBinData($formatCmap['cmapHeader'], $binCmap, $offset);
+        $header = self::unpackBinData($formatCmap['cmapHeader'], $binCmap, $offset);
         $offset += 8;
 
         $encodingRecords = [];
         $count = $header['numTables'];
         for ($i = 0; $i < $count; $i++) {
             $offset = $info['offset'] + 4 + ($i * 8);
-            $recordInfo = $this->unpackBinData($formatCmap['encodingRecord'], $binCmap, $offset);
+            $recordInfo = self::unpackBinData($formatCmap['encodingRecord'], $binCmap, $offset);
             $encodingRecords[] = $recordInfo;
 
             $subTables[] = $this->parseCmapSubTable($baseOffset, $recordInfo, $binCmap);
@@ -467,7 +319,7 @@ dump("sum={$sum}");
 	protected function parseGlyph($offset, $binGlyph)
 	{
         $format = $this->fileFormat['glyf'];
-        $glyphHeader = $this->unpackBinData($format['header'], $binGlyph, $offset);
+        $glyphHeader = self::unpackBinData($format['header'], $binGlyph, $offset);
         $offset += 10;
 
 // dump($glyphHeader['numberOfContours']);
@@ -602,27 +454,20 @@ dump("sum={$sum}");
 		];
     }
 
-	protected function parseHorizontalHeaderTable($binHhea, $info)
-	{
-        $horizontalHeaderTable = $this->unpackBinData($this->fileFormat['hhea'], $binHhea, $info['offset']);
-		return $horizontalHeaderTable;
-	}
-
-
 	protected function parseHorizontalMetrix($horizontalHeaderTable, $binHmtx, $info)
 	{
-		$hmtcCount = $horizontalHeaderTable['numberOfHMetrics'];
+		$hmtcCount = $horizontalHeaderTable->number_of_hmetrics;
 
 		$horizontalMetrixList = [];
         $offset = $info['offset'];
 		for ($i = 0; $i < $hmtcCount; $i++) {
-			$horizontalMetrixList[] = $this->unpackBinData($this->fileFormat['hmtx'], $binHmtx, $offset);
+			$horizontalMetrixList[] = TtfHorizontalMetrix::createFromFile($horizontalHeaderTable, $binHmtx, $offset);
+            // self::unpackBinData($this->fileFormat['hmtx'], $binHmtx, $offset);
             $offset += 4;
 		}
 		// TODO: leftSideBearing
 		return $horizontalMetrixList;
 	}
-
 
 	public function getGlyphIndex($charCode)
 	{

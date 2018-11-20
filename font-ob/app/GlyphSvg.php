@@ -17,7 +17,6 @@ class GlyphSvg extends Model
 
 	public function getSvg()
 	{
-
 		$glyph = $this->glyph;
 		$hmtx = $this->hmtx;
 
@@ -31,8 +30,8 @@ if (!$glyph) {
 
 		$sizeBase = 10;
 
-		$lsb = $hmtx['lsb'] / $sizeBase;
-		$width = $hmtx['advanceWidth'] / $sizeBase;
+		$lsb = $hmtx->lsb / $sizeBase;
+		$width = $hmtx->advance_width / $sizeBase;
 
 		$ON_CURVE_POINT = (0x01 << 0);
 
