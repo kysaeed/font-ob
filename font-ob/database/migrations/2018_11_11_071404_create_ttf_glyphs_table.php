@@ -17,11 +17,10 @@ class CreateTtfGlyphsTable extends Migration
             $table->increments('id');
             $table->integer('ttf_file_id')->unsgned()->index();
             $table->integer('glyph_index')->index();
-            $table->integer('numberOfContours');
-            $table->integer('xMin');
-            $table->integer('yMin');
-            $table->integer('xMax');
-            $table->integer('yMax');
+            $table->integer('x_min');
+            $table->integer('y_min');
+            $table->integer('x_max');
+            $table->integer('y_max');
             $table->json('coordinates');
             $table->json('instructions');
             $table->timestamps();

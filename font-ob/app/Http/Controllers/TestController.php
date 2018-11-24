@@ -82,8 +82,6 @@ class TestController extends Controller
 			if (!$g) continue;
 // dd(json_encode($g->coordinates));
 
-			$c = json_decode($g->coordinates, true);
-			$i = json_decode($g->instructions, true);
 			$glyfData = [
 				'header' => [
 					"numberOfContours" => null,
@@ -93,8 +91,8 @@ class TestController extends Controller
 					 "yMax" => $g->yMax,
  				],
 				'endPtsOfContours' => null,
-				'coordinates' => $c,
-				'instructions' => $i,
+				'coordinates' => $g->coordinates,
+				'instructions' => $g->instructions,
 			];
 			$hm = $ttf->ttf['hmtx'][$glyphIndex];
 			$gs = new GlyphSvg($glyfData, $hm);
