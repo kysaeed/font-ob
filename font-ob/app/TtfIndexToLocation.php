@@ -9,7 +9,7 @@ class TtfIndexToLocation extends Model
 	use TraitTtfFileElement;
 
 	const FileFormat = [
-		'offset' => [['n', 'N'], 'numGlyphs'],
+		'offset' => [['n', 'N'], 'num_glyphs'],
 	];
 
 	public static function createFromFile($head, $maxList, $binTtfFile, $offset)

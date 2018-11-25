@@ -147,7 +147,7 @@ class TtfFile extends Model
 
 		if ($header['format'] == 4) {
 			$map = $cmap['body'];
-			$glyphIdArray = $cmap['glyphIdArray'];
+			$glyphIdArray = $cmap['glyph_id_array'];
 
 			$glyphIndex = 0;
 			$index = 0;

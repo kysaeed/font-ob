@@ -9,14 +9,14 @@ class TtfMaxList extends Model
 	use TraitTtfFileElement;
 
 	const FileFormat = [
-		'tableVersionNumber' => ['N', 1],
-		'numGlyphs' => ['n', 1],
-		'maxPoints' => ['n', 1],
+		'table_version_number' => ['N', 1],
+		'num_glyphs' => ['n', 1],
+		'max_points' => ['n', 1],
 
-		'maxContours' => ['n', 1],
-		'maxCompositePoints' => ['n', 1],
-		'maxCompositeContours' => ['n', 1],
-		'maxZones' => ['n', 1],
+		'max_contours' => ['n', 1],
+		'max_composite_points' => ['n', 1],
+		'max_composite_contours' => ['n', 1],
+		'max_zones' => ['n', 1],
 	];
 
 	public static function createFromFile($binTtfFile, $offset)
@@ -24,9 +24,9 @@ class TtfMaxList extends Model
 		$data = self::unpackBinData(self::FileFormat, $binTtfFile, $offset);
 
 		return new TtfMaxList([
-			'table_version_number' => $data['tableVersionNumber'],
-			'num_glyphs' => $data['numGlyphs'],
-			'max_points' => $data['maxPoints'],
+			'table_version_number' => $data['table_version_number'],
+			'num_glyphs' => $data['num_glyphs'],
+			'max_points' => $data['max_points'],
 		]);
 	}
 

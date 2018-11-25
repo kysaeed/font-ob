@@ -9,14 +9,14 @@ class TtfCmap extends Model
 	use TraitTtfFileElement;
 
 	const FileFormat = [
-		'cmapHeader' => [
+		'cmap_header' => [
 			'version' => ['n', 1],
-			'numTables' => ['n', 1],
+			'num_tables' => ['n', 1],
 		],
 
-		'encodingRecord' => [
-			'platformID' => ['n', 1],
-			'encodingID' => ['n', 1],
+		'encoding_record' => [
+			'platform_id' => ['n', 1],
+			'encoding_id' => ['n', 1],
 			'offset' => ['N', 1],
 		],
 
@@ -25,16 +25,16 @@ class TtfCmap extends Model
 			0 => [
 				'length' => ['n', 1],
 				'language' => ['n', 1],
-				'glyphIdArray' => ['C', 256],
+				'glyph_id_array' => ['C', 256],
 			],
 			4 => [
 				'format' => ['n', 1],
 				'length' => ['n', 1],
 				'language' => ['n', 1],
-				'segCountX2' => ['n', 1],
-				'searchRange' => ['n', 1],
-				'entrySelector' => ['n', 1],
-				'rangeShift' => ['n', 1],
+				'seg_count_x2' => ['n', 1],
+				'search_range' => ['n', 1],
+				'entry_selector' => ['n', 1],
+				'range_shift' => ['n', 1],
 			],
 		],
 	];
@@ -44,14 +44,14 @@ class TtfCmap extends Model
 		$baseOffset = $offset;
         $formatCmap = self::FileFormat;
 
-		$header = self::unpackBinData(self::FileFormat['cmapHeader'], $binTtfFile, $offset);
+		$header = self::unpackBinData(self::FileFormat['cmap_header'], $binTtfFile, $offset);
 		$offset += 8;
 
 		$encodingRecords = [];
-        $count = $header['numTables'];
+        $count = $header['num_tables'];
         for ($i = 0; $i < $count; $i++) {
             $offset = $baseOffset + 4 + ($i * 8);
-            $recordInfo = self::unpackBinData($formatCmap['encodingRecord'], $binTtfFile, $offset);
+            $recordInfo = self::unpackBinData($formatCmap['encoding_record'], $binTtfFile, $offset);
             $encodingRecords[] = $recordInfo;
             $subTables[] = self::parseCmapSubTable($binTtfFile, $baseOffset, $recordInfo);
         }
@@ -80,8 +80,8 @@ class TtfCmap extends Model
 
 		if ($subFormat['format'] == 0x04) {
             $offset = $baseOffset + $encodingRecord['offset'];
-			$subHeader = unpack("@{$offset}/nformat/nlength/nlanguage/nsegCountX2/nsearchRange/nentrySelector/nrangeShift", $binTtfFile);
-			$count = $subHeader['segCountX2'] / 2;
+			$subHeader = unpack("@{$offset}/nformat/nlength/nlanguage/nseg_count_x2/nsearch_range/nentry_selector/nrange_shift", $binTtfFile);
+			$count = $subHeader['seg_count_x2'] / 2;
             $offset += 14;
 
 			$endCountList = array_values(unpack("@{$offset}/n{$count}", $binTtfFile));
@@ -124,7 +124,7 @@ class TtfCmap extends Model
 			}
 
 			$count = count($idRangeOffsetList);
-			$len = ($subHeader['length'] - ($subHeader['segCountX2'] * 4 + 16)) / 2;
+			$len = ($subHeader['length'] - ($subHeader['seg_count_x2'] * 4 + 16)) / 2;
 			if ($len > 0) {
 				$glyphIdArray = array_values(unpack("@{$offset}/n{$len}", $binTtfFile));
 			} else {
@@ -134,7 +134,7 @@ class TtfCmap extends Model
 			return [
 				'header' => $subHeader,
 				'body' => $subTableBody,
-				'glyphIdArray' => $glyphIdArray,
+				'glyph_id_array' => $glyphIdArray,
 			];
 		}
 

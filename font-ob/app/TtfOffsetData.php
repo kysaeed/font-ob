@@ -9,11 +9,11 @@ class TtfOffsetData extends Model
 	use TraitTtfFileElement;
 
 	const FileFormat = [
-		'sfntVersion' => ['N', 1],
-		'numTables' => ['n', 1],
-		'searchRange' => ['n', 1],
-		'entrySelector' => ['n', 1],
-		'rangeShift' => ['n', 1],
+		'sfnt_version' => ['N', 1],
+		'num_tables' => ['n', 1],
+		'search_range' => ['n', 1],
+		'entry_selector' => ['n', 1],
+		'range_shift' => ['n', 1],
 	];
 
 
@@ -22,11 +22,11 @@ class TtfOffsetData extends Model
 		$offsetData = self::unpackBinData(self::FileFormat, $binTtfFile, $offset);
 
 		return new TtfOffsetData([
-			'sfnt_version' => $offsetData['sfntVersion'],
-			'num_tables' =>  $offsetData['numTables'],
-			'search_range' =>  $offsetData['searchRange'],
-			'entrySelector' => $offsetData['entrySelector'],
-			'range_shift' =>  $offsetData['rangeShift'],
+			'sfnt_version' => $offsetData['sfnt_version'],
+			'num_tables' =>  $offsetData['num_tables'],
+			'search_range' =>  $offsetData['search_range'],
+			'entry_selector' => $offsetData['entry_selector'],
+			'range_shift' =>  $offsetData['range_shift'],
 		]);
 	}
 
@@ -35,7 +35,7 @@ class TtfOffsetData extends Model
 		'sfnt_version',
 		'num_tables',
 		'search_range',
-		'entrySelector',
+		'entry_selector',
 		'range_shift',
 	];
 }
