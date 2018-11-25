@@ -56,4 +56,15 @@ trait TraitTtfFileElement
         }
         return $unpacked;
     }
+
+    protected static function packAttributes($format, $attributes)
+    {
+        $binData = '';
+        foreach ($attributes as $name => $value) {
+            // $attributeFormat = $format[$name];
+            $binData .= pack("{$format[$name][0]}", $value);
+        }
+
+        return $binData;
+    }
 }

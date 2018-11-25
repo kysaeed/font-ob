@@ -55,6 +55,31 @@ class TtfHead extends Model
 		]);
 	}
 
+	public function toBinary()
+	{
+
+		return self::packAttributes(self::FileFormat, [
+			'majorVersion' => $this->major_version,
+			'minorVersion' => $this->minor_version,
+			'fontRevision' => $this->font_revision,
+			'checkSumAdjustment' => $this->check_sum_adjustment,
+			'magicNumber' => $this->magic_number,
+			'flags' => $this->flags,
+			'unitsPerEm' => $this->units_per_em,
+			'created' => $this->created,
+			'modified' => $this->modified,
+			'xMin' => $this->x_min,
+			'yMin' => $this->y_min,
+			'xMax' => $this->x_max,
+			'yMax' => $this->y_max,
+			'macStyle' => $this->mac_style,
+			'lowestRecPPEM' => $this->lowest_rec_ppem,
+			'fontDirectionHint' => $this->font_directionHint,
+			'indexToLocFormat' => $this->index_to_loc_format,
+			'glyphDataFormat' => $this->glyph_data_format,
+		]);
+	}
+
 	protected $fillable = [
 		'major_version',
 		'minor_version',
