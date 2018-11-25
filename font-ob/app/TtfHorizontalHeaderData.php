@@ -9,45 +9,28 @@ class TtfHorizontalHeaderData extends Model
 	use TraitTtfFileElement;
 
 	const FileFormat = [
-		'majorVersion' => ['n', 1],
-		'minorVersion' => ['n', 1],
+		'major_version' => ['n', 1],
+		'minor_version' => ['n', 1],
 		'ascender' => ['n', 1, true],
 		'descender' => ['n', 1, true],
-		'lineGap' => ['n', 1, true],
-		'advanceWidthMax' => ['n', 1],
-		'minLeftSideBearing' => ['n', 1, true],
-		'minRightSideBearing' => ['n', 1, true],
-		'xMaxExtent' => ['n', 1, true],
-		'caretSlopeRise' => ['n', 1, true],
-		'caretSlopeRun' => ['n', 1, true],
-		'caretOffset' => ['n', 1, true],
+		'line_gap' => ['n', 1, true],
+		'advance_width_max' => ['n', 1],
+		'min_left_side_bearing' => ['n', 1, true],
+		'min_right_side_bearing' => ['n', 1, true],
+		'x_max_extent' => ['n', 1, true],
+		'caret_slope_rise' => ['n', 1, true],
+		'caret_slope_run' => ['n', 1, true],
+		'caret_offset' => ['n', 1, true],
 		'reserve' => ['n', 4, true],
-		'metricDataFormat' => ['n', 1, true],
-		'numberOfHMetrics' => ['n', 1],
+		'metric_data_format' => ['n', 1, true],
+		'number_of_hmetrics' => ['n', 1],
 	];
 
 
 	public static function createFromFile($binTtfFile, $offset)
 	{
 		$data = self::unpackBinData(self::FileFormat, $binTtfFile, $offset);
-
-		return new TtfHorizontalHeaderData([
-			'major_version' => $data['majorVersion'],
-			'minor_version' => $data['minorVersion'],
-			'ascender' => $data['ascender'],
-			'descender' => $data['descender'],
-			'line_gap' => $data['lineGap'],
-			'advance_width_max' => $data['advanceWidthMax'],
-			'min_left_side_bearing' => $data['minLeftSideBearing'],
-			'min_right_side_bearing' => $data['minRightSideBearing'],
-			'x_max_extent' => $data['xMaxExtent'],
-			'caret_slope_rise' => $data['caretSlopeRise'],
-			'caret_slope_run' => $data['caretSlopeRun'],
-			'caret_offset' => $data['caretOffset'],
-			'metric_data_format' => $data['metricDataFormat'],
-			'number_of_hmetrics' => $data['numberOfHMetrics'],
-		]);
-
+		return new TtfHorizontalHeaderData($data);
 	}
 
 
