@@ -9,7 +9,7 @@ class TtfHorizontalMetrix extends Model
 	use TraitTtfFileElement;
 
 	const FileFormat = [
-		'advanceWidth' => ['n', 1],
+		'advance_width' => ['n', 1],
 		'lsb' => ['n', 1],
 	];
 
@@ -19,7 +19,7 @@ class TtfHorizontalMetrix extends Model
 
 // dd($data);
 		return new TtfHorizontalMetrix([
-			'advance_width' => $data['advanceWidth'],
+			'advance_width' => $data['advance_width'],
 			'lsb' => $data['lsb'],
 		]);
 	}
