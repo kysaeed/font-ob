@@ -80,7 +80,7 @@ class TtfFile extends Model
         $maxList = TtfMaxList::createFromFile($binTtfFile, $tableRecords['maxp']->offset);
         $cmap = TtfCmap::createFromFile($binTtfFile, $tableRecords['cmap']->offset);
         $horizontalHeader = TtfHorizontalHeaderData::createFromFile($binTtfFile, $tableRecords['hhea']->offset);
-        $hmtx = $this->parseHorizontalMetrix($horizontalHeader, $binTtfFile, $tableRecords['hmtx']);
+        $hmtx = $this->parseHorizontalMetrix($horizontalHeader, $binTtfFile, $tableRecords['hmtx']->offset);
         $indexToLocation = TtfIndexToLocation::createFromFile($head, $maxList, $binTtfFile, $tableRecords['loca']->offset);
 
         $glyphList = [];
@@ -123,12 +123,11 @@ class TtfFile extends Model
         return $tableRecords;
     }
 
-	protected function parseHorizontalMetrix($horizontalHeaderTable, $binHmtx, $info)
+	protected function parseHorizontalMetrix($horizontalHeaderTable, $binHmtx, $offset)
 	{
 		$hmtcCount = $horizontalHeaderTable->number_of_hmetrics;
 
 		$horizontalMetrixList = [];
-        $offset = $info['offset'];
 		for ($i = 0; $i < $hmtcCount; $i++) {
 			$horizontalMetrixList[] = TtfHorizontalMetrix::createFromFile($horizontalHeaderTable, $binHmtx, $offset);
             $offset += 4;
