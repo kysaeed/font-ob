@@ -38,11 +38,6 @@ class TtfFile extends Model
         return $this->hasMany('FontObscure\TtfGlyph');
     }
 
-    public function cmapSubData()
-    {
-        return $this->hasMany('FontObscure\CmapSubData');
-    }
-
     protected function createSvg($charCode)
     {
         $glyphIndex = $this->getGlyphIndex($charCode);

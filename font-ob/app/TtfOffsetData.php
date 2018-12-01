@@ -21,15 +21,13 @@ class TtfOffsetData extends Model
 	{
 		$offsetData = self::unpackBinData(self::FileFormat, $binTtfFile, $offset);
 
-		return new TtfOffsetData([
-			'sfnt_version' => $offsetData['sfnt_version'],
-			'num_tables' =>  $offsetData['num_tables'],
-			'search_range' =>  $offsetData['search_range'],
-			'entry_selector' => $offsetData['entry_selector'],
-			'range_shift' =>  $offsetData['range_shift'],
-		]);
+		return new TtfOffsetData($offsetData);
 	}
 
+	public function toBinary()
+	{
+		return self::packAttributes(self::FileFormat, $this->getAttributes());
+	}
 
 	protected $fillable = [
 		'sfnt_version',

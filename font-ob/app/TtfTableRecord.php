@@ -27,6 +27,10 @@ class TtfTableRecord extends Model
 		]);
 	}
 
+	public function toBinary()
+	{
+		return self::packAttributes(self::FileFormat, $this->getAttributes());
+	}
 
 	protected $fillable = [
 		'tag',
