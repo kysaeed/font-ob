@@ -20,6 +20,7 @@ class TtfFile extends Model
     use TraitTtfFileElement;
 
     public $ttf = null;
+    protected $elements = null;
 
     public static function createFromFile($name, $binTtfFile)
     {
@@ -27,7 +28,9 @@ class TtfFile extends Model
             'name' => $name,
         ]);
 
-        $t->ttf = $t->parseTtf($binTtfFile);
+        $t->elements = $t->parseTtf($binTtfFile);
+
+        $t->ttf = $t->elements;
 
         return $t;
     }
@@ -85,9 +88,11 @@ class TtfFile extends Model
             }
 
             $g = TtfGlyph::createFromFile($binTtfFile, $tableRecords['glyf']['offset'] + $offset, $index);
+// dd($g->coordinates);
             if ($g) {
                 $this->TtfGlyphs()->save($g);
             }
+            // $g->toBinary();
         }
 
 // dd('OK!');
