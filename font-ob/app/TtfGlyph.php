@@ -88,13 +88,80 @@ class TtfGlyph extends Model
 
 	protected function toBinaryDescription()
 	{
+		$format = self::FileFormat['description'];
+
 		$description = '';
-		$description .= self::packFlags($this->coordinates);
+
+		$flagsList = [];
+		$binX = '';
+		$binY = '';
+		$prevX = null;
+		$prevY = null;
+		foreach ($this->coordinates as $contours) {
+			foreach ($contours as $c) {
+// dd($c);
+				$flags = ($c['flags'] & self::ON_CURVE_POINT);
+
+				if (is_null($prevX)) {
+					$x = $c['x'];
+				} else {
+					$x = $c['x'] - $prevX;
+				}
+
+				if (($x == 0) && !is_null($prevX)) {
+					$flags |= self::X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR;
+				} else {
+					$typeList = $format['xCoordinates'][0];
+					if (abs($x) <= 0xFF) {
+						if ($x >= 0) {
+							$flags |= self::X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR;
+						}
+						$flags |= self::X_SHORT_VECTOR;
+						$binX .= pack("{$typeList[0]}", abs($x));
+					} else {
+						$binX .= pack("{$typeList[1]}", $x);
+					}
+				}
+				$prevX = $c['x'];
+
+
+				if (is_null($prevY)) {
+					$y = $c['y'];
+				} else {
+					$y = $c['y'] - $prevY;
+				}
+
+				if (($y == 0) && !is_null($prevY)) {
+					$flags |= self::Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR;
+				} else {
+					$typeList = $format['yCoordinates'][0];
+					if (abs($y) <= 0xFF) {
+						if ($y >= 0) {
+							$flags |= self::Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR;
+						}
+						$flags |= self::Y_SHORT_VECTOR;
+						$binY .= pack("{$typeList[0]}", abs($y));
+					} else {
+						$binY .= pack("{$typeList[1]}", $y);
+					}
+				}
+				$prevY = $c['y'];
+
+				$flagsList[] = $flags;
+
+				// dump($c);
+			}
+		}
+
+		$binFlags = self::packFlags($flagsList);
+
+// dd($binX.$binY.$binFlags);
+// dd(unpack('C*', $binFlags));
 
 		return '';
 	}
 
-	protected static function packFlags($coordinates)
+	protected static function packFlags($flagsList)
 	{
 		$format = self::FileFormat['description']['flags'];
 
@@ -104,31 +171,26 @@ class TtfGlyph extends Model
 		$prevFlags = null;
 		$repeatCount = 0;
 
-		foreach ($coordinates as $contours) {
-			foreach ($contours as $c) {
-
-				if (!is_null($flags)) dump(sprintf("%02d", $flags));
-
-				$prevFlags = $flags;
-				$flags = $c['flags'] & (~self::REPEAT_FLAG);
-				if ($isRepeat) {
-					if ($flags == $prevFlags) {
-						$repeatCount++;
-					} else {
-						$binFlags .= pack("{$format[0]}", $repeatCount);
-						$isRepeat = false;
-					}
+		foreach ($flagsList as $flags) {
+			$flags &= (~self::REPEAT_FLAG);
+			if ($isRepeat) {
+				if ($flags == $prevFlags) {
+					$repeatCount++;
 				} else {
-					if (!is_null($prevFlags)) {
-						if ($flags == $prevFlags) {
-							$isRepeat = true;
-							$repeatCount = 1;
-							$prevFlags |= self::REPEAT_FLAG;
-						}
-						$binFlags .= pack("{$format[0]}", $prevFlags);
+					$binFlags .= pack("{$format[0]}", $repeatCount);
+					$isRepeat = false;
+				}
+			} else {
+				if (!is_null($prevFlags)) {
+					if ($flags == $prevFlags) {
+						$isRepeat = true;
+						$repeatCount = 1;
+						$prevFlags |= self::REPEAT_FLAG;
 					}
+					$binFlags .= pack("{$format[0]}", $prevFlags);
 				}
 			}
+			$prevFlags = $flags;
 		}
 		if (!$isRepeat) {
 			if (!is_null($flags)) {

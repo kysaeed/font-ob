@@ -92,7 +92,8 @@ class TtfFile extends Model
             if ($g) {
                 $this->TtfGlyphs()->save($g);
             }
-            // $g->toBinary();
+// $g->toBinary();
+// dd('OK');
         }
 
 // dd('OK!');
