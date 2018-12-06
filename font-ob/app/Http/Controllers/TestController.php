@@ -71,35 +71,11 @@ class TestController extends Controller
 		];
 
 		foreach ($charCodeList as $i => $charCode) {
-			$glyphIndex = $ttf->getGlyphIndex($charCode);
-// dump($glyphIndex);
-			if ($glyphIndex < 0) {
-				continue;
+			$gs = $ttf->createSvg($charCode);
+			if ($gs) {
+				$svg = $gs->getSvg();
+				echo $svg;
 			}
-
-			$g = TtfGlyph::where('glyph_index', $glyphIndex)->first();
-
-			if (!$g) continue;
-// dd(json_encode($g->coordinates));
-
-			$glyfData = [
-				'header' => [
-					"numberOfContours" => null,
-				     "xMin" => $g->xMin,
-				     "yMin" => $g->yMin,
-				     "xMax" => $g->xMax,
-					 "yMax" => $g->yMax,
- 				],
-				'endPtsOfContours' => null,
-				'coordinates' => $g->coordinates,
-				'instructions' => $g->instructions,
-			];
-			$hm = $ttf->ttf['hmtx'][$glyphIndex];
-			$gs = new GlyphSvg($glyfData, $hm);
-			//
-			$svg = $gs->getSvg();
-			echo $svg;
-
 		}
 
 		echo '<hr />';

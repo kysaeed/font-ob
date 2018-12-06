@@ -41,14 +41,44 @@ class TtfFile extends Model
         return $this->hasMany('FontObscure\TtfGlyph');
     }
 
-    protected function createSvg($charCode)
+    public function ttfCmap()
+    {
+        return $this->hasMany('FontObscure\TtfCmap');
+    }
+
+    public function ttfHorizontalMetrix()
+    {
+        return $this->hasMany('FontObscure\TtfHorizontalMetrix');
+    }
+
+    public function createSvg($charCode)
     {
         $glyphIndex = $this->getGlyphIndex($charCode);
 
+        if ($glyphIndex < 0) {
+            return null;
+        }
 
-        // TODO:
+        $g = $this->ttfGlyphs()->where('glyph_index', $glyphIndex)->first();
 
+        $glyfData = [
+            'header' => [
+                "numberOfContours" => null,
+                 "xMin" => $g->xMin,
+                 "yMin" => $g->yMin,
+                 "xMax" => $g->xMax,
+                 "yMax" => $g->yMax,
+            ],
+            'endPtsOfContours' => null,
+            'coordinates' => $g->coordinates,
+            'instructions' => $g->instructions,
+        ];
 
+        $hm = $this->ttfHorizontalMetrix[$glyphIndex];
+        $gs = new GlyphSvg($glyfData, $hm);
+
+        return $gs;
+        // $svg = $gs->getSvg();
     }
 
     protected function calculateCheckSum($binData, $offset, $length)
@@ -81,31 +111,30 @@ class TtfFile extends Model
         $hmtx = $this->parseHorizontalMetrix($horizontalHeader, $binTtfFile, $tableRecords['hmtx']->offset);
         $indexToLocation = TtfIndexToLocation::createFromFile($head, $maxList, $binTtfFile, $tableRecords['loca']->offset);
 
-        $glyphList = [];
         foreach ($indexToLocation->offsets as $index => $offset) {
             if (!$head->index_to_loc_format) {
                 $offset *= 2;
             }
 
-            $g = TtfGlyph::createFromFile($binTtfFile, $tableRecords['glyf']['offset'] + $offset, $index);
+            $glyph = TtfGlyph::createFromFile($binTtfFile, $tableRecords['glyf']['offset'] + $offset, $index);
 // dd($g->coordinates);
-            if ($g) {
-                $this->TtfGlyphs()->save($g);
+            if ($glyph) {
+                $this->ttfGlyphs()->save($glyph);
             }
 // $g->toBinary();
 // dd('OK');
         }
 
 // dd('OK!');
+        $this->ttfCmap = $cmap;
+        $this->ttfHorizontalMetrix = $hmtx;
+
         return [
             'offsetData' => $offsetData,
             'tableRecords' => $tableRecords,
             'maxList' => $maxList,
             'horizontalHeader' => $horizontalHeader,
-            'hmtx' => $hmtx,
             'indexToLocation' => $indexToLocation,
-            'cmap' => $cmap,
-            'glyphList' => $glyphList,
         ];
     }
 
@@ -139,7 +168,7 @@ class TtfFile extends Model
 
 	public function getGlyphIndex($charCode)
 	{
-        $cmap = $this->ttf['cmap']['sub_tables'][0];
+        $cmap = $this->ttfCmap['sub_tables'][0];
 		$header = $cmap['header'];
 
 		if ($header['format'] != 4) {
@@ -174,5 +203,10 @@ class TtfFile extends Model
 
     protected $fillable = [
         'name',
+        'offset_data',
+        'table_records',
+        'max_list',
+        'horizontal_header',
+        'index_to_location',
     ];
 }
