@@ -63,13 +63,11 @@ class TtfFile extends Model
 
         $glyfData = [
             'header' => [
-                "numberOfContours" => null,
                  "xMin" => $g->xMin,
                  "yMin" => $g->yMin,
                  "xMax" => $g->xMax,
                  "yMax" => $g->yMax,
             ],
-            'endPtsOfContours' => null,
             'coordinates' => $g->coordinates,
             'instructions' => $g->instructions,
         ];

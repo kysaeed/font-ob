@@ -7,6 +7,7 @@ use Storage;
 
 use FontObscure\TtfFile;
 use FontObscure\TtfGlyph;
+use FontObscure\TtfHorizontalMetrix;
 use FontObscure\GlyphSvg;
 
 
@@ -14,6 +15,113 @@ class TestController extends Controller
 {
 	public function test(Request $request)
     {
+
+
+		$rectangle1 = $this->getRectangle(
+			['x' => 10, 'y' => 10],
+			['x' => 700, 'y' => 500]
+		);
+
+		$rectangle2 = $this->getRectangle(
+			['x' => 600, 'y' => 100],
+			['x' => 1000, 'y' => 1000]
+		);
+
+		//
+		// // $rectangle1[] = ['x' => 0, 'y' => 150];
+		//
+		$compoased = $this->compose($rectangle1, $rectangle2);
+// $compoased = $rectangle2;
+
+		$c = [];
+		foreach ($compoased as $pos) {
+			$c[] = [
+				'x' => $pos['x'],
+				'y' => $pos['y'],
+				'flags' => 0x01,
+			];
+		}
+
+
+		$glyph = new TtfGlyph([
+			'glyph_index' => 0,
+			'number_of_contours' => null,
+			'x_min' => 0,
+			'y_min' => 0,
+			'x_max' => 1400,
+			'y_max' => 1300,
+			'coordinates' => [
+				$c,
+			],
+			'instructions' => [],
+		]);
+
+		$hm = new TtfHorizontalMetrix([
+			'advance_width' => 1200,
+			'lsb' => 20,
+		]);
+
+        $glyfData = [
+            'header' => [
+                 "xMin" => $glyph->xMin,
+                 "yMin" => $glyph->yMin,
+                 "xMax" => $glyph->xMax,
+                 "yMax" => $glyph->yMax,
+            ],
+            'coordinates' => $glyph->coordinates,
+            'instructions' => $glyph->instructions,
+        ];
+		$gs = new GlyphSvg($glyfData, $hm);
+		echo $gs->getSvg();
+
+		$glyph = new TtfGlyph([
+			'glyph_index' => 0,
+			'number_of_contours' => null,
+			'x_min' => 0,
+			'y_min' => 0,
+			'x_max' => 100,
+			'y_max' => 100,
+			'coordinates' => [
+				[
+					['x' => 500, 'y' => 1000, 'flags' => 0x00],
+					['x' => 1000, 'y' => 500, 'flags' => 0x00],
+					['x' => 500, 'y' => 0, 'flags' => 0x00],
+					['x' => 0, 'y' => 500, 'flags' => 0x000],
+				],
+				[
+					['x' => 500, 'y' => 700, 'flags' => 0x01],
+					['x' => 300, 'y' => 500, 'flags' => 0x01],
+					['x' => 500, 'y' => 300, 'flags' => 0x01],
+					['x' => 700, 'y' => 500, 'flags' => 0x01],
+				],
+			],
+			'instructions' => [],
+		]);
+
+		$hm = new TtfHorizontalMetrix([
+			'advance_width' => 1200,
+			'lsb' => 20,
+		]);
+
+		$glyfData = [
+			'header' => [
+				 "xMin" => $glyph->xMin,
+				 "yMin" => $glyph->yMin,
+				 "xMax" => $glyph->xMax,
+				 "yMax" => $glyph->yMax,
+			],
+			'coordinates' => $glyph->coordinates,
+			'instructions' => $glyph->instructions,
+		];
+		$gs = new GlyphSvg($glyfData, $hm);
+		echo $gs->getSvg();
+
+
+		// return '<hr />OK';
+
+
+
+
 		// font
 		// mplus-1c-light
 
@@ -78,6 +186,10 @@ class TestController extends Controller
 			}
 		}
 
+
+
+
+
 		echo '<hr />';
 
 		// dd($glyphIndex);
@@ -85,32 +197,8 @@ class TestController extends Controller
 		return 'hello !';
     }
 
-	protected function foo()
-	{
-		$t1 = [
-			['x'=> 10, 'y' => 10],
-			['x'=> 100, 'y' => 10],
-		];
-		$t2 = [
-			['x'=> 30, 'y' =>  130],
-			['x'=> 30, 'y' => 40],
-		];
-
-		$p = $this->getCrossPoint($t1, $t2);
-		$svg = '<svg>';
-		$svg .= $this->getSvgPolygon($t1);
-		$svg .= $this->getSvgPolygon($t2);
-		dump($p);
-		$svg .= "<circle cx=\"{$p['x']}\" cy=\"{$p['y']}\" r=\"3\" stroke='red'/>";
-		$svg .= '</svg>';
-		echo $svg;
-	}
-
 	public function cross(Request $request)
 	{
-		// $this->foo();
-		// die;
-
 		// $a = $this->crossProduct(
 		// 	[['x'=>0, 'y'=>0], ['x'=>123, 'y'=>456]],
 		// 	[['x'=>0, 'y'=>0], ['x'=>100, 'y'=>77]]
@@ -122,15 +210,15 @@ class TestController extends Controller
 		$svg = '<svg>';
 
 		$rectangle1 = $this->getRectangle(
-			['x' => 10, 'y' => 10],
+			['x' => 30, 'y' => 10],
 			['x' => 70, 'y' => 100]
 		);
 		$rectangle2 = $this->getRectangle(
-			['x' => 30, 'y' => 50],
-			['x' => 120, 'y' => 130]
+			['x' => 10, 'y' => 50],
+			['x' => 99, 'y' =>90]
 		);
 
-		$rectangle1[] = ['x' => 0, 'y' => 150];
+		// $rectangle1[] = ['x' => 1, 'y' => 130];
 
 		$svg .= $this->getSvgPolygon($rectangle1);
 		$svg .= $this->getSvgPolygon($rectangle2);
@@ -142,7 +230,7 @@ class TestController extends Controller
 		echo 'こうなるよ！<br />';
 
 		$svg = '<svg>';
-		$compoased = $this->compose($rectangle1, $rectangle2);
+		$compoased = $this->compose2($rectangle1, $rectangle2);
 		$svg .= $this->getSvgPolygon($compoased);
 		$svg .= '</svg>';
 		echo $svg;
@@ -202,6 +290,7 @@ class TestController extends Controller
 		$crossed = [
 			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
 			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+			'length' => $crossVectorLengthBase,
 		];
 
 		if (!$this->isInsideBox($v2, $crossed)) {
@@ -266,28 +355,34 @@ class TestController extends Controller
 			$c = $current['coordinates'][$index % $current['coordinatesCount']];
 			$current['coordinates'];
 
-// dump("index:{$index} ({$current['debug']}) (ingnore={$otherIngnoreIndex})");
+dump("index:{$index} ({$current['debug']}) (ingnore={$otherIngnoreIndex})");
 
 			$isCrossed = false;
 			if ($prevCurrent) {
 				$prevOther = 0;
+				$cp = null;
 				for ($otherIndex = 0; $otherIndex <= $other['coordinatesCount'];  $otherIndex++) {
 					$o = $other['coordinates'][$otherIndex % $other['coordinatesCount']];
 					if ($prevOther) {
 						if ($otherIndex != $otherIngnoreIndex) {
-// dump("hit check to = {$otherIndex}");
-							$cp = $this->getCrossPoint([$prevCurrent, $c], [$prevOther, $o]);
-// dump(compact('cp'));
-							if ($cp) {
-// dump('cross!!!');
-								$composed[] = $cp;
-								$prevCurrent = $cp;
+dump("hit check to = {$otherIndex}");
 
-								$otherIngnoreIndex = $index;
-								list($current, $other) = [$other, $current];
-								$index = $otherIndex - 1;
+							$currentCp = $this->getCrossPoint([$prevCurrent, $c], [$prevOther, $o]);
+// dump($currentCp);
+
+							if (!is_null($currentCp)) {
 								$isCrossed = true;
-								break;
+								if (is_null($cp)) {
+									$cp = $currentCp;
+									$otherIngnoreIndex = $index;
+									$index = $otherIndex - 1;
+								} else {
+									if ($cp['length'] > $currentCp['length']) {
+										$cp = $currentCp;
+										$otherIngnoreIndex = $index;
+										$index = $otherIndex - 1;
+									}
+								}
 							}
 						}
 					}
@@ -296,6 +391,15 @@ class TestController extends Controller
 					// dump($cp);
 					$prevOther = $o;
 				}
+
+				if ($isCrossed) {
+dump('cross!!!');
+					$composed[] = $cp;
+					$prevCurrent = $cp;
+
+					list($current, $other) = [$other, $current];
+				}
+
 			}
 
 			if (!$isCrossed) {
@@ -308,4 +412,132 @@ class TestController extends Controller
 
 		return $composed;
 	}
+
+
+	public function compose2($base, $addition)
+	{
+		$composed = [];
+
+		$count = count($base);
+		for ($i = 0; $i < $count; $i++) {
+			$this->addCoordinate($composed, $i, $base, $addition);
+		}
+
+
+// dd($composed);
+
+		return $composed;
+	}
+
+	protected function addCoordinate(&$coordinateList, &$index, $base, $other)
+	{
+// dump("* index={$index} ++++++++++++++++");
+// $c = count($base);
+		$coordinateList[] = $base[($index)];
+
+		$baseVector = [
+			$base[$index],
+			$base[($index + 1) % count($base)],
+		];
+
+		$count = count($other);
+		$crossPoint = null;
+		$addtionOffset = null;
+		for ($i = 0; $i < $count; $i++) {
+			$s = $other[$i];
+			$e = $other[($i + 1) % $count];
+
+			$cp = $this->getCrossPoint($baseVector, [$s, $e]);
+			if (!is_null($cp)) {
+// dump('HIT! base to addtion (additon-index='.$i);
+				if (is_null($crossPoint)) {
+					$crossPoint = $cp;
+					$addtionOffset = $i + 1;
+				} else {
+					if ($crossPoint['length'] > $cp['length']) {
+						$crossPoint = $cp;
+						$addtionOffset = $i + 1;
+					}
+				}
+
+			}
+		}
+
+		// $crossIndex = 0;
+		if (is_null($crossPoint)) {
+			return false;
+		}
+// dump("offset = {$addtionOffset}");
+// dd($addtionOffset);
+
+
+		$coordinateList[] = $crossPoint;
+
+		$count = count($other);
+		$prevPoint = $crossPoint;
+// dump("addtion-offset={$addtionOffset}");
+		for ($i = 0; $i <= $count; $i++) {
+// dump('ohter-index;'.($i + $addtionOffset));
+			$s = $other[($i + $addtionOffset) % $count];
+			// $e = $other[($i + 1 + $addtionOffset) % $count];
+			// $cp = $this->getCrossPoint($baseVector, [$s, $e]);
+
+			$ignoreIndex = null;
+			if ($i == 0) {
+				$ignoreIndex = $index;
+			}
+			$crossPoint = $this->getCrossPointToShape($base, [$prevPoint, $s], $ignoreIndex);
+
+			if (is_null($crossPoint['point'])) {
+				$coordinateList[] = $s;
+// dump('add form addtion shape (addition-index'.(($i + $addtionOffset) % $count));
+			} else {
+// dump($crossPoint);
+				$coordinateList[] = $crossPoint['point'];
+				$index = $crossPoint['index'];
+				break;
+			}
+
+			$prevPoint = $s;
+		}
+
+// dump('hit addition to base (base-index='.$index);
+// $coordinateList[] = $base[($index - 1) % $count];
+		return true;
+	}
+
+	protected function getCrossPointToShape($shape, $vector, $ignoreIndex)
+	{
+		$count = count($shape);
+
+		$crossPoint = null;
+		$crossIndex = null;
+		for ($i = 0; $i < $count; $i++) {
+			$s = $shape[$i];
+			$e = $shape[($i + 1) % $count];
+
+			if ($i !== $ignoreIndex) {
+				$cp = $this->getCrossPoint($vector, [$s, $e]);
+				if (!is_null($cp)) {
+					if (is_null($crossPoint)) {
+						$crossPoint = $cp;
+						$crossIndex = $i;
+					} else {
+						if ($cp['length'] < $crossPoint['length']) {
+							$crossPoint = $cp;
+							$crossIndex = $i;
+						}
+					}
+				} else {
+
+				}
+			}
+		}
+
+		return [
+			'point' => $crossPoint,
+			'index' => $crossIndex,
+		];
+	}
+
 }

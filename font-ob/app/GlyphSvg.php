@@ -38,7 +38,6 @@ if (!$glyph) {
 		$h = 2800 / $sizeBase;
 		$svg = '<svg width="'.($width + $lsb).'px" height="'.$h.'px">';
 
-		$endPoints = $glyph['endPtsOfContours'];
 		$coordinates = $glyph['coordinates'];
 
 		$svg .= '<path d="';
