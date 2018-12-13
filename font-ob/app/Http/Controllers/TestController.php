@@ -23,15 +23,11 @@ class TestController extends Controller
 		);
 
 		$rectangle2 = $this->getRectangle(
-			['x' => 600, 'y' => 100],
-			['x' => 1000, 'y' => 1000]
+			['x' => 300, 'y' => 100],
+			['x' => 400, 'y' => 1000]
 		);
 
-		//
-		// // $rectangle1[] = ['x' => 0, 'y' => 150];
-		//
 		$compoased = $this->compose($rectangle1, $rectangle2);
-// $compoased = $rectangle2;
 
 		$c = [];
 		foreach ($compoased as $pos) {
@@ -211,11 +207,11 @@ class TestController extends Controller
 
 		$rectangle1 = $this->getRectangle(
 			['x' => 30, 'y' => 10],
-			['x' => 70, 'y' => 100]
+			['x' => 100, 'y' => 50]
 		);
 		$rectangle2 = $this->getRectangle(
-			['x' => 10, 'y' => 50],
-			['x' => 99, 'y' =>90]
+			['x' => 50, 'y' => 45],
+			['x' => 80, 'y' => 90]
 		);
 
 		// $rectangle1[] = ['x' => 1, 'y' => 130];
@@ -230,7 +226,7 @@ class TestController extends Controller
 		echo 'こうなるよ！<br />';
 
 		$svg = '<svg>';
-		$compoased = $this->compose2($rectangle1, $rectangle2);
+		$compoased = $this->compose($rectangle1, $rectangle2);
 		$svg .= $this->getSvgPolygon($compoased);
 		$svg .= '</svg>';
 		echo $svg;
@@ -335,104 +331,17 @@ class TestController extends Controller
 
 	public function compose($base, $addition)
 	{
-		$current = [
-			'coordinates' => $base,
-			'coordinatesCount' => count($base),
-			'debug' => 'BASE',
-		];
-		$other = [
-			'coordinates' => $addition,
-			'coordinatesCount' => count($addition),
-			'debug' => 'ADDTION',
-		];
-
-
-		$composed = [];
-
-		$prevCurrent = null;
-		$otherIngnoreIndex = -1;
-		for ($index = 0; $index <= $current['coordinatesCount']; $index++) {
-			$c = $current['coordinates'][$index % $current['coordinatesCount']];
-			$current['coordinates'];
-
-dump("index:{$index} ({$current['debug']}) (ingnore={$otherIngnoreIndex})");
-
-			$isCrossed = false;
-			if ($prevCurrent) {
-				$prevOther = 0;
-				$cp = null;
-				for ($otherIndex = 0; $otherIndex <= $other['coordinatesCount'];  $otherIndex++) {
-					$o = $other['coordinates'][$otherIndex % $other['coordinatesCount']];
-					if ($prevOther) {
-						if ($otherIndex != $otherIngnoreIndex) {
-dump("hit check to = {$otherIndex}");
-
-							$currentCp = $this->getCrossPoint([$prevCurrent, $c], [$prevOther, $o]);
-// dump($currentCp);
-
-							if (!is_null($currentCp)) {
-								$isCrossed = true;
-								if (is_null($cp)) {
-									$cp = $currentCp;
-									$otherIngnoreIndex = $index;
-									$index = $otherIndex - 1;
-								} else {
-									if ($cp['length'] > $currentCp['length']) {
-										$cp = $currentCp;
-										$otherIngnoreIndex = $index;
-										$index = $otherIndex - 1;
-									}
-								}
-							}
-						}
-					}
-
-					// dump($prevCurrent);
-					// dump($cp);
-					$prevOther = $o;
-				}
-
-				if ($isCrossed) {
-dump('cross!!!');
-					$composed[] = $cp;
-					$prevCurrent = $cp;
-
-					list($current, $other) = [$other, $current];
-				}
-
-			}
-
-			if (!$isCrossed) {
-				$composed[] = $c;
-				$prevCurrent = $c;
-				$otherIngnoreIndex = -1;
-			}
-		}
-
-
-		return $composed;
-	}
-
-
-	public function compose2($base, $addition)
-	{
 		$composed = [];
 
 		$count = count($base);
 		for ($i = 0; $i < $count; $i++) {
 			$this->addCoordinate($composed, $i, $base, $addition);
 		}
-
-
-// dd($composed);
-
 		return $composed;
 	}
 
 	protected function addCoordinate(&$coordinateList, &$index, $base, $other)
 	{
-// dump("* index={$index} ++++++++++++++++");
-// $c = count($base);
 		$coordinateList[] = $base[($index)];
 
 		$baseVector = [
@@ -440,48 +349,17 @@ dump('cross!!!');
 			$base[($index + 1) % count($base)],
 		];
 
-		$count = count($other);
-		$crossPoint = null;
-		$addtionOffset = null;
-		for ($i = 0; $i < $count; $i++) {
-			$s = $other[$i];
-			$e = $other[($i + 1) % $count];
-
-			$cp = $this->getCrossPoint($baseVector, [$s, $e]);
-			if (!is_null($cp)) {
-// dump('HIT! base to addtion (additon-index='.$i);
-				if (is_null($crossPoint)) {
-					$crossPoint = $cp;
-					$addtionOffset = $i + 1;
-				} else {
-					if ($crossPoint['length'] > $cp['length']) {
-						$crossPoint = $cp;
-						$addtionOffset = $i + 1;
-					}
-				}
-
-			}
-		}
-
-		// $crossIndex = 0;
-		if (is_null($crossPoint)) {
+		$crossInfo = $this->getCrossPointToShape($other, $baseVector, null);
+		if (is_null($crossInfo['point'])) {
 			return false;
 		}
-// dump("offset = {$addtionOffset}");
-// dd($addtionOffset);
-
-
-		$coordinateList[] = $crossPoint;
+		$coordinateList[] = $crossInfo['point'];
+		$addtionOffset = $crossInfo['index'] + 1;
 
 		$count = count($other);
-		$prevPoint = $crossPoint;
-// dump("addtion-offset={$addtionOffset}");
+		$prevPoint = $crossInfo['point'];
 		for ($i = 0; $i <= $count; $i++) {
-// dump('ohter-index;'.($i + $addtionOffset));
 			$s = $other[($i + $addtionOffset) % $count];
-			// $e = $other[($i + 1 + $addtionOffset) % $count];
-			// $cp = $this->getCrossPoint($baseVector, [$s, $e]);
-
 			$ignoreIndex = null;
 			if ($i == 0) {
 				$ignoreIndex = $index;
@@ -490,9 +368,7 @@ dump('cross!!!');
 
 			if (is_null($crossPoint['point'])) {
 				$coordinateList[] = $s;
-// dump('add form addtion shape (addition-index'.(($i + $addtionOffset) % $count));
 			} else {
-// dump($crossPoint);
 				$coordinateList[] = $crossPoint['point'];
 				$index = $crossPoint['index'];
 				break;
@@ -500,9 +376,6 @@ dump('cross!!!');
 
 			$prevPoint = $s;
 		}
-
-// dump('hit addition to base (base-index='.$index);
-// $coordinateList[] = $base[($index - 1) % $count];
 		return true;
 	}
 
