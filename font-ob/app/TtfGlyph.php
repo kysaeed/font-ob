@@ -90,13 +90,19 @@ class TtfGlyph extends Model
 	{
 		$format = self::FileFormat['description'];
 
-		$description = '';
+		// TODO: endPtsOfContours$
+
+
+		$binInstractions = self::packInstructions($this->instructions);
+
 
 		$flagsList = [];
 		$binX = '';
 		$binY = '';
 		$prevX = null;
 		$prevY = null;
+		$endPtsOfContours = [];
+		$contoursCoutn = 0;
 		foreach ($this->coordinates as $contours) {
 			foreach ($contours as $c) {
 // dd($c);
@@ -130,7 +136,6 @@ class TtfGlyph extends Model
 				} else {
 					$y = $c['y'] - $prevY;
 				}
-
 				if (($y == 0) && !is_null($prevY)) {
 					$flags |= self::Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR;
 				} else {
@@ -147,10 +152,17 @@ class TtfGlyph extends Model
 				}
 				$prevY = $c['y'];
 
+
 				$flagsList[] = $flags;
 
-				// dump($c);
+				$contoursCoutn++;
 			}
+			$endPtsOfContours[] = ($contoursCoutn - 1);
+		}
+
+		$binEndPtsOfContours = '';
+		foreach ($endPtsOfContours as $end) {
+			$binEndPtsOfContours .= pack($format['end_pts_of_contours'][0], $end);
 		}
 
 		$binFlags = self::packFlags($flagsList);
@@ -158,7 +170,7 @@ class TtfGlyph extends Model
 // dd($binX.$binY.$binFlags);
 // dd(unpack('C*', $binFlags));
 
-		return '';
+		return $binEndPtsOfContours.$binInstractions.$binFlags.$binX.$binY;
 	}
 
 	protected static function packFlags($flagsList)
@@ -200,6 +212,19 @@ class TtfGlyph extends Model
 			$binFlags .= pack("{$format[0]}", $repeatCount);
 		}
 		return $binFlags;
+	}
+
+	protected static function packInstructions($instructions)
+	{
+		$formatLength = self::FileFormat['description']['instruction_length'];
+		$formatInstructions = self::FileFormat['description']['instructions'];
+
+		$binInstractions = pack("{$formatLength[0]}", count($instructions));
+		foreach ($instructions as $i) {
+			$binInstractions = pack("{$formatInstructions[0]}", count($i));
+		}
+
+		return $binInstractions;
 	}
 
 	protected static function parseHeader($binGlyph, $offset)
