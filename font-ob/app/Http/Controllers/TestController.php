@@ -101,10 +101,10 @@ class TestController extends Controller
 
 		$glyfData = [
 			'header' => [
-				 "xMin" => $glyph->xMin,
-				 "yMin" => $glyph->yMin,
-				 "xMax" => $glyph->xMax,
-				 "yMax" => $glyph->yMax,
+				 'xMin' => $glyph->xMin,
+				 'yMin' => $glyph->yMin,
+				 'xMax' => $glyph->xMax,
+				 'yMax' => $glyph->yMax,
 			],
 			'coordinates' => $glyph->coordinates,
 			'instructions' => $glyph->instructions,
@@ -116,7 +116,54 @@ class TestController extends Controller
 		// return '<hr />OK';
 
 
+// TODO:
+//
+// <path d="M11,33 c16.332,-3.471 29,-9 46,-9 c20.198,0 30,8.569 30,22 c0,19.948 -15.424,32.624 -54,36" fill="none" stroke="#000000" stroke-width="2" />
+//
+		echo '<svg>';
+		echo '<path d="M 11,33 C27.332,30.471 40,24 57,24 C77.198,24 87,32.569 87,46 C87,65.948 72.424,78.624 33,82" fill="none" stroke="#FF0000" stroke-width="1" />';
+		echo '</svg>';
 
+		echo '<svg>';
+		echo '<path d="M 50,10 0,100 100,100 z" fill="none" stroke="#000000" stroke-width="1" />';
+		echo '</svg>';
+
+		$stroke = [
+			[
+				[ 11, 33, true],
+
+				[ 27.332, 30.471, false],
+				[ 40,24, false],
+				[ 57,24, true],
+
+				[ 77.198,24, false],
+				[ 87,32.569, false],
+				[ 87,46, true],
+
+				[ 87,65.948, false],
+				[ 72.424,78.624, false],
+				[ 33,82, true],
+			],
+		];
+
+		$s = '<svg>';
+		$s .= '<path d="M 11,33 C27.332,30.471 40,24 57,24 C77.198,24 87,32.569 87,46 C87,65.948 72.424,78.624 33,82" fill="none" stroke="#FF0000" stroke-width="1" />';
+		$s .= '<path d="m 11,33 C27.332,30.471 40,24 57,24 C77.198,24 87,32.569 87,46 C87,65.948 72.424,78.624 33,82" fill="none" stroke="#FF0000" stroke-width="1" />';
+		$s .= '</svg>';
+		$stroke = self::parseStrokeSvg($s);
+
+		$outline = $this->getOutlineFromStroke($stroke);
+		$s = '<svg>';
+		foreach ($outline as $line) {
+			$s .= '<path d="M ';
+			foreach ($line as $l) {
+				$s .= "{$l['x']},{$l['y']} ";
+			}
+			$s .= 'z" fill="#dddddd" stroke="#000000" stroke-width="1" />';
+		}
+		$s .= '</svg>';
+		echo $s;
+		dd($s);
 
 		// font
 		// mplus-1c-light
@@ -193,9 +240,197 @@ class TestController extends Controller
 		return 'hello !';
     }
 
+	public static function parseStrokeSvg($svg)
+	{
+		$stroke = [];
+
+		$pathSvg = [];
+		if (preg_match_all('/<path\s+[^\/]+\/>/', $svg, $pathSvg)) {
+			foreach ($pathSvg[0] as $p) {
+				$stroke[] = self::parsePathSvg($p);
+			}
+		}
+		return $stroke;
+	}
+
+	public static function parsePathSvg($svg)
+	{
+		$pathParams = [];
+		echo '<hr />';
+		$d = [];
+		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
+			$pathMatches = [];
+			preg_match_all('/([MmCc]\s?)?([\d.]+),([\d.]+)/', $d[1], $pathMatches);
+
+			$offCurveCount = 0;
+			$x = null;
+			$y = null;
+			$prevX = 0;
+			$prevY = 0;
+			foreach ($pathMatches[0] as $index => $svg) {
+
+				$isOnCurvePoint = true;
+				if ($offCurveCount > 0) {
+					$isOnCurvePoint = false;
+					$offCurveCount--;
+				} else {
+					$prevX = $x;
+					$prevY = $y;
+				}
+				$x = (float)$pathMatches[2][$index];
+				$y = (float)$pathMatches[3][$index];
+
+				if ($index > 0) {
+					if ($pathMatches[1][$index] == 'c') {
+						$offCurveCount = 2;
+
+						$x = $prevX + $x;
+						$y = $prevY + $y;
+					}
+				}
+				if ($pathMatches[1][$index] == 'C') {
+					$offCurveCount = 2;
+				}
+
+				$pathParams[] = [
+					'x' => $x,
+					'y' => $y,
+					'isOnCurvePoint' => $isOnCurvePoint,
+				];
+
+			}
+
+			$isClosed = preg_match('/z/', $d[1]);
+
+			return [
+				'path' => $pathParams,
+				'isClosed' => $isClosed,
+			];
+		}
+
+		return [];
+	}
+
+	public function getOutlineFromStroke($stroke)
+	{
+		$outline = [];
+		$add = 5;
+		foreach ($stroke as $index => $line) {
+			$outlineUp = [];
+			$outlineDown = [];
+			$lineCount = count($line['path']);
+			$maxLineIndex = $lineCount - 1;
+			foreach ($line['path'] as $index => $l) {
+				$prevIndex = ($index + ($lineCount - 1)) % $lineCount;
+				if ($index == 0) {
+					$lNext = $line['path'][($index + 1) % $lineCount];
+					$n = self::getNormal($l, $lNext);
+
+					$up = [
+						'x' => $l['x'] + ($n['x'] * $add),
+						'y' => $l['y'] + ($n['y'] * $add),
+						'isOnCurvePoint' => $l['isOnCurvePoint'],
+					];
+					$donw = [
+						'x' => $l['x'] + ($n['x'] * -$add),
+						'y' => $l['y'] + ($n['y'] * -$add),
+						'isOnCurvePoint' => $l['isOnCurvePoint'],
+					];
+				} else if ($index == $maxLineIndex) {
+					$lPrev = $line['path'][$prevIndex];
+					$n = self::getNormal($lPrev, $l);
+
+					$up = [
+						'x' => $l['x'] + ($n['x'] * $add),
+						'y' => $l['y'] + ($n['y'] * $add),
+						'isOnCurvePoint' => $l['isOnCurvePoint'],
+					];
+					$donw = [
+						'x' => $l['x'] + ($n['x'] * -$add),
+						'y' => $l['y'] + ($n['y'] * -$add),
+						'isOnCurvePoint' => $l['isOnCurvePoint'],
+					];
+				} else {
+					$lPrev = $line['path'][$prevIndex];
+					$lNext = $line['path'][($index + 1) % $lineCount];
+					$up = self::getOutlinePoint($lPrev, $l, $lNext, $add);
+					$donw = self::getOutlinePoint($lPrev, $l, $lNext, -$add);
+
+				}
+				$outlineUp[] = [
+					'x' => $up['x'],
+					'y' => $up['y'],
+					'isOnCurvePoint' => $up['isOnCurvePoint'],
+				];
+				array_unshift($outlineDown, [
+					'x' => $donw['x'],
+					'y' => $donw['y'],
+					'isOnCurvePoint' => $donw['isOnCurvePoint'],
+				]);
+			}
+			$outline[] = array_merge($outlineUp, $outlineDown);
+		}
+
+		return $outline;
+	}
+
+	protected static function getOutlinePoint($prevPoint, $currentPoint, $nextPoint, $add)
+	{
+// dump($currentPoint);
+		$n = self::getNormal($prevPoint, $currentPoint);
+
+		$prevO1 = [
+			'x' => $prevPoint['x'] + ($n['x'] * $add),
+			'y' => $prevPoint['y'] + ($n['y'] * $add),
+			'flags' => $prevPoint['isOnCurvePoint'],
+		];
+
+		$prevO2 = [
+			'x' => $currentPoint['x'] + ($n['x'] * $add),
+			'y' => $currentPoint['y'] + ($n['y'] * $add),
+			'flags' => $currentPoint['isOnCurvePoint'],
+		];
+		$n = self::getNormal($currentPoint, $nextPoint);
+
+
+		$o1 = [
+			'x' => $currentPoint['x'] + ($n['x'] * $add),
+			'y' => $currentPoint['y'] + ($n['y'] * $add),
+			'flags' => $currentPoint['isOnCurvePoint'],
+		];
+		$o2 = [
+			'x' => $nextPoint['x'] + ($n['x'] * $add),
+			'y' => $nextPoint['y'] + ($n['y'] * $add),
+			'flags' => $nextPoint['isOnCurvePoint'],
+		];
+		$dd = self::getCrossPointToOutsideOfVector([$prevO1, $prevO2], [$o1, $o2]);
+
+		return [
+			'x' => $dd['x'],
+			'y' => $dd['y'],
+			'isOnCurvePoint' => $currentPoint['isOnCurvePoint'],
+		];
+	}
+
+	protected static function getNormal($start, $end)
+	{
+		$vector = [
+			'x' => $end['x'] - $start['x'],
+			'y' => $end['y'] - $start['y'],
+		];
+
+// TODO: 外積で大きさを取得する！！！
+		$len = sqrt(($vector['x'] * $vector['x']) + ($vector['y'] * $vector['y']));
+
+		return [
+			'x' => ($vector['y'] / $len),
+			'y' => -($vector['x'] / $len),
+		];
+	}
+
 	public function cross(Request $request)
 	{
-		// $a = $this->crossProduct(
+		// $a = self::crossProduct(
 		// 	[['x'=>0, 'y'=>0], ['x'=>123, 'y'=>456]],
 		// 	[['x'=>0, 'y'=>0], ['x'=>100, 'y'=>77]]
 		// );
@@ -235,7 +470,7 @@ class TestController extends Controller
 		return '<hr />OK !';
 	}
 
-	public function crossProduct($v1, $v2)
+	public static function crossProduct($v1, $v2)
 	{
 		return (
 			($v1[1]['x'] - $v1[0]['x']) * ($v2[1]['y'] - $v2[0]['y']) -
@@ -259,13 +494,13 @@ class TestController extends Controller
 // dump('getCrossPoint *********************');
 // dump($v1);
 // dump($v2);
-		$a = $this->crossProduct(
+		$a = self::crossProduct(
 			[$v2[0], $v1[0]],
 			$v2
 		) /* / 2 */;
 
 // dump($a);
-		$b = $this->crossProduct(
+		$b = self::crossProduct(
 			$v2,
 			[$v2[0], $v1[1]]
 		) /* / 2 */;
@@ -292,6 +527,44 @@ class TestController extends Controller
 		if (!$this->isInsideBox($v2, $crossed)) {
 			return null;
 		}
+
+		return $crossed;
+	}
+
+	public static function getCrossPointToOutsideOfVector($v1, $v2)
+	{
+// dump('getCrossPoint *********************');
+		$a = self::crossProduct(
+			[$v2[0], $v1[0]],
+			$v2
+		);
+// dump($a);
+		$b = self::crossProduct(
+			$v2,
+			[$v2[0], $v1[1]]
+		);
+// dump($b);
+
+		$ab = ($a + $b);
+		if (!$ab) {
+			return null;
+		}
+
+		$crossVectorLengthBase = ($a / $ab);
+// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
+		// if (($crossVectorLengthBase < 0) || ($crossVectorLengthBase > 1)) {
+		// 	return null;
+		// }
+
+		$crossed = [
+			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
+			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+			'length' => $crossVectorLengthBase,
+		];
+
+		// if (!$this->isInsideBox($v2, $crossed)) {
+		// 	return null;
+		// }
 
 		return $crossed;
 	}
