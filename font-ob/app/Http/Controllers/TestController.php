@@ -362,7 +362,7 @@ echo $s;
 echo ($s->getSvg());
 
 
-dd('OK');
+// dd('OK');
 
 		// font
 		// mplus-1c-light
@@ -471,9 +471,6 @@ dump($svg);
 			$prevY = 0;
 
 			foreach ($pathMatches[0] as $index => $svg) {
-
-dump("index = {$index}");
-
 				$isOnCurvePoint = true;
 
 				if ($pathMatches[1][$index] == 'c') {
@@ -487,15 +484,12 @@ dump("index = {$index}");
 					$offCurveCount = 3;
 					$isRelativePosition = false;
 				}
-dump("raw: x={$x} / y={$y}");
-
 				$x = (float)$pathMatches[2][$index];
 				$y = (float)$pathMatches[3][$index];
 				if ($isRelativePosition) {
 					$x += $prevX;
 					$y += $prevY;
 				}
-dump("count={$offCurveCount}");
 				if ($offCurveCount > 0) {
 					$isOnCurvePoint = false;
 					$offCurveCount--;
@@ -509,9 +503,6 @@ dump("count={$offCurveCount}");
 					$prevY = $y;
 				}
 
-
-
-dump("x={$x} / y={$y} prev(x={$prevX} / y={$prevY})");
 				$pathParams[] = [
 					'x' => $x,
 					'y' => $y,
@@ -533,7 +524,7 @@ dump("x={$x} / y={$y} prev(x={$prevX} / y={$prevY})");
 	public static function getOutlineFromStroke($stroke)
 	{
 		$outline = [];
-		$add = 6;
+		$add = 3;
 		foreach ($stroke as $index => $line) {
 			$outlineUp = [];
 			$outlineDown = [];
