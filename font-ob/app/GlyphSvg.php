@@ -4,6 +4,8 @@ namespace FontObscure;
 
 use Illuminate\Database\Eloquent\Model;
 
+use FontObscure\TtfGlyph;
+
 class GlyphSvg extends Model
 {
 	protected $glyph = null;
