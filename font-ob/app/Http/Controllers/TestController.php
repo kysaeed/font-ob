@@ -128,24 +128,6 @@ class TestController extends Controller
 		echo '<path d="M 50,10 0,100 100,100 z" fill="none" stroke="#000000" stroke-width="1" />';
 		echo '</svg>';
 
-		$stroke = [
-			[
-				[ 11, 33, true],
-
-				[ 27.332, 30.471, false],
-				[ 40,24, false],
-				[ 57,24, true],
-
-				[ 77.198,24, false],
-				[ 87,32.569, false],
-				[ 87,46, true],
-
-				[ 87,65.948, false],
-				[ 72.424,78.624, false],
-				[ 33,82, true],
-			],
-		];
-
 		$s = '<svg>';
 		$s .= ' <path d="M 11,33 C27.332,30.471 40,24 57,24 C77.198,24 87,32.569 87,46 C87,65.948 72.424,78.624 33,82" fill="none" stroke="#FF0000" stroke-width="1" />';
 		$s .= ' <circle cx="11" cy="33" r="3"/>';
@@ -174,10 +156,12 @@ echo "<hr />{$s}<hr />";
 		$s .= '</svg>';
 echo $s;
 
-		echo '<hr />ストローク<br />';
+		echo '<hr />ストローク tsu<br />';
 		$s = '<svg>';
 		$sc = '';
+
 // dd($stroke);
+
 		foreach ($stroke as $line) {
 			$s .= '<path d="M ';
 			$cCount = 0;
@@ -195,6 +179,53 @@ echo $s;
 				$s .= "{$l['x']},{$l['y']} ";
 			}
 			$s .= '" fill="none" stroke="blue" stroke-width="1" />';
+		}
+		$s .= $sc.'</svg>';
+		echo $s;
+
+		echo '<br />';
+
+
+		echo '<hr />Q command<br />';
+		$s = '<svg>';
+		$sc = '';
+		$cBuf = [];
+		$prev = null;
+		$sprine = [];
+		foreach ($stroke as $line) {
+			$s .= '<path d="M ';
+			$cCount = 0;
+			foreach ($line['path'] as $index => $l) {
+				if (!$l['isOnCurvePoint']) {
+					if ($cCount == 0) {
+						$cCount = 3;
+						// $s .= "C";
+					}
+				}
+				if ($cCount > 0) {
+					$cBuf[] = $l;
+					$cCount--;
+					if ($cCount <= 0) {
+						// $s .= "C {$cBuf[0]['x']},{$cBuf[0]['y']} {$cBuf[1]['x']},{$cBuf[1]['y']} {$cBuf[2]['x']},{$cBuf[2]['y']} ";
+
+						$q = self::svgCtoQ($prev, $cBuf);
+// dump($test);
+						foreach ($q as $qParams) {
+							$s .= "Q {$qParams[1]['x']},{$qParams[1]['y']} {$qParams[2]['x']},{$qParams[2]['y']} ";
+							$sprine[] = [
+								'x' => $qParams[1]['x'],
+							];
+						}
+						$cBuf = [];
+						$prev = $l;
+					}
+				} else {
+					$s .= "{$l['x']},{$l['y']} ";
+					$prev = $l;
+					$sprine[] = $l;
+				}
+			}
+			$s .= '" fill="none" stroke="red" stroke-width="1" />';
 		}
 		$s .= $sc.'</svg>';
 		echo $s;
@@ -239,8 +270,206 @@ echo $s;
 		echo $s;
 
 
+		echo '<hr /><h1> 2 -> 3</h1><br />';
+		$sp = '<svg width="100" height="100">';
+		$sp .= ' <path d="M0,0 C0,100 100,100 100,0" fill="none" stroke="red"/>';
+		$sp .= '</svg>';
+		echo $sp;
+		echo '<hr /><h1>** K **</h1><br />';
+
+		$s = [
+			'x' => 0,
+			'y' => 150,
+		];
+
+		$e = [
+			'x' => 300,
+			'y' => 150,
+		];
+
+
+		$a = [
+			'x' => 0,
+			'y' => 0,
+		];
+		$b = [
+			'x' => 300,
+			'y' => 0,
+		];
+
+
+		$se = self::getMidPoint($s, $e);
+
+		$mp1 = self::getMidPoint($s, $se);
+		// $mp1 = self::getMidPoint($s, $se);
+		$mp2 = self::getMidPoint($e, $se);
+
+		$sa = self::getMidPoint($s, $a);
+		$eb = self::getMidPoint($e, $b);
+
+		$ab = self::getMidPoint($a, $b);
+
+
+
+		// $t = 0.5;
+		// $k = [
+		// 	'x' => ($s['x'] * pow(1 - $t, 3)) + ($a['x'] * (pow(1 - $t, 2) * 3) * $t) + ($b['x'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['x'] * pow($t, 3)),
+		// 	'y' => ($s['y'] * pow(1 - $t, 3)) + ($a['y'] * (pow(1 - $t, 2) * 3) * $t) + ($b['y'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['y'] * pow($t, 3)),
+		// ];
+		$k = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.5);
+
+
+		// $k = [
+		// 	'x' => ($s['x'] * 0.125) + ($a['x'] * (0.25 * 3) * 0.5) + ($b['x'] * (0.125 * 3)) + ($e['x'] * 0.125),
+		// 	'y' => ($s['y'] * 0.125) + ($a['y'] * (0.25 * 3) * 0.5) + ($b['y'] * (0.125 * 3)) + ($e['y'] * 0.125),
+		// ];
+
+		$sk = self::getMidPoint($s, $k);
+		$ka = self::getMidPoint($sk, $a);
+		$ek = self::getMidPoint($e, $k);
+		$kb = self::getMidPoint($ek, $b);
+
+		$aByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.25);
+dump(compact('aByK'));
+
+		$bByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.75);
+
+// dd($aByK);
+dump(compact('bByK'));
+		$t = 0.5;
+
+// $aByK['x'] = 10;
+
+		$lenX1 = ($b['x'] - $k['x']);
+		$lenX2 = ($k['x'] - $a['x']);
+
+dump("lenX1={$lenX1}, lenX2={$lenX2}");
+
+$t = 0.5;
+$t *= 1.1;
+dump(compact('t'));
+
+		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
+		$ax = (($aByK['x'] - $param) / ((1 - $t) * $t * 2));
+		$param = ($s['y'] * pow(1 - $t, 2)) + ($k['y'] * pow($t, 2));
+		$ay = ($aByK['y'] - $param) / ((1 - $t) * $t * 2);
+
+$t = 0.45;
+		$param = ($k['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
+		$bx = (($bByK['x'] - $param) / ((1 - $t) * $t * 2));
+		$param = ($k['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
+		$by = ($bByK['y'] - $param) / ((1 - $t) * $t * 2);
+dump("new a = {$ax},{$ay}");
+
+
+
+		$kAdd = [
+			'x' => ($b['x'] * (pow(0.25, 2) * 3) * 0.75),
+			'y' => ($b['y'] * (pow(0.25, 2) * 3) * 0.75),
+		];
+// dump($inverseK);
+// dump($kAdd);
+
+
+
+
+		echo '<hr />逆算<br />';
+		echo '<hr />';
+
+		$sp = '<svg width="300" height="300">';
+		$sp .= " <path d='M{$s['x']},{$s['y']} C{$a['x']},{$a['y']} {$b['x']},{$b['y']} {$e['x']},{$e['y']}' fill='none' stroke='red'/>";
+		// $sp .= " <circle cx='{$aByK['x']}' cy='{$aByK['y']}' r='3' fill='green' />";
+		$sp .= " <circle cx='{$b['x']}' cy='{$b['y']}' r='3' fill='green' />";
+
+		// $a = [
+		// 	'x' => 4,
+		// 	'y' => 64,
+		// ];
+		// $sp .= " <path d='M{$s['x']},{$s['y']} Q{$ax},{$ay} {$k['x']},{$k['y']} Q{$bx},{$by} {$e['x']},{$e['y']}' fill='none' stroke='blue'/>";
+		$sp .= " <path d='M{$s['x']},{$s['y']} {$se['x']},{$se['y']} {$a['x']},{$a['y']} z' fill='none' stroke='skyblue'/>";
+		$sp .= " <path d='M{$mp1['x']},{$mp1['y']} {$a['x']},{$a['y']} ' fill='none' stroke='black'/>";
+
+		$target = [
+			'x' => 3,
+			'y' => 64,
+		];
+dump(compact('target'));
+		$sp .= " <circle cx='{$target['x']}' cy='{$target['y']}' r='3' fill='skyblue' />";
+
+		$sk = self::getMidPoint($s, $k);
+
+
+		////////////////////////////////////////
+		$sp .= " <path d='M {$s['x']},{$s['y']} {$k['x']},{$k['y']}' stroke='green' />";
+		$sp .= " <path d='M {$e['x']},{$e['y']} {$k['x']},{$k['y']}' stroke='green' />";
+		$sp .= " <circle cx='{$k['x']}' cy='{$k['y']}' r='3' fill='red' />";
+		$sp .= " <circle cx='{$aByK['x']}' cy='{$aByK['y']}' r='3' fill='gray' />";
+		$sp .= " <circle cx='{$bByK['x']}' cy='{$bByK['y']}' r='3' fill='gray' />";
+		// $sp .= " <circle cx='{$mp1['x']}' cy='{$mp1['y']}' r='3' fill='green' />";
+		$sp .= " <circle cx='{$sk['x']}' cy='{$sk['y']}' r='3' fill='blue' />";
+		// $sp .= " <path d='M {$sk['x']},{$sk['y']} {$a['x']},{$a['y']}' stroke='green' />";
+		////////////////////////////////////////
+
+		$sp .= '</svg>';
+		echo $sp;
+		echo '<hr />TEST<br />';
+
+
+		echo '** C to Q<br />';
+		$test = self::svgCtoQ($s, [$a, $b, $e]);
+dump(compact('test'));
+		$cl = [
+			'red',
+			'blue',
+		];
+		$sp2 = '<svg width="300" height="300">';
+		foreach ($test as $i => $t) {
+			$sp2 .= " <path d='M{$t[0]['x']},{$t[0]['y']} Q{$t[1]['x']},{$t[1]['y']} {$t[2]['x']},{$t[2]['y']}' fill='none' stroke='{$cl[$i]}'/>";
+		}
+		$sp2 .= '</svg>';
+		echo $sp2.'<br />';
+
+
+		echo '分解<br />';
+		$sp2 = '<svg width="300" height="300">';
+		$sp2 .= " <path d='M{$s['x']},{$s['y']} Q{$ax},{$ay} {$k['x']},{$k['y']}' fill='none' stroke='blue'/>";
+		$sp2 .= '</svg>';
+		echo "<hr />{$sp2}";
+
+		$sp2 = '<svg width="300" height="300">';
+		$sp2 .= " <path d='M{$k['x']},{$k['y']}  Q{$bx},{$by} {$e['x']},{$e['y']}' fill='none' stroke='blue'/>";
+		$sp2 .= '</svg>';
+		echo "{$sp2}<hr />";
+
+
+
+		// $mpoint = [
+		// 	'x' => 0 + ((100 - 0) / 2),
+		// 	'y' => 0 + ((100 - 100) / 2),
+		// ];
+
+
+
+		// $cntp1 = [
+		// 	'x' => $mpoint['x'] - (50 * 0.77),
+		// 	'y' => $mpoint['y'] + (100 * 0.77),
+		// ];
+		// $cntp2 = [
+		// 	'x' => $mpoint['x'] + (50 * 0.77),
+		// 	'y' => $mpoint['y'] + (100 * 0.77),
+		// ];
+		// dd($cntp2);
+		$sp .= '</svg>';
+
+
+		$sp = '<svg  width="100" height="100">';
+		$sp .= ' <path d="M0,0 Q4,75 50,75 Q95,76 100,0" fill="none" stroke="black"/>';
+		$sp .= '</svg>';
+		echo $sp;
+
+		echo '<hr /><br /><br />';
+
 		echo '<hr />ストローク shi<br />';
-		$shi =
 		$shi = '<svg>';
 		$shi .= ' <path d="M86,57 c-10.481,21.489 -24.904,32 -39,32 c-13.079,0 -21,-8.539 -21,-28 c0,-16.818 2,-32.069 2,-50" fill="none" stroke="black"/>';
 		$shi .= '</svg>';
@@ -358,9 +587,11 @@ echo $s;
 			'coordinates' => $o,
 			'instructions' => [],
 		]);
+// dd($g->coordinates);
 		$s = new GlyphSvg($g, $hm);
-echo ($s->getSvg());
+echo $s->getSvg();
 
+// dd($s->getSvg());
 
 // dd('OK');
 
@@ -378,22 +609,22 @@ echo ($s->getSvg());
 			0x3064,
 
 			// ord('-'),
-			ord('M'),
-			ord('A'),
-			ord('Y'),
-			ord('A'),
+			// ord('M'),
+			// ord('A'),
+			// ord('Y'),
+			// ord('A'),
 			//
 			ord('-'),
 
-			0x307E,
+			0x307F,
 			0x3084,
 
 			ord('-'),
 
-			ord('m'),
-			ord('a'),
-			ord('y'),
-			ord('a'),
+			// ord('m'),
+			// ord('a'),
+			// ord('y'),
+			// ord('a'),
 
 			ord('-'),
 			//
@@ -440,6 +671,63 @@ echo ($s->getSvg());
 
 		return 'hello !';
     }
+
+	protected static function svgCtoQ($s, $cParams)
+	{
+		$a = $cParams[0];
+		$b = $cParams[1];
+		$e = $cParams[2];
+
+		// $t = 0.5;
+
+		$k = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.5);
+
+		$aByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.25);
+		$bByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.75);
+
+		$t = 0.55;
+		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
+		$ax = (($aByK['x'] - $param) / ((1 - $t) * $t * 2));
+		$param = ($s['y'] * pow(1 - $t, 2)) + ($k['y'] * pow($t, 2));
+		$ay = ($aByK['y'] - $param) / ((1 - $t) * $t * 2);
+
+		$t = 0.45;
+		$param = ($k['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
+		$bx = ($bByK['x'] - $param) / ((1 - $t) * $t * 2);
+		$param = ($k['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
+		$by = ($bByK['y'] - $param) / ((1 - $t) * $t * 2);
+		// dump("new a = {$ax},{$ay}");
+
+
+
+		return [
+			[
+				$s,
+				['x'=> $ax , 'y'=> $ay],
+				$k,
+			], [
+				$k,
+				['x'=> $bx, 'y'=> $by],
+				$e,
+			],
+		];
+	}
+
+	protected static function getBezierOnCurvePoint($s, $e, $a, $b, $t)
+	{
+		return [
+			'x' => ($s['x'] * pow(1 - $t, 3)) + ($a['x'] * (pow(1 - $t, 2) * 3) * $t) + ($b['x'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['x'] * pow($t, 3)),
+			'y' => ($s['y'] * pow(1 - $t, 3)) + ($a['y'] * (pow(1 - $t, 2) * 3) * $t) + ($b['y'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['y'] * pow($t, 3)),
+		];
+	}
+
+	protected static function getMidPoint($start, $end)
+	{
+		return [
+			'x' => $start['x'] + (($end['x'] - $start['x']) / 2),
+			'y' => $start['y'] + (($end['y'] - $start['y']) / 2),
+		];
+	}
 
 	public static function parseStrokeSvg($svg)
 	{

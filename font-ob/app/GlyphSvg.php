@@ -10,6 +10,7 @@ class GlyphSvg extends Model
 {
 	protected $glyph = null;
 	protected $hmtx = null;
+	const ON_CURVE_POINT = 0x01;
 
     public function __construct($glyph, $hmtx)
 	{
@@ -25,7 +26,6 @@ class GlyphSvg extends Model
 if (!$glyph) {
 	return '';
 }
-
 
 		$testCurves = [];
 		$testPoints = [];
@@ -52,14 +52,13 @@ if (!$glyph) {
 				$y = -$c['y'] / $sizeBase;
 				$x += $lsb;
 				$y += (2000 / $sizeBase);
-
-$testPoints[] = ['x' => $x, 'y' => $y];
+				$testPoints[] = ['x' => $x, 'y' => $y, 'isCurve'=>(bool)$isCurve];
 
 				if ($isCurve) {
-					if ($c['flags'] & $ON_CURVE_POINT) {
-						$svg .= $this->getCurvePathSvg($curvePoints[0], ['x'=>$x, 'y'=>$y]);
+					if ($c['flags'] & self::ON_CURVE_POINT) {
+						$svg .= $this->getCurvePathSvg($curvePoints, ['x'=>$x, 'y'=>$y]);
 						$nextFlags = $contours[($index + 1) % ($maxIndexContours + 1)]['flags'];
-						if (!($nextFlags & $ON_CURVE_POINT)) {
+						if (!($nextFlags & self::ON_CURVE_POINT)) {
 							$isCurve = true;
 							$curvePoints = [];
 						} else {
@@ -68,19 +67,17 @@ $testPoints[] = ['x' => $x, 'y' => $y];
 						}
 
 					} else if (count($curvePoints) >= 1) {
-						$diffX = $x - $curvePoints[0]['x'];
-						$diffY = $y - $curvePoints[0]['y'];
+						$diffX = $x - $curvePoints['x'];
+						$diffY = $y - $curvePoints['y'];
 
-						$middleX = $curvePoints[0]['x'] + ($diffX / 2);
-						$middleY = $curvePoints[0]['y'] + ($diffY / 2);
+						$middleX = $curvePoints['x'] + ($diffX / 2);
+						$middleY = $curvePoints['y'] + ($diffY / 2);
 
-						$svg .= $this->getCurvePathSvg($curvePoints[0], ['x'=>$middleX, 'y'=>$middleY]);
+						$svg .= $this->getCurvePathSvg($curvePoints, ['x'=>$middleX, 'y'=>$middleY]);
 
 						$curvePoints = [
-							[
-								'x' => $x,
-								'y' => $y,
-							]
+							'x' => $x,
+							'y' => $y,
 						];
 						$testCurves[] = [
 							'x' => $x,
@@ -88,7 +85,7 @@ $testPoints[] = ['x' => $x, 'y' => $y];
 						];
 
 					} else {
-						$curvePoints[] = [
+						$curvePoints = [
 							'x' => $x,
 							'y' => $y,
 						];
@@ -101,7 +98,7 @@ $testPoints[] = ['x' => $x, 'y' => $y];
 					if (($index == 0)) {
 						$cmd = 'M';
 
-						if (!($c['flags'] & 0x01)) {
+						if (!($c['flags'] & self::ON_CURVE_POINT)) {
 							if ($maxIndexContours < 1) {
 								dd('$maxIndexContours Error');
 							}
@@ -155,15 +152,15 @@ $testPoints[] = ['x' => $x, 'y' => $y];
 			// 閉じパス
 			if ($isCurve) {
 				$startCoodinate = $contours[0];
-				if ($contours[0]['flags'] & 0x01) {
+				if ($contours[0]['flags'] & self::ON_CURVE_POINT) {
 					// $startCoodinate = $contours[0];
 					$x = ($contours[0]['x'] / $sizeBase);
 					$y = -($contours[0]['y'] / $sizeBase);
 					$x += $lsb;
 					$y += 2000 / $sizeBase;
 // $x += 60;
-// $curvePoints[0]['x'] += 60;
-					$svg .= "Q {$curvePoints[0]['x']},{$curvePoints[0]['y']} {$x},{$y} ";
+// $curvePoints['x'] += 60;
+					$svg .= "Q {$curvePoints['x']},{$curvePoints['y']} {$x},{$y} ";
 
 				} else {
 					if ($maxIndexContours < 1) {
@@ -178,7 +175,7 @@ $testPoints[] = ['x' => $x, 'y' => $y];
 						$startPoint['y'] = -($startPoint['y'] / $sizeBase) + (2000 / $sizeBase);
 
 
-						$svg .= "Q {$curvePoints[0]['x']},{$curvePoints[0]['y']} {$startPoint['x']},{$startPoint['y']} ";
+						$svg .= "Q {$curvePoints['x']},{$curvePoints['y']} {$startPoint['x']},{$startPoint['y']} ";
 
 
 
@@ -206,26 +203,25 @@ $testPoints[] = ['x' => $x, 'y' => $y];
 		$svg .= '" fill="#e0e0e0" stroke="black" stroke-width="1" />';
 
 
-		foreach ($testCurves as $i => $tc) {
-			$color = 'blue';
-			if ($i == 0) {
-				$color = 'red';
-			}
-			if ($i == 1) {
-				$color = 'white';
-			}
-			// $svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='3' fill='{$color}' stroke='black' stroke-width='1'/>";
-		}
+		// foreach ($testCurves as $i => $tc) {
+		// 	$color = 'blue';
+		// 	if ($i == 0) {
+		// 		$color = 'red';
+		// 	}
+		// 	if ($i == 1) {
+		// 		$color = 'red';
+		// 	}
+		// 	$svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='2' fill='{$color}' stroke='none' stroke-width='1'/>";
+		// }
 
 		foreach ($testPoints as $i => $tc) {
-			$color = 'white';
-			if ($i == 0) {
+			$color = 'blue';
+			if ($tc['isCurve']) {
+				$color = 'blue';
+			} else {
 				$color = 'red';
 			}
-			if ($i == 1) {
-				$color = 'blue';
-			}
-			// $svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='2' fill='{$color}' stroke='black' stroke-width='1'/>";
+			$svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='1' fill='{$color}' stroke='red' stroke-width='1'/>";
 		}
 
 
