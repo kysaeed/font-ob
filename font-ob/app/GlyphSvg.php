@@ -214,14 +214,16 @@ if (!$glyph) {
 		// 	$svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='2' fill='{$color}' stroke='none' stroke-width='1'/>";
 		// }
 
-		foreach ($testPoints as $i => $tc) {
-			$color = 'blue';
-			if ($tc['isCurve']) {
+		if (false) {
+			foreach ($testPoints as $i => $tc) {
 				$color = 'blue';
-			} else {
-				$color = 'red';
+				if ($tc['isCurve']) {
+					$color = 'blue';
+				} else {
+					$color = 'red';
+				}
+				$svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='1' fill='{$color}' stroke='red' stroke-width='1'/>";
 			}
-			$svg .= "<circle id='{$i}' cx='{$tc['x']}' cy='{$tc['y']}' r='1' fill='{$color}' stroke='red' stroke-width='1'/>";
 		}
 
 
