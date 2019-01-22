@@ -161,7 +161,6 @@ echo $s;
 		$sc = '';
 
 // dd($stroke);
-
 		foreach ($stroke as $line) {
 			$s .= '<path d="M ';
 			$cCount = 0;
@@ -191,10 +190,14 @@ echo $s;
 		$sc = '';
 		$cBuf = [];
 		$prev = null;
-		$sprine = [];
+		$spline = [];
 		foreach ($stroke as $line) {
 			$s .= '<path d="M ';
 			$cCount = 0;
+			$p = [
+				'path' => [],
+				'isClosed' => false,
+			];
 			foreach ($line['path'] as $index => $l) {
 				if (!$l['isOnCurvePoint']) {
 					if ($cCount == 0) {
@@ -212,8 +215,15 @@ echo $s;
 // dump($test);
 						foreach ($q as $qParams) {
 							$s .= "Q {$qParams[1]['x']},{$qParams[1]['y']} {$qParams[2]['x']},{$qParams[2]['y']} ";
-							$sprine[] = [
+							$p['path'][] = [
 								'x' => $qParams[1]['x'],
+								'y' => $qParams[1]['y'],
+								'isOnCurvePoint' => false,
+							];
+							$p['path'][] = [
+								'x' => $qParams[2]['x'],
+								'y' => $qParams[2]['y'],
+								'isOnCurvePoint' => true,
 							];
 						}
 						$cBuf = [];
@@ -222,18 +232,44 @@ echo $s;
 				} else {
 					$s .= "{$l['x']},{$l['y']} ";
 					$prev = $l;
-					$sprine[] = $l;
+					$p['path'][] = $l;
 				}
 			}
+			$spline[] = $p;
 			$s .= '" fill="none" stroke="red" stroke-width="1" />';
 		}
 		$s .= $sc.'</svg>';
 		echo $s;
 
+		echo '<hr />ストロークQ<br />';
+		foreach ($spline as $line) {
+			$s .= '<path d="M ';
+			$cCount = 0;
+			foreach ($line['path'] as $index => $l) {
+				if (!$l['isOnCurvePoint']) {
+					if ($cCount == 0) {
+						$cCount = 2;
+						$s .= "Q";
+					}
+				}
+				if ($cCount > 0) {
+					$cCount--;
+				}
+
+				$s .= "{$l['x']},{$l['y']} ";
+			}
+			$s .= '" fill="none" stroke="blue" stroke-width="1" />';
+		}
+		$s .= $sc.'</svg>';
+		echo $s;
+
+		echo '<br />';
+
+
 
 		echo '<hr />アウトライン<br />';
-
-		$outline = self::getOutlineFromStroke($stroke);
+		$outline = self::getOutlineFromStroke($spline);
+		// $outline = self::getOutlineFromStroke($stroke);
 		$s = '<svg>';
 		$sc = '';
 		foreach ($outline as $line) {
@@ -242,8 +278,8 @@ echo $s;
 			foreach ($line as $index => $l) {
 				if (!$l['isOnCurvePoint']) {
 					if ($cCount == 0) {
-						$s .= "C";
-						$cCount = 3;
+						$s .= "Q";
+						$cCount = 2;
 					}
 				} else {
 					if ($index != 0) {
@@ -345,8 +381,7 @@ dump(compact('bByK'));
 
 dump("lenX1={$lenX1}, lenX2={$lenX2}");
 
-$t = 0.5;
-$t *= 1.1;
+$t = 0.58;
 dump(compact('t'));
 
 		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
@@ -354,7 +389,7 @@ dump(compact('t'));
 		$param = ($s['y'] * pow(1 - $t, 2)) + ($k['y'] * pow($t, 2));
 		$ay = ($aByK['y'] - $param) / ((1 - $t) * $t * 2);
 
-$t = 0.45;
+$t = 0.42;
 		$param = ($k['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
 		$bx = (($bByK['x'] - $param) / ((1 - $t) * $t * 2));
 		$param = ($k['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
@@ -511,6 +546,7 @@ dump(compact('test'));
 // echo $s.'<br />';
 
 		$stroke = self::parseStrokeSvg($s);
+
 		$outline = self::getOutlineFromStroke($stroke);
 		$s = '<svg>';
 		$sc = '';
@@ -590,6 +626,7 @@ dump(compact('test'));
 // dd($g->coordinates);
 		$s = new GlyphSvg($g, $hm);
 echo $s->getSvg();
+echo '<hr />';
 
 // dd($s->getSvg());
 
@@ -680,18 +717,18 @@ echo $s->getSvg();
 
 		// $t = 0.5;
 
-		$k = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.5);
+		$k = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.51);
 
 		$aByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.25);
 		$bByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.75);
 
-		$t = 0.55;
+		$t = 0.51;
 		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
 		$ax = (($aByK['x'] - $param) / ((1 - $t) * $t * 2));
 		$param = ($s['y'] * pow(1 - $t, 2)) + ($k['y'] * pow($t, 2));
 		$ay = ($aByK['y'] - $param) / ((1 - $t) * $t * 2);
 
-		$t = 0.45;
+		$t = 0.49;
 		$param = ($k['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
 		$bx = ($bByK['x'] - $param) / ((1 - $t) * $t * 2);
 		$param = ($k['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
@@ -702,13 +739,37 @@ echo $s->getSvg();
 
 		return [
 			[
-				$s,
-				['x'=> $ax , 'y'=> $ay],
-				$k,
+				[
+					'x'=> $s['x'],
+					'y'=> $s['y'],
+					'isOnCurvePoint' => true,
+				],
+				[
+					'x'=> $ax,
+					'y'=> $ay,
+					'isOnCurvePoint' => false,
+				],
+				[
+					'x'=> $k['x'],
+					'y'=> $k['y'],
+					'isOnCurvePoint' => true,
+				],
 			], [
-				$k,
-				['x'=> $bx, 'y'=> $by],
-				$e,
+				[
+					'x'=> $k['x'],
+					'y'=> $k['y'],
+					'isOnCurvePoint' => true,
+				],
+				[
+					'x'=> $bx,
+					'y'=> $by,
+					'isOnCurvePoint' => false,
+				],
+				[
+					'x'=> $e['x'],
+					'y'=> $e['y'],
+					'isOnCurvePoint' => true,
+				],
 			],
 		];
 	}
@@ -744,13 +805,13 @@ echo $s->getSvg();
 
 	public static function parsePathSvg($svg)
 	{
-dump($svg);
 		$pathParams = [];
 		$d = [];
 		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
 			$pathMatches = [];
 			preg_match_all('/([MmCc]\s?)?(-?[\d.]+),(-?[\d.]+)/', $d[1], $pathMatches);
 
+			$spline = [];
 			$offCurveCount = 0;
 			$isRelativePosition = false;
 			$x = null;
@@ -781,21 +842,34 @@ dump($svg);
 				if ($offCurveCount > 0) {
 					$isOnCurvePoint = false;
 					$offCurveCount--;
-					if ($offCurveCount == 0) {
+					$spline[] = [
+						'x' => $x,
+						'y' => $y,
+						'isOnCurvePoint' => ($offCurveCount == 0),
+					];
+					if ($offCurveCount <= 0) {
 						$isOnCurvePoint = true;
 						$prevX = $x;
 						$prevY = $y;
+$cList = self::svgCtoQ(['x'=>$prevX, 'y'=>$prevY], $spline);
+						// $a = self::svgCtoQ();
+						foreach ($spline as $p) {
+							$pathParams[] = $p;
+						}
+
+
+						$spline = [];
 					}
 				} else {
 					$prevX = $x;
 					$prevY = $y;
-				}
 
-				$pathParams[] = [
-					'x' => $x,
-					'y' => $y,
-					'isOnCurvePoint' => $isOnCurvePoint,
-				];
+					$pathParams[] = [
+						'x' => $x,
+						'y' => $y,
+						'isOnCurvePoint' => true, //$isOnCurvePoint,
+					];
+				}
 
 			}
 // dd($pathParams);
