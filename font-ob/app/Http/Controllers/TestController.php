@@ -283,12 +283,12 @@ echo $s;
 		$kb = self::getMidPoint($ek, $b);
 
 		$aByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.25);
-dump(compact('aByK'));
+// dump(compact('aByK'));
 
 		$bByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.75);
 
 // dd($aByK);
-dump(compact('bByK'));
+// dump(compact('bByK'));
 		$t = 0.5;
 
 // $aByK['x'] = 10;
@@ -509,7 +509,7 @@ dump(compact('test'));
 // 		dd($s);
 
 
-		echo '<hr />glyph<br />';
+		echo '<hr />glyph test<br />';
 		$o = [];
 		foreach ($outline as $contour) {
 			$c = [];
@@ -545,6 +545,139 @@ dump(compact('test'));
 echo $s->getSvg();
 echo '<hr />';
 
+
+
+		echo '<hr />ストローク a<br />';
+		$shi = '<svg>';
+		$shi .= ' <path d="M86,57 c-10.481,21.489 -24.904,32 -39,32 c-13.079,0 -21,-8.539 -21,-28 c0,-16.818 2,-32.069 2,-50" fill="none" stroke="black"/>';
+		$shi .= '</svg>';
+
+		$stroke = self::parseStrokeSvg($shi);
+
+		$s = '<svg>';
+		$sc = '';
+// dd($stroke);
+		foreach ($stroke as $line) {
+			// $s .= '<path d="M ';
+			$cCount = 0;
+			foreach ($line['path'] as $index => $l) {
+				if (!$l['isOnCurvePoint']) {
+					if ($cCount == 0) {
+						$cCount = 2;
+						// $s .= "C";
+					}
+				}
+				if ($cCount > 0) {
+					$cCount--;
+				}
+
+				// $s .= "{$l['x']},{$l['y']} ";
+				$s .= "<circle cx='{$l['x']}' cy='{$l['y']}' r='3' />";
+			}
+			$s .= '" fill="none" stroke="blue" stroke-width="1" />';
+		}
+		$s .= $sc.'</svg>';
+		echo $s;
+
+		dump($stroke);
+
+		echo '<hr />アウトライン a<br />';
+		$s = '<svg>';
+		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="14" x2="86" y1="21" y2="21" />';
+		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="38" x2="38" y1="6" y2="81" />';
+		$s .= '<path d="M68,40 c-8.337,27.624 -28.133,45 -43,45 c-7.852,0 -13,-4.894 -13,-15 c0,-17.828 17.78,-32 43,-32 C76.039,38 88,48.227 88,63 C88,76.87 77.755,86.868 60,90" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
+
+// echo $s.'<br />';
+
+		$stroke = self::parseStrokeSvg($s);
+
+		$outline = self::getOutlineFromStroke($stroke);
+		$s = '<svg>';
+		$sc = '';
+// dd($outline);
+		foreach ($outline as $line) {
+			$s .= '<path d="M ';
+			$cCount = 0;
+			foreach ($line as $index => $l) {
+				if (!$l['isOnCurvePoint']) {
+					if ($cCount == 0) {
+						$s .= "Q";
+						$cCount = 2;
+					}
+				} else {
+					if ($index != 0) {
+						if ($cCount == 0) {
+							$s .= ' L';
+						}
+					}
+				}
+				if ($cCount > 0) {
+					$cCount--;
+				} else{
+					if (!$l['isOnCurvePoint']) {
+						// dd('ばぐったー!');
+					}
+				}
+
+				// $s .= "{$index},{$index} ";
+				$s .= "{$l['x']},{$l['y']} ";
+				$sc .= "<circle cx='{$l['x']}' cy='{$l['y']}' r='2' />";
+			}
+			$s .= 'z" fill="#dddddd" stroke="#000000" stroke-width="1" />';
+		}
+		$s .= $sc.'</svg>';
+		echo $s;
+
+
+
+
+		echo '<hr />glyph ke test<br />';
+		$s = '<svg>';
+		$s .= '<path d="M67.6,25.2 c0,10.696 0.801,20.25 0.801,30.399 c0,22.076 -4.486,28.258 -20,33.601" fill="none" stroke="#000000" stroke-width="1" />';
+		$s .= '<path d="M82.801,42 c-16.955,1.841 -27.952,2.4 -44,2.4" fill="none" stroke="#000000" stroke-width="1" />';
+		$s .= '<path d="M26.801,88.4 c-2.852,-10.643 -4,-19.333 -4,-30.4 c0,-11.066 1.148,-19.758 4,-30.4" fill="none" stroke="#000000" stroke-width="1" />';
+		$s .= '</svg>';
+		echo $s.$shi;
+
+		$stroke = self::parseStrokeSvg($s);
+		$outline = self::getOutlineFromStroke($stroke);
+
+		$o = [];
+		foreach ($outline as $contour) {
+			$c = [];
+			foreach ($contour as $point) {
+				$flags = 0;
+				if ($point['isOnCurvePoint']) {
+					$flags |= 0x01;
+				}
+
+				$c[] = [
+					'x' => $point['x'] * 10,
+					'y' => 500 - $point['y'] * 10,
+					'flags' => $flags,
+				];
+			}
+			if (count($c) > 0) {
+				$o[] = $c;
+			}
+		}
+
+		$g = new TtfGlyph([
+			'glyph_index' => 1,
+			'number_of_contours' => count($o),
+			'x_min' => 0,
+			'y_min' => 0,
+			'x_max' => 300,
+			'y_max' => 300,
+			'coordinates' => $o,
+			'instructions' => [],
+		]);
+// dd($g->coordinates);
+		$s = new GlyphSvg($g, $hm);
+echo $s->getSvg();
+
+
 // dd($s->getSvg());
 
 // dd('OK');
@@ -558,9 +691,15 @@ echo '<hr />';
 		$file = Storage::disk('local')->get('strokes/mplus-1c-light.ttf');
 
 		$ttf = TtfFile::createFromFile('test', $file);
-
 		$charCodeList = [
-			0x3064,
+			mb_ord('け'),
+			mb_ord('し'),
+			mb_ord('い'),
+			mb_ord('う'),
+			mb_ord('え'),
+			mb_ord('-'),
+			mb_ord('卍'),
+
 
 			// ord('-'),
 			// ord('M'),
@@ -717,7 +856,46 @@ echo '<hr />';
 				$stroke[] = self::parsePathSvg($p);
 			}
 		}
+		if (preg_match_all('/<line\s+[^\/]+\/>/', $svg, $pathSvg)) {
+			foreach ($pathSvg[0] as $p) {
+				$stroke[] = self::parseLineSvg($p);
+			}
+		}
 		return $stroke;
+	}
+
+	public static function parseLineSvg($svg)
+	{
+		$attrbuteNames = [
+			'x1',
+			'x2',
+			'y1',
+			'y2',
+		];
+
+		$lineParams = [];
+		foreach ($attrbuteNames as $attr) {
+			if (preg_match('/'.$attr.'\s*=\s*"(\d+)"/', $svg, $d)) {
+				$lineParams[$attr] = (float)$d[1];
+			}
+		}
+
+		return [
+			'path' => [
+				[
+					'x' => $lineParams['x1'],
+					'y' => $lineParams['y1'],
+					'isOnCurvePoint' => true,
+				],
+				[
+					'x' => $lineParams['x2'],
+					'y' => $lineParams['y2'],
+					'isOnCurvePoint' => true,
+				],
+			],
+			'isClosed' => false,
+		];
+
 	}
 
 	public static function parsePathSvg($svg)
@@ -805,7 +983,7 @@ echo '<hr />';
 	public static function getOutlineFromStroke($stroke)
 	{
 		$outline = [];
-		$add = 3;
+		$thickness = 4; // 太さ
 		foreach ($stroke as $index => $line) {
 			$outlineUp = [];
 			$outlineDown = [];
@@ -818,13 +996,13 @@ echo '<hr />';
 					$n = self::getNormal($l, $lNext);
 
 					$up = [
-						'x' => $l['x'] + ($n['x'] * $add),
-						'y' => $l['y'] + ($n['y'] * $add),
+						'x' => $l['x'] + ($n['x'] * $thickness),
+						'y' => $l['y'] + ($n['y'] * $thickness),
 						'isOnCurvePoint' => $l['isOnCurvePoint'],
 					];
 					$down = [
-						'x' => $l['x'] + ($n['x'] * -$add),
-						'y' => $l['y'] + ($n['y'] * -$add),
+						'x' => $l['x'] + ($n['x'] * -$thickness),
+						'y' => $l['y'] + ($n['y'] * -$thickness),
 						'isOnCurvePoint' => $l['isOnCurvePoint'],
 					];
 				} else if ($index == $maxLineIndex) {
@@ -832,21 +1010,21 @@ echo '<hr />';
 					$n = self::getNormal($lPrev, $l);
 
 					$up = [
-						'x' => $l['x'] + ($n['x'] * $add),
-						'y' => $l['y'] + ($n['y'] * $add),
+						'x' => $l['x'] + ($n['x'] * $thickness),
+						'y' => $l['y'] + ($n['y'] * $thickness),
 						'isOnCurvePoint' => $l['isOnCurvePoint'],
 					];
 					$down = [
-						'x' => $l['x'] + ($n['x'] * -$add),
-						'y' => $l['y'] + ($n['y'] * -$add),
+						'x' => $l['x'] + ($n['x'] * -$thickness),
+						'y' => $l['y'] + ($n['y'] * -$thickness),
 						'isOnCurvePoint' => $l['isOnCurvePoint'],
 					];
 				} else {
 
 					$lPrev = $line['path'][$prevIndex];
 					$lNext = $line['path'][($index + 1) % $lineCount];
-					$up = self::getOutlinePoint($lPrev, $l, $lNext, $add);
-					$down = self::getOutlinePoint($lPrev, $l, $lNext, -$add);
+					$up = self::getOutlinePoint($lPrev, $l, $lNext, $thickness);
+					$down = self::getOutlinePoint($lPrev, $l, $lNext, -$thickness);
 
 				}
 // dump($up);
@@ -862,7 +1040,9 @@ echo '<hr />';
 					'isOnCurvePoint' => $down['isOnCurvePoint'],
 				]);
 			}
-			$outline[] = array_merge($outlineUp, $outlineDown);
+
+			self::addShapeToOutline($outline, array_merge($outlineUp, $outlineDown));
+			// $outline[] = array_merge($outlineUp, $outlineDown);
 		}
 dump($outline);
 		return $outline;
@@ -986,7 +1166,7 @@ dump($outline);
 	}
 
 
-	public function getCrossPoint($v1, $v2)
+	public static function getCrossPoint($v1, $v2)
 	{
 // dump('getCrossPoint *********************');
 // dump($v1);
@@ -1021,7 +1201,7 @@ dump($outline);
 			'length' => $crossVectorLengthBase,
 		];
 
-		if (!$this->isInsideBox($v2, $crossed)) {
+		if (!self::isInsideBox($v2, $crossed)) {
 			return null;
 		}
 
@@ -1059,14 +1239,14 @@ dump($outline);
 			'length' => $crossVectorLengthBase,
 		];
 
-		// if (!$this->isInsideBox($v2, $crossed)) {
+		// if (!self::isInsideBox($v2, $crossed)) {
 		// 	return null;
 		// }
 
 		return $crossed;
 	}
 
-	public function isInsideBox($box, $point)
+	public static function isInsideBox($box, $point)
 	{
 		$minX = $box[0]['x'];
 		$maxX = $box[1]['x'];
@@ -1099,6 +1279,89 @@ dump($outline);
 		return $poly;
 	}
 
+	public static function addShapeToOutline(&$baseOutline, $shape)
+	{
+		$isComposed = false;
+		foreach ($baseOutline as &$contour) {
+			if (self::composeShapes($contour, $shape)) {
+				$isComposed = true;
+			}
+		}
+		unset($contour);
+		if (!$isComposed) {
+			$baseOutline[] = $shape;
+		}
+
+		return $baseOutline;
+	}
+
+	public static function composeShapes(&$base, $addition)
+	{
+		$composed = [];
+
+		$count = count($base);
+		$isComposed = false;
+		for ($i = 0; $i < $count; $i++) {
+			if (self::addCoordinateToContour($composed, $i, $base, $addition)) {
+				$isComposed = true;
+			}
+		}
+		if ($isComposed) {
+			$base = $composed;
+		}
+
+		return $isComposed;
+	}
+
+	protected static function addCoordinateToContour(&$coordinateList, &$index, $base, $other)
+	{
+// return false;
+		$coordinateList[] = $base[($index)];
+
+		$baseVector = [
+			$base[$index],
+			$base[($index + 1) % count($base)],
+		];
+
+		$crossInfo = self::getCrossPointToShape($other, $baseVector, null);
+		if (is_null($crossInfo['point'])) {
+			return false;
+		}
+		$p = [
+			'x' => $crossInfo['point']['x'],
+			'y' => $crossInfo['point']['y'],
+			'isOnCurvePoint' => true,
+		];
+		$coordinateList[] = $p;
+		$addtionOffset = $crossInfo['index'] + 1;
+
+		$count = count($other);
+		$prevPoint = $p;
+		for ($i = 0; $i <= $count; $i++) {
+			$s = $other[($i + $addtionOffset) % $count];
+			$ignoreIndex = null;
+			if ($i == 0) {
+				$ignoreIndex = $index;
+			}
+			$crossPoint = self::getCrossPointToShape($base, [$prevPoint, $s], $ignoreIndex);
+
+			if (is_null($crossPoint['point'])) {
+				$coordinateList[] = $s;
+			} else {
+				$coordinateList[] = [
+					'x' => $crossPoint['point']['x'],
+					'y' => $crossPoint['point']['y'],
+					'isOnCurvePoint' => true,
+				];
+				$index = $crossPoint['index'];
+				break;
+			}
+
+			$prevPoint = $s;
+		}
+		return true;
+	}
+
 	public function compose($base, $addition)
 	{
 		$composed = [];
@@ -1119,7 +1382,7 @@ dump($outline);
 			$base[($index + 1) % count($base)],
 		];
 
-		$crossInfo = $this->getCrossPointToShape($other, $baseVector, null);
+		$crossInfo = self::getCrossPointToShape($other, $baseVector, null);
 		if (is_null($crossInfo['point'])) {
 			return false;
 		}
@@ -1134,7 +1397,7 @@ dump($outline);
 			if ($i == 0) {
 				$ignoreIndex = $index;
 			}
-			$crossPoint = $this->getCrossPointToShape($base, [$prevPoint, $s], $ignoreIndex);
+			$crossPoint = self::getCrossPointToShape($base, [$prevPoint, $s], $ignoreIndex);
 
 			if (is_null($crossPoint['point'])) {
 				$coordinateList[] = $s;
@@ -1149,7 +1412,7 @@ dump($outline);
 		return true;
 	}
 
-	protected function getCrossPointToShape($shape, $vector, $ignoreIndex)
+	protected static function getCrossPointToShape($shape, $vector, $ignoreIndex)
 	{
 		$count = count($shape);
 
@@ -1160,7 +1423,7 @@ dump($outline);
 			$e = $shape[($i + 1) % $count];
 
 			if ($i !== $ignoreIndex) {
-				$cp = $this->getCrossPoint($vector, [$s, $e]);
+				$cp = self::getCrossPoint($vector, [$s, $e]);
 				if (!is_null($cp)) {
 					if (is_null($crossPoint)) {
 						$crossPoint = $cp;
