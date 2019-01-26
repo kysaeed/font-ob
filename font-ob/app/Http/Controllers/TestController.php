@@ -1040,40 +1040,72 @@ echo $s->getSvg();
 			}
 
 			$shape = array_merge($outlineUp, $outlineDown);
-			$shape = self::getShapeOutlines($shape);
-			self::addShapeToOutline($outline, $shape);
+
+
+			$skippedIndex = null;
+			$shapeList = self::getShapeOutlines($shape, $skippedIndex);
+
+			foreach ($shapeList as $s) {
+				$outline[] = $s;
+				// self::addShapeToOutline($outline, $s);
+			}
+
 			// $outline[] = array_merge($outlineUp, $outlineDown);
 		}
 dump($outline);
 		return $outline;
 	}
 
-	protected static function getShapeOutlines($shapePointList)
+	protected static function getShapeOutlines($shapePointList, $skippedIndex)
 	{
-		$outline = [];
+// return [$shapePointList];
 		$pointsCount = count($shapePointList);
-		$prev = $shapePointList[$pointsCount - 1];
-		for ($i = 0; $i < $pointsCount; $i++) {
-			$p = $shapePointList[$i];
-			$outline[] = $p;
-			$crossInfo = self::getCrossInfo($shapePointList, $i);
+		$isPointPassedList = array_fill(0, $pointsCount, false);
 
-			// アウトラインを沿わせる
-			if (!is_null($crossInfo)) {
-				$outline[] = [
-					'x' => $crossInfo['point']['x'],
-					'y' => $crossInfo['point']['y'],
-					'isOnCurvePoint' => true,
-				];
-				$i = $crossInfo['index'];
+		$outlineList = [];
+		$index = 0;
+		while($index !== false) {
+			$firstIndex = $index;
+echo "<hr />f-index : {$index}<br /> ";
+			$outline = [];
+			for ($i = 0; $i < $pointsCount; $i++) {
+echo "{$index},";
+				$p = $shapePointList[$index];
+				$isPointPassedList[$index] = true;
+$p['isOnCurvePoint'] = true;
+				$outline[] = $p;
+				$crossInfo = self::getSelfCrossInfo($shapePointList, $index);
+
+				// アウトラインを沿わせる
+				if (!is_null($crossInfo)) {
+					$outline[] = [
+						'x' => $crossInfo['point']['x'],
+						'y' => $crossInfo['point']['y'],
+						'isOnCurvePoint' => true,
+					];
+					$index = $crossInfo['index'];
+				}
+
+				$index = ($index + 1) % $pointsCount;
+				if ($index == $firstIndex) {
+					break;
+				}
 			}
+echo "<br />";
+			$outlineList[] = $outline;
 
-			$prev = $p;
+			$index = array_search(false, $isPointPassedList);
+
+dump('search-result : ');
+dump($index);
 		}
-		return $outline;
+
+// dd($outlineList);
+// dump($isPointPassedList);
+		return $outlineList;
 	}
 
-	protected static function getCrossInfo($shapePointList, $index)
+	protected static function getSelfCrossInfo($shapePointList, $index)
 	{
 		$pointCount = count($shapePointList);
 		$v = [
