@@ -463,7 +463,6 @@ dump(compact('test'));
 // echo $s.'<br />';
 
 		$stroke = self::parseStrokeSvg($s);
-
 		$outline = self::getOutlineFromStroke($stroke);
 		$s = '<svg>';
 		$sc = '';
@@ -620,7 +619,6 @@ echo '<hr />';
 					}
 				}
 
-				// $s .= "{$index},{$index} ";
 				$s .= "{$l['x']},{$l['y']} ";
 				$sc .= "<circle cx='{$l['x']}' cy='{$l['y']}' r='2' />";
 			}
@@ -983,7 +981,7 @@ echo $s->getSvg();
 	public static function getOutlineFromStroke($stroke)
 	{
 		$outline = [];
-		$thickness = 4; // 太さ
+		$thickness = 8; // 太さ
 		foreach ($stroke as $index => $line) {
 			$outlineUp = [];
 			$outlineDown = [];
@@ -1041,11 +1039,168 @@ echo $s->getSvg();
 				]);
 			}
 
-			self::addShapeToOutline($outline, array_merge($outlineUp, $outlineDown));
+			$shape = array_merge($outlineUp, $outlineDown);
+			$shape = self::getShapeOutlines($shape);
+			self::addShapeToOutline($outline, $shape);
 			// $outline[] = array_merge($outlineUp, $outlineDown);
 		}
 dump($outline);
 		return $outline;
+	}
+
+	protected static function getShapeOutlines($shapePointList)
+	{
+		$outline = [];
+		$pointsCount = count($shapePointList);
+		$prev = $shapePointList[$pointsCount - 1];
+		for ($i = 0; $i < $pointsCount; $i++) {
+			$p = $shapePointList[$i];
+			$outline[] = $p;
+			$crossInfo = self::getCrossInfo($shapePointList, $i);
+
+			// アウトラインを沿わせる
+			if (!is_null($crossInfo)) {
+				$outline[] = [
+					'x' => $crossInfo['point']['x'],
+					'y' => $crossInfo['point']['y'],
+					'isOnCurvePoint' => true,
+				];
+				$i = $crossInfo['index'];
+			}
+
+			$prev = $p;
+		}
+		return $outline;
+	}
+
+	protected static function getCrossInfo($shapePointList, $index)
+	{
+		$pointCount = count($shapePointList);
+		$v = [
+			$shapePointList[$index],
+			$shapePointList[($index + 1) % $pointCount],
+		];
+
+		$crossInfo = null;
+		$index = ($index + 2) % $pointCount;
+		for ($i = 0; $i < ($pointCount - 3); $i++) {
+			$p = $shapePointList[$index];
+			$next = $shapePointList[($index + 1) % $pointCount];
+
+			$point = self::getCrossPoint($v, [$p, $next]);
+			if (!is_null($point)) {
+				if (is_null($crossInfo)) {
+					$crossInfo = [
+						'point' => $point,
+						'index' => $index,
+					];
+				} else {
+					if ($point['length'] <= $crossInfo['point']['length']) {
+						$crossInfo = [
+							'point' => $point,
+							'index' => $index,
+						];
+					}
+				}
+			}
+			$index = ($index + 1) % $pointCount;
+		}
+		return $crossInfo;
+	}
+
+	protected static function getCrossSelf($outline, $v, $ignoreIndex)
+	{
+
+// TODO: $ignoreIndex + 1もみる！
+
+		$count = count($outline);
+		// $lastIndex = $count - 1;
+		$corossInfo = null;
+		foreach ($outline as $i => $p) {
+			$nextIndex = ($i + 1) % $count;
+			// TODO: なおす
+			if (
+				($i != $ignoreIndex)
+				&& ($nextIndex != $ignoreIndex)
+				&& ($i != (($ignoreIndex + 1) % $count))
+				&& ($nextIndex != (($ignoreIndex + 1) % $count))
+			) {
+				$next = $outline[$nextIndex];
+				$point = self::getCrossPoint($v, [$p, $next]);
+				if (!is_null($point)) {
+					if (is_null($corossInfo)) {
+						$corossInfo = $point;
+					} else {
+						if ($point['length'] < $corossInfo['length']) {
+							$corossInfo = $point;
+						}
+					}
+				}
+			}
+		}
+
+		return $corossInfo;
+	}
+
+	protected static function getShapeOutlines2($outline)
+	{
+// return $outline;
+
+		$shape = [];
+
+		$count = count($outline);
+		// $lastIndex = $count - 1;
+
+		// TODO: 内外判定
+
+		// $prev = $outline[$lastIndex];
+		foreach ($outline as $i => $p) {
+			$next = $outline[($i + 1) % $count];
+
+			// $crossInfo = self::getCrossPointToShape($outline, [$p, $next], $i);
+			$crossInfo = self::getCrossSelf($outline, [$p, $next], $i);
+			if (is_null($crossInfo)) {
+				$shape[] = $p;
+			} else {
+				$shape[] = [
+					'x' => $crossInfo['x'],
+					'y' => $crossInfo['y'],
+					'isOnCurvePoint' => $p['isOnCurvePoint'],
+				];
+			}
+
+			$prev = $p;
+		}
+// dd($shape);
+		return $shape;
+	}
+
+	protected static function isInsideShape($shape, $index)
+	{
+		$base = $shape[$index];
+		$crossCount = 0;
+
+		$shapePointCount = count($shape);
+		foreach ($shape as $i => $p) {
+			$nextIndex = ($i + 1) % $shapePointCount;
+			$next = $shape[$nextIndex];
+
+			$yMin = min($p['y'], $next['y']);
+			$yMax = min($p['y'], $next['y']);
+			if (($yMin <= $base['y']) && ($yMax >= $base['y'])) {
+				if ($base['x'] <= $p['x']) {
+					if ($base['x'] <= $next['x']) {
+
+
+
+						return true;
+
+
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	protected static function getOutlinePoint($prevPoint, $currentPoint, $nextPoint, $add)
