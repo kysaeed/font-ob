@@ -41,13 +41,15 @@ if (!$glyph) {
 		$svg = '<svg width="'.($width + $lsb).'px" height="'.$h.'px">';
 
 		$coordinates = $glyph['coordinates'];
-
 		$svg .= '<path d="';
+// dump($coordinates);
 		foreach ($coordinates as $indexEndPonts => $contours) {
+// echo "** coor:{$indexEndPonts}<br />";
 			$isCurve = false;
-			$curvePoints = [];
+			$curvePoints = null;
 			$maxIndexContours = count($contours) - 1;
 			foreach ($contours as $index => $c) {
+// echo "{$index},";
 				$x = $c['x'] / $sizeBase;
 				$y = -$c['y'] / $sizeBase;
 				$x += $lsb;
@@ -56,24 +58,24 @@ if (!$glyph) {
 
 				if ($isCurve) {
 					if ($c['flags'] & self::ON_CURVE_POINT) {
-						$svg .= $this->getCurvePathSvg($curvePoints, ['x'=>$x, 'y'=>$y]);
+						$svg .= self::getCurvePathSvg($curvePoints, ['x'=>$x, 'y'=>$y]);
 						$nextFlags = $contours[($index + 1) % ($maxIndexContours + 1)]['flags'];
 						if (!($nextFlags & self::ON_CURVE_POINT)) {
 							$isCurve = true;
-							$curvePoints = [];
+							$curvePoints = null;
 						} else {
 							$isCurve = false;
-							$curvePoints = [];
+							$curvePoints = null;
 						}
 
-					} else if (count($curvePoints) >= 1) {
+					} else if (!is_null($curvePoints)) {
 						$diffX = $x - $curvePoints['x'];
 						$diffY = $y - $curvePoints['y'];
 
 						$middleX = $curvePoints['x'] + ($diffX / 2);
 						$middleY = $curvePoints['y'] + ($diffY / 2);
 
-						$svg .= $this->getCurvePathSvg($curvePoints, ['x'=>$middleX, 'y'=>$middleY]);
+						$svg .= self::getCurvePathSvg($curvePoints, ['x'=>$middleX, 'y'=>$middleY]);
 
 						$curvePoints = [
 							'x' => $x,
@@ -125,13 +127,13 @@ if (!$glyph) {
 							$x = $middleX;
 							$y = $middleY;
 
-							$curvePoints = [];
+							$curvePoints = null;
 							$isCurve = true;
 						} else {
 							$nextFlags = $contours[($index + 1) % ($maxIndexContours + 1)]['flags'];
 							if (!($nextFlags & $ON_CURVE_POINT)) {
 								$isCurve = true;	// @@カーブ開始
-								$curvePoints = [];
+								$curvePoints = null;
 							}
 						}
 						$svg .= "{$cmd} {$x},{$y} ";
@@ -140,7 +142,7 @@ if (!$glyph) {
 						$nextFlags = $contours[($index + 1) % ($maxIndexContours + 1)]['flags'];
 						if (!($nextFlags & $ON_CURVE_POINT)) {
 							$isCurve = true;	// @@カーブ開始
-							$curvePoints = [];
+							$curvePoints = null;
 						}
 						$svg .= "{$cmd} {$x},{$y} ";
 					}
@@ -168,7 +170,7 @@ if (!$glyph) {
 					}
 
 // dump($curvePoints);
-					if (count($curvePoints) >= 1) {
+					if (!is_null($curvePoints)) {
 						// NOTE: curvePointを通って から 始点と終点の中点までを引く！
 						$startPoint = $this->getMiddlePoint($contours[$maxIndexContours], $contours[0]);
 						$startPoint['x'] = $lsb + ($startPoint['x'] / $sizeBase);
@@ -194,7 +196,7 @@ if (!$glyph) {
 
 // $svg .= "L {$x},{$y} ";
 
-						$curvePoints = [];
+						$curvePoints = null;
 					}
 				}
 			}
@@ -237,7 +239,7 @@ if (!$glyph) {
 		return "L {$end['x']},{$end['y']} ";
 	}
 
-	protected function getCurvePathSvg($curve, $end)
+	protected static function getCurvePathSvg($curve, $end)
 	{
 		return "Q {$curve['x']},{$curve['y']} {$end['x']},{$end['y']} ";
 	}

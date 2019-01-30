@@ -15,7 +15,6 @@ class TestController extends Controller
 {
 	public function test(Request $request)
     {
-
 		///////////////
 		// $a = self::getCrossPointXxxx(
 		// 	[['x' => 0, 'y' => 100,], ['x' => 100, 'y' => 100,]],
@@ -674,8 +673,8 @@ echo '<hr />';
 
 		echo '<hr />アウトライン a<br />';
 		$s = '<svg>';
-		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="14" x2="86" y1="21" y2="21" />';
-		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="38" x2="38" y1="6" y2="81" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="14" x2="86" y1="21" y2="21" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="38" x2="38" y1="6" y2="81" />';
 		$s .= '<path d="M68,40 c-8.337,27.624 -28.133,45 -43,45 c-7.852,0 -13,-4.894 -13,-15 c0,-17.828 17.78,-32 43,-32 C76.039,38 88,48.227 88,63 C88,76.87 77.755,86.868 60,90" fill="none" stroke="#000000" stroke-width="2" />';
 		$s .= '</svg>';
 
@@ -723,7 +722,43 @@ echo '<hr />';
 		}
 		$s .= $sc.'</svg>';
 		echo $s;
+// dd($outline);
+		$o = [];
+		foreach ($outline as $contour) {
+			$c = [];
+			foreach ($contour as $i => $point) {
+				$flags = 0;
+				if ($point['isOnCurvePoint']) {
+					$flags |= 0x01;
+				}
+				if ($i == 0) {
+					$flags |= 0x01;
+				}
 
+				$c[] = [
+					'x' => $point['x'] * 10,
+					'y' => 500 - $point['y'] * 10,
+					'flags' => $flags,
+				];
+			}
+			if (count($c) > 0) {
+				$o[] = $c;
+			}
+		}
+
+		$g = new TtfGlyph([
+			'glyph_index' => 1,
+			'number_of_contours' => count($o),
+			'x_min' => 0,
+			'y_min' => 0,
+			'x_max' => 300,
+			'y_max' => 300,
+			'coordinates' => $o,
+			'instructions' => [],
+		]);
+// dd($g->coordinates);
+		$s = new GlyphSvg($g, $hm);
+echo $s->getSvg();
 
 
 		echo '<hr />glyph ke test<br />';
@@ -774,7 +809,7 @@ echo $s->getSvg();
 
 // dd($s->getSvg());
 
-// dd('OK');
+dd('OK');
 
 		// font
 		// mplus-1c-light
@@ -1075,10 +1110,11 @@ echo $s->getSvg();
 		return [];
 	}
 
-	public static function getOutlineFromStroke($stroke)
+
+	protected static function strokeToShapeList($stroke)
 	{
 		$outline = [];
-		$thickness = 8; // 太さ
+		$thickness = 4; // 太さ
 		foreach ($stroke as $index => $line) {
 			$outlineUp = [];
 			$outlineDown = [];
@@ -1122,8 +1158,7 @@ echo $s->getSvg();
 					$down = self::getOutlinePoint($lPrev, $l, $lNext, -$thickness);
 
 				}
-// dump($up);
-// dump($down);
+
 				$outlineUp[] = [
 					'x' => $up['x'],
 					'y' => $up['y'],
@@ -1137,22 +1172,28 @@ echo $s->getSvg();
 			}
 
 			$shape = array_merge($outlineUp, $outlineDown);
+			$outline[] = $shape;
+		}
 
+		return $outline;
+	}
 
-			$shapeList = self::getShapeOutlines($shape);
+	protected static function getOutlineFromStroke($stroke)
+	{
+		$outline = [];
 
-			foreach ($shapeList as $s) {
-				$outline[] = $s;
-				// self::addShapeToOutline($outline, $s);
+		$shapeList = self::strokeToShapeList($stroke);
+		foreach ($shapeList as $shape) {
+			$slicedShapes = self::sliceShape($shape);
+			foreach ($slicedShapes as $s) {
+				$outline = self::addShapeToOutline($outline, $s);
 			}
-
-			// $outline[] = array_merge($outlineUp, $outlineDown);
 		}
 dump($outline);
 		return $outline;
 	}
 
-	protected static function getShapeOutlines($shapePointList)
+	protected static function sliceShape($shapePointList)
 	{
 // return [$shapePointList];
 		$pointsCount = count($shapePointList);
@@ -1166,7 +1207,7 @@ dump($outline);
 			for ($i = 0; $i < $pointsCount; $i++) {
 				$p = $shapePointList[$index];
 				$isPointPassedList[$index] = true;
-$p['isOnCurvePoint'] = true;
+// $p['isOnCurvePoint'] = true;
 				$outline[] = $p;
 				$crossInfo = self::getSelfCrossInfo($shapePointList, $index);
 
@@ -1263,14 +1304,6 @@ $p['isOnCurvePoint'] = true;
 		$aliveShapes = [];
 		foreach ($outline as $i => $line) {
 			$outsideIndex = self::getOutsideShapeIndex($outline, $i);
-
-// echo "t:{$i}({$directionList[$i]})";
-// if ($outsideIndex > -1) {
-// 	echo " , out:{$outsideIndex}({$directionList[$outsideIndex]})<br />";
-// } else {
-// 	echo '<br />';
-// }
-
 			if ($outsideIndex > -1) {
 				if ($directionList[$i] == $directionList[$outsideIndex]) {
 					continue;
@@ -1647,43 +1680,51 @@ $p['isOnCurvePoint'] = true;
 		return $poly;
 	}
 
-	public static function addShapeToOutline(&$baseOutline, $shape)
+	public static function addShapeToOutline($baseOutline, $shape)
 	{
+// $baseOutline[] = $shape;
+// return $baseOutline;
+		$outline = [];
 		$isComposed = false;
-		foreach ($baseOutline as &$contour) {
-			if (self::composeShapes($contour, $shape)) {
-				$isComposed = true;
+		foreach ($baseOutline as $contour) {
+			$composed = self::composeShapes($shape, $contour);
+			if (is_null($composed)) {
+				$outline[] = $contour;
+			} else {
+				$shape = $composed;
 			}
-		}
-		unset($contour);
-		if (!$isComposed) {
-			$baseOutline[] = $shape;
+
 		}
 
-		return $baseOutline;
+		$outline[] = $shape;
+
+		return $outline;
 	}
 
-	public static function composeShapes(&$base, $addition)
+	public static function composeShapes($base, $addition)
 	{
 		$composed = [];
 
 		$count = count($base);
+		$isPointPassedList = array_fill(0, $count, false);
+
+
 		$isComposed = false;
 		for ($i = 0; $i < $count; $i++) {
 			if (self::addCoordinateToContour($composed, $i, $base, $addition)) {
 				$isComposed = true;
 			}
 		}
-		if ($isComposed) {
-			$base = $composed;
+
+		if (!$isComposed) {
+			return null;
 		}
 
-		return $isComposed;
+		return $composed;
 	}
 
 	protected static function addCoordinateToContour(&$coordinateList, &$index, $base, $other)
 	{
-// return false;
 		$coordinateList[] = $base[($index)];
 
 		$baseVector = [
@@ -1733,11 +1774,12 @@ $p['isOnCurvePoint'] = true;
 	public function compose($base, $addition)
 	{
 		$composed = [];
-
 		$count = count($base);
 		for ($i = 0; $i < $count; $i++) {
+			$isPointPassedList[$i] = true;
 			$this->addCoordinate($composed, $i, $base, $addition);
 		}
+
 		return $composed;
 	}
 
