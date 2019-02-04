@@ -701,7 +701,7 @@ echo $s->getSvg();
 			$c = [];
 			foreach ($contour as $point) {
 				$flags = 0;
-$flags = 0x01;
+
 				if ($point['isOnCurvePoint']) {
 					$flags |= 0x01;
 				}
