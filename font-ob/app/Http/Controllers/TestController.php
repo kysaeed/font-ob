@@ -1206,7 +1206,7 @@ echo self::testOutlineToSvg($shapeList);
 		$slicedShapeOutlineList = [];
 		foreach ($shapeList as $shape) {
 			$outline = self::sliceShape($shape);
-dump(compact('outline'));
+// dump(compact('outline'));
 // self::testOutlineToSvg([$outline]);
 			$slicedShapeOutlineList[] = $outline;
 		}
@@ -1823,7 +1823,8 @@ echo '<hr />';
 
 
 //////////////////
-$a = self::insertCrossPointToShape($base, $addition);
+$a = self::comcom($base, $addition);
+echo self::testOutlineToSvg($a);
 /////////////////
 
 
@@ -1937,12 +1938,106 @@ echo '****** composed:<br />'.self::testOutlineToSvg($composedList).'<br />';
 	}
 
 
+	protected static function comcom($base, $addtion)
+	{
+		$corssedShapes = self::insertCrossPointToShape($base, $addtion);
+
+		$base = $corssedShapes['base'];
+		$baseCount = count($base);
+		$baseCrossInfo = $corssedShapes['baseCrossInfoList'];
+
+		$addition = $corssedShapes['addition'];
+		$additionCount = count($addition);
+		$additionCrossInfo = $corssedShapes['additionCrossInfoList'];
+
+
+		$composed = [];
+		while (true) {
+			$firstIndex = 0;
+			for ($i = 0; $i < $baseCount; $i++) {
+				$crossInfo = &$baseCrossInfo[$i];
+				if ($crossInfo['count'] < 1) {
+					$firstIndex++;
+				} else {
+					break;
+				}
+			}
+			if ($firstIndex >= ($baseCount - 1)) {
+				break;
+			}
+
+
+// echo "<hr />start form: base-{$firstIndex}<ul>";
+
+			$isLastPoint = false;
+			$shape = [];
+			$index = $firstIndex;
+			for ($i = 0; $i < $base; $i++) {
+// echo "<li>base-index: {$index}</li>";
+				$basePoint = $newBase[$index];
+				$basePointInfo = &$baseCrossInfo[$index];
+
+				$shape[] = $basePoint;
+				$basePointInfo['count']--;
+				if ($i != 0) {
+					if (!is_null($basePointInfo['toIndex'])) {
+						$aIndex = ($basePointInfo['toIndex'] + 1) % $additionCount;
+						$additionCount = count($addition);
+// echo '<ul>';
+						for ($j = 0; $j < $additionCount; $j++) {
+// echo "<li>addtion index: {$aIndex}</li>";
+							$additionPoint = $addition[$aIndex];
+							$additionPointInfo = &$additionCrossInfoList[$aIndex];
+
+							$shape[] = $additionPoint;
+							$additionPointInfo['count']--;
+							if (!is_null($additionPointInfo['toIndex'])) {
+								$index = $additionPointInfo['toIndex'];
+
+								if ($index == $firstIndex) {
+									$isLastPoint = true;
+								}
+
+
+// echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
+								$basePointInfo = &$baseCrossInfo[$index];
+								$basePointInfo['count']--;
+// echo '</ul>';
+								break;
+							}
+							$aIndex = ($aIndex + 1) % $additionCount;
+						}
+
+						unset($additionPointInfo);
+					}
+				}
+				// echo '</ul>';
+
+				unset($basePointInfo);
+
+				$index = ($index + 1) % $base;
+				if ($index == $firstIndex) {
+					$isLastPoint = true;
+				}
+
+				if ($isLastPoint) {
+					break;
+				}
+			}
+			$composed[] = $shape;
+			echo '</ul>';
+
+		}
+
+		return $composed;
+	}
+
 	protected static function insertCrossPointToShape($base, $addtion)
 	{
-echo '<h2>insertCrossPointToShape</h2>';
-echo self::testOutlineToSvg([$base]);
-echo self::testOutlineToSvg([$addtion]);
-echo '<hr />';
+// echo '<h2>insertCrossPointToShape</h2>';
+// echo self::testOutlineToSvg([$base]);
+// echo self::testOutlineToSvg([$addtion]);
+// echo '<hr />';
 
 		$baseCount = count($base);
 		$addtionCount = count($addtion);
@@ -2034,7 +2129,7 @@ echo '<hr />';
 			unset($baseCrossPointList);
 		}
 
-dump(compact('crossPointList'));
+// dump(compact('crossPointList'));
 
 		$newBase = [];
 		$newBaseCrossInfoList = [];
@@ -2079,8 +2174,6 @@ dump(compact('crossPointList'));
 
 			}
 		}
-		dump(compact('newBase', 'newBaseCrossInfoList'));
-		echo self::testOutlineToSvg([$newBase]);
 
 
 		$newAdditionCrossInfoList = [];
@@ -2124,8 +2217,6 @@ dump(compact('crossPointList'));
 				];
 			}
 		}
-		dump(compact('newAddition', 'newAdditionCrossInfoList'));
-		echo self::testOutlineToSvg([$newAddition]);
 
 		$newBaseCount = count($newBase);
 		$newAdditionCount = count($newAddition);
@@ -2175,10 +2266,9 @@ dump(compact('crossPointList'));
 
 
 
+// echo '<hr /><h2>test-new-compose</h2>';
+
 		$outline = [];
-echo '<hr /><h2>test-new-compose</h2>';
-
-
 		while (true) {
 			$firstIndex = 0;
 			for ($i = 0; $i < $newBaseCount; $i++) {
@@ -2198,13 +2288,14 @@ echo '<hr /><h2>test-new-compose</h2>';
 // 				$newBaseCrossInfoList[$i]['count']--;
 // 			}
 // continue;
-			echo "<hr />start form: base-{$firstIndex}<ul>";
+
+// echo "<hr />start form: base-{$firstIndex}<ul>";
 
 			$isLastPoint = false;
 			$shape = [];
 			$index = $firstIndex;
 			for ($i = 0; $i < $newBaseCount; $i++) {
-				echo "<li>base-index: {$index}</li>";
+// echo "<li>base-index: {$index}</li>";
 				$basePoint = $newBase[$index];
 				$basePointInfo = &$newBaseCrossInfoList[$index];
 
@@ -2214,9 +2305,9 @@ echo '<hr /><h2>test-new-compose</h2>';
 					if (!is_null($basePointInfo['toIndex'])) {
 						$aIndex = ($basePointInfo['toIndex'] + 1) % $newAdditionCount;
 						$newAdditionCount = count($newAddition);
-echo '<ul>';
+// echo '<ul>';
 						for ($j = 0; $j < $newAdditionCount; $j++) {
-echo "<li>addtion index: {$aIndex}</li>";
+// echo "<li>addtion index: {$aIndex}</li>";
 							$additionPoint = $newAddition[$aIndex];
 							$additionPointInfo = &$newAdditionCrossInfoList[$aIndex];
 
@@ -2230,10 +2321,10 @@ echo "<li>addtion index: {$aIndex}</li>";
 								}
 
 
-echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
+// echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
 								$basePointInfo = &$newBaseCrossInfoList[$index];
 								$basePointInfo['count']--;
-echo '</ul>';
+// echo '</ul>';
 								break;
 							}
 							$aIndex = ($aIndex + 1) % $newAdditionCount;
@@ -2316,16 +2407,12 @@ echo '</ul>';
 // echo '</ul>';
 // // dd($newBase);
 
-		dump([
-			'base' => $basePointList,
-			'addition' => $additionPointList,
-		]);
-
-
 
 		return [
-			'base' => $base,
-			'addition' => $addtion,
+			'base' => $newBase,
+			'addition' => $newAddition,
+			'baseCrossInfoList' => $newBaseCrossInfoList,
+			'additionCrossInfoList' => $newAdditionCrossInfoList,
 		];
 	}
 
