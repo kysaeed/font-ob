@@ -863,7 +863,7 @@ dd('OK');
 			$s .= 'z ';
 		}
 
-		$s .= '" fill="'.$c.'" stroke="#000000" stroke-width="1" />';
+		$s .= '" fill="'.'#dddddd'.'" stroke="#000000" stroke-width="1" />';
 
 		if (!$isPointEnabled) {
 			foreach ($outline as $lineNumber => $line) {
@@ -1230,25 +1230,29 @@ echo '<br />';
 
 				$_next = [];
 				if (true) {
-echo '元の状態 ーーーーーーーーーーーーーーーーーー<br />';
+// echo '元の状態 ーーーーーーーーーーーーーーーーーー<br />';
 					$_next = [];
 					while (!empty($composedOutline)) {
 						$os = array_shift($composedOutline);
 
+						// TODO: 交点情報を保存しておく！
+
+
 						// $composed = null;
 						$composed = self::comcom($shape, $os);
 						if (!is_null($composed)) {
-echo '<hr />composedが出来た<br />';
-echo self::testOutlineToSvg($composed).'<br />';
-							$isComposed = true;//test
-							foreach ($composed as $c) {
-								$_next[] = $c;
-							}
+// echo '<hr />composedが出来た<br />';
+// echo self::testOutlineToSvg($composed).'<br />';
+							$isComposed = true;
+							// foreach ($composed as $c) {
+							// 	$_next[] = $c;
+							// }
 
-							// TODO: $slicedShapeOutlineList[] = ...
+							$slicedShapeOutlineList[] = $composed;
 						} else {
 							$_next[] = $os;
 						}
+
 // echo self::testOutlineToSvg([$os]).'<br />';
 					}
 				} else {
@@ -1272,12 +1276,17 @@ echo self::testOutlineToSvg($composed).'<br />';
 
 				$composedOutline = $_next;
 
+echo self::testOutlineToSvg($composedOutline);
+
+
 			}
 		}
 
-echo '<hr />$composedOutline<br />';
-echo self::testOutlineToSvg($composedOutline);
+$col = self::removeLostedShape($composedOutline);
 
+echo '<hr />composedOutline=<br />';
+echo self::testOutlineToSvg($col);
+die;
 
 		return $composedOutline;
 
@@ -2018,7 +2027,7 @@ echo self::testOutlineToSvg([$addtion]);
 echo '<hr />';
 
 		$corssedShapes = self::insertCrossPointToShape($base, $addtion);
-dump($corssedShapes);
+
 		$base = $corssedShapes['base'];
 		$baseCount = count($base);
 		$baseCrossInfo = $corssedShapes['baseCrossInfoList'];
@@ -2032,7 +2041,7 @@ dump($corssedShapes);
 		$composed = [];
 		while (true) {
 			$firstIndex = 0;
-dump($baseCrossInfo);
+// dump($baseCrossInfo);
 			for ($i = 0; $i < $baseCount; $i++) {
 				$crossInfo = &$baseCrossInfo[$i];
 				if ($crossInfo['count'] < 1) {
@@ -2041,19 +2050,19 @@ dump($baseCrossInfo);
 					break;
 				}
 			}
-dump(compact('firstIndex', 'baseCount'));
+// dump(compact('firstIndex', 'baseCount'));
 			if ($firstIndex >= ($baseCount - 1)) {
 				break;
 			}
 
 
-echo "<hr />start from: base-{$firstIndex}<ul>";
+// echo "<hr />start from: base-{$firstIndex}<ul>";
 
 			$isLastPoint = false;
 			$shape = [];
 			$index = $firstIndex;
 			for ($i = 0; $i < $baseCount; $i++) {
-echo "<li>base-index: {$index}</li>";
+// echo "<li>base-index: {$index}</li>";
 				$basePoint = $base[$index];
 				$basePointInfo = &$baseCrossInfo[$index];
 
@@ -2061,11 +2070,13 @@ echo "<li>base-index: {$index}</li>";
 				$basePointInfo['count']--;
 				if ($i != 0) {
 					if (!is_null($basePointInfo['toIndex'])) {
+						$crossStartBaseIndex = $index;
+
 						$aIndex = ($basePointInfo['toIndex'] + 1) % $additionCount;
 						$additionCount = count($addition);
-echo '<ul>';
+// echo '<ul>';
 						for ($j = 0; $j < $additionCount; $j++) {
-echo "<li>addtion index: {$aIndex}</li>";
+// echo "<li>addtion index: {$aIndex}</li>";
 							$additionPoint = $addition[$aIndex];
 							$additionPointInfo = &$additionCrossInfo[$aIndex];
 
@@ -2073,16 +2084,19 @@ echo "<li>addtion index: {$aIndex}</li>";
 							$additionPointInfo['count']--;
 							if (!is_null($additionPointInfo['toIndex'])) {
 								$index = $additionPointInfo['toIndex'];
-
+dump(compact('index', 'crossStartBaseIndex'));
+if ($index == $crossStartBaseIndex) {
+	echo '<h1>同じところに帰ってる</h1>';
+}
 								if ($index == $firstIndex) {
 									$isLastPoint = true;
 								}
 
 
-echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
+// echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
 								$basePointInfo = &$baseCrossInfo[$index];
 								$basePointInfo['count']--;
-echo '</ul>';
+// echo '</ul>';
 								break;
 							}
 							$aIndex = ($aIndex + 1) % $additionCount;
@@ -2107,11 +2121,12 @@ echo '</ul>';
 			}
 
 			$composed[] = $shape;
-echo '</ul>';
+// echo '</ul>';
 
 		}
 
 		if (!$isComposed) {
+echo 'comcom not composed......<br />';
 			return null;
 		}
 
@@ -2229,6 +2244,7 @@ echo self::testOutlineToSvg($composed);
 			$newBaseCrossInfoList[] = [
 				'count' => 1,
 				'toIndex' => null,
+				'idCross' => null,
 			];
 			foreach ($b['crossedList'] as $i) {
 				$c = $crossPointList[$i];
@@ -2242,6 +2258,7 @@ echo self::testOutlineToSvg($composed);
 
 				$iii = $c['addition']['index'];
 				$toIndex = 0;
+				// $idCross = null;
 				foreach ($additionPointList as $ai => $a) {
 					if ($ai == $iii) {
 						$additionPoint = $additionPointList[$iii];
@@ -2261,6 +2278,7 @@ echo self::testOutlineToSvg($composed);
 				$newBaseCrossInfoList[] = [
 					'count' => 2,
 					'toIndex' => $toIndex,
+					'idCross' => $i,
 				];
 
 			}
@@ -2273,6 +2291,7 @@ echo self::testOutlineToSvg($composed);
 			$newAdditionCrossInfoList[] = [
 				'count' => 1,
 				'toIndex' => null,
+				'idCross' => null,
 			];
 			$newAddition[] = $a['point'];
 			foreach ($a['crossedList'] as $i) {
@@ -2305,6 +2324,7 @@ echo self::testOutlineToSvg($composed);
 				$newAdditionCrossInfoList[] = [
 					'count' => 2,
 					'toIndex' => $toIndex,
+					'idCross' => $i,
 				];
 			}
 		}
@@ -2354,153 +2374,6 @@ echo self::testOutlineToSvg($composed);
 			echo '</ul>';
 		}
 		////////////////////////////////////////////////////////
-
-
-
-
-
-
-// echo '<hr /><h2>test-new-compose</h2>';
-
-// 		$outline = [];
-// 		while (true) {
-// 			$firstIndex = 0;
-// 			for ($i = 0; $i < $newBaseCount; $i++) {
-// 				$crossInfo = &$newBaseCrossInfoList[$i];
-// 				if ($crossInfo['count'] < 1) {
-// 					$firstIndex++;
-// 				} else {
-// 					break;
-// 				}
-// 			}
-//
-// 			if ($firstIndex >= ($newBaseCount - 1)) {
-// 				break;
-// 			}
-//
-// // 			for ($i = 0; $i < $newBaseCount; $i++) {
-// // 				$newBaseCrossInfoList[$i]['count']--;
-// // 			}
-// // continue;
-//
-// // echo "<hr />start form: base-{$firstIndex}<ul>";
-//
-// 			$isLastPoint = false;
-// 			$shape = [];
-// 			$index = $firstIndex;
-// 			for ($i = 0; $i < $newBaseCount; $i++) {
-// // echo "<li>base-index: {$index}</li>";
-// 				$basePoint = $newBase[$index];
-// 				$basePointInfo = &$newBaseCrossInfoList[$index];
-//
-// 				$shape[] = $basePoint;
-// 				$basePointInfo['count']--;
-// 				if ($i != 0) {
-// 					if (!is_null($basePointInfo['toIndex'])) {
-// 						$aIndex = ($basePointInfo['toIndex'] + 1) % $newAdditionCount;
-// 						$newAdditionCount = count($newAddition);
-// // echo '<ul>';
-// 						for ($j = 0; $j < $newAdditionCount; $j++) {
-// // echo "<li>addtion index: {$aIndex}</li>";
-// 							$additionPoint = $newAddition[$aIndex];
-// 							$additionPointInfo = &$newAdditionCrossInfoList[$aIndex];
-//
-// 							$shape[] = $additionPoint;
-// 							$additionPointInfo['count']--;
-// 							if (!is_null($additionPointInfo['toIndex'])) {
-// 								$index = $additionPointInfo['toIndex'];
-//
-// 								if ($index == $firstIndex) {
-// 									$isLastPoint = true;
-// 								}
-//
-//
-// // echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
-// 								$basePointInfo = &$newBaseCrossInfoList[$index];
-// 								$basePointInfo['count']--;
-// // echo '</ul>';
-// 								break;
-// 							}
-// 							$aIndex = ($aIndex + 1) % $newAdditionCount;
-// 						}
-//
-// 						unset($additionPointInfo);
-// 					}
-// 				}
-// 				// echo '</ul>';
-//
-// 				unset($basePointInfo);
-//
-// 				$index = ($index + 1) % $newBaseCount;
-// 				if ($index == $firstIndex) {
-// 					$isLastPoint = true;
-// 				}
-//
-// 				if ($isLastPoint) {
-// 					break;
-// 				}
-// 			}
-// 			$outline[] = $shape;
-// // echo '</ul>';
-//
-// 		}
-
-
-		// echo '<hr />交点で合成<br />';
-		// echo self::testOutlineToSvg($outline);
-		// echo '<br />';
-		////////////////
-
-// dd($newBaseCrossInfoList);
-
-
-//
-// 		$newBase = [];
-// echo '<ul>';
-// 		for ($baseIndex = 0; $baseIndex < $baseCount; $baseIndex++) {
-// echo "<li>base={$baseIndex}</li>";
-// 			$newBase[] = $base[$baseIndex];
-// 			$v = [
-// 				$base[$baseIndex],
-// 				$base[($baseIndex + 1) % $baseCount],
-// 			];
-//
-// echo '<ul>';
-// 			$newAddition = [];
-// 			for ($addtionIndex = 0; $addtionIndex < $addtionCount; $addtionIndex++) {
-// echo "<li>addtionIndex={$addtionIndex}</li>";
-// 				$newAddition[] = $addtion[$addtionIndex];
-// 				$v2 = [
-// 					$addtion[$addtionIndex],
-// 					$addtion[($addtionIndex + 1) % $addtionCount],
-// 				];
-//
-// 				$cp = self::getCrossPoint($v, $v2);
-//
-// 				if (!is_null($cp)) {
-// echo "<ul><li>HIT!</li></ul>";
-// 					$newBase[] = [
-// 						'x' => $cp['x'],
-// 						'y' => $cp['y'],
-// 						'isOnCurvePoint' => true,
-// 					];
-//
-// 					// TODO: 追加位置を直す
-// 					$newAddition[] = [
-// 						'x' => $cp['x'],
-// 						'y' => $cp['y'],
-// 						'isOnCurvePoint' => true,
-// 					];
-//
-// 					dump($cp);
-// 				}
-// 			}
-// echo '</ul>';
-//
-// 		}
-// echo '</ul>';
-// // dd($newBase);
-
 
 		return [
 			'base' => $newBase,
