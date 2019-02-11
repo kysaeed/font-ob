@@ -860,9 +860,9 @@ dd('OK');
 				}
 				$s .= "{$l['x']},{$l['y']} ";
 			}
+			$s .= 'z ';
 		}
 
-		$s .= 'z ';
 		$s .= '" fill="'.$c.'" stroke="#000000" stroke-width="1" />';
 
 		if (!$isPointEnabled) {
@@ -1235,14 +1235,21 @@ echo '元の状態 ーーーーーーーーーーーーーーーーーー<br />'
 					while (!empty($composedOutline)) {
 						$os = array_shift($composedOutline);
 
-						$composed = null;
+						// $composed = null;
+						$composed = self::comcom($shape, $os);
 						if (!is_null($composed)) {
+echo '<hr />composedが出来た<br />';
+echo self::testOutlineToSvg($composed).'<br />';
 							$isComposed = true;//test
-							// $slicedShapeOutlineList[] = ...
+							foreach ($composed as $c) {
+								$_next[] = $c;
+							}
+
+							// TODO: $slicedShapeOutlineList[] = ...
 						} else {
 							$_next[] = $os;
 						}
-echo self::testOutlineToSvg([$os]).'<br />';
+// echo self::testOutlineToSvg([$os]).'<br />';
 					}
 				} else {
 
@@ -1273,6 +1280,9 @@ echo self::testOutlineToSvg($composedOutline);
 
 
 		return $composedOutline;
+
+
+
 
 
 
