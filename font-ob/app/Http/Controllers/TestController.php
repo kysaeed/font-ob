@@ -832,10 +832,10 @@ dd('OK');
 
 		$s = '<svg>';
 		$sc = '';
+		$s .= '<path d="';
 		foreach ($outline as $lineNumber => $line) {
 
-			$s .= '<path d="';
-			$c = $colors[$lineNumber % count($colors)];
+			$c = $colors[0]; //$colors[$lineNumber % count($colors)];
 			$s .= 'M ';
 			$cCount = 0;
 			foreach ($line as $index => $l) {
@@ -860,10 +860,10 @@ dd('OK');
 				}
 				$s .= "{$l['x']},{$l['y']} ";
 			}
-			$s .= 'z ';
-			$s .= ' " fill="'.$c.'" stroke="#000000" stroke-width="1" />';
 		}
 
+		$s .= 'z ';
+		$s .= '" fill="'.$c.'" stroke="#000000" stroke-width="1" />';
 
 		if (!$isPointEnabled) {
 			foreach ($outline as $lineNumber => $line) {
@@ -1208,32 +1208,63 @@ echo '<hr />';
 		$slicedShapeOutlineList = [];
 		foreach ($shapeList as $shape) {
 			$outline = self::sliceShape($shape);
-			// dump(compact('outline'));
-			// self::testOutlineToSvg([$outline]);
+dump(compact('outline'));
+echo self::testOutlineToSvg($outline);
 			$slicedShapeOutlineList[] = $outline;
 		}
 
+echo '<hr />';
 
 		$composedOutline = [];
-		foreach ($slicedShapeOutlineList as $slicedOuline) {
+// dd($slicedShapeOutlineList);
+		// foreach ($slicedShapeOutlineList as $slicedOuline) {
+		while (!empty($slicedShapeOutlineList)) {
+			$slicedOuline = array_shift($slicedShapeOutlineList);
+
+echo '<h1>remain count:'.count($slicedShapeOutlineList).'</h1>';
 			foreach ($slicedOuline as $shape) {
 
-// echo self::testOutlineToSvg([$shape]);
+echo self::testOutlineToSvg([$shape]);
+echo '<br />';
 				$isComposed = false;
-				foreach ($composedOutline as $o) {
-					$composed = self::comcom($shape, $o);
-					if (!is_null($composed)) {
-dump($composed);
-						$isComposed = true;
-						foreach ($composed as $c) {
-							$composedOutline[] = $c;
+
+				$_next = [];
+				if (true) {
+echo '元の状態 ーーーーーーーーーーーーーーーーーー<br />';
+					$_next = [];
+					while (!empty($composedOutline)) {
+						$os = array_shift($composedOutline);
+
+						$composed = null;
+						if (!is_null($composed)) {
+							$isComposed = true;//test
+							// $slicedShapeOutlineList[] = ...
+						} else {
+							$_next[] = $os;
 						}
-						break;
+echo self::testOutlineToSvg([$os]).'<br />';
 					}
+				} else {
+
+					// foreach ($composedOutline as $os) {
+					while (!empty($composedOutline)) {
+						$os = array_shift($composedOutline);
+
+						$composed = self::comcom($shape, $os);
+						if (!is_null($composed)) {
+							$isComposed = true;
+							$slicedShapeOutlineList[] = $composed;
+						}
+
+					}
+
 				}
 				if (!$isComposed) {
-					$composedOutline[] = $shape;
+					$_next[] = $shape;
 				}
+
+				$composedOutline = $_next;
+
 			}
 		}
 
@@ -1987,10 +2018,10 @@ dump($corssedShapes);
 		$additionCrossInfo = $corssedShapes['additionCrossInfoList'];
 
 
+		$isComposed = false;
 		$composed = [];
 		while (true) {
 			$firstIndex = 0;
-echo "xxx--{$firstIndex}<br />";
 dump($baseCrossInfo);
 			for ($i = 0; $i < $baseCount; $i++) {
 				$crossInfo = &$baseCrossInfo[$i];
@@ -2006,7 +2037,7 @@ dump(compact('firstIndex', 'baseCount'));
 			}
 
 
-echo "<hr />start form: base-{$firstIndex}<ul>";
+echo "<hr />start from: base-{$firstIndex}<ul>";
 
 			$isLastPoint = false;
 			$shape = [];
@@ -2048,6 +2079,7 @@ echo '</ul>';
 						}
 
 						unset($additionPointInfo);
+						$isComposed = true;
 					}
 				}
 				// echo '</ul>';
@@ -2069,7 +2101,7 @@ echo '</ul>';
 
 		}
 
-		if (empty($composed)) {
+		if (!$isComposed) {
 			return null;
 		}
 
