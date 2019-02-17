@@ -15,156 +15,59 @@ class TestController extends Controller
 {
 	public function test(Request $request)
     {
-		// self::testOutlineMa();
+		self::testOutlineSelfCross();
+
+		self::testOutlineMa();
 		self::testOutlineA();
 
-		self::testOutlineTestData();
+		self::testOutlinePenetrate();
 
-		dd('OK');
-
-		///////////////
-		// $a = self::getCrossPointXxxx(
-		// 	[['x' => 0, 'y' => 100,], ['x' => 100, 'y' => 100,]],
-		// 	[['x' => 200, 'y' => 0,], ['x' => 200, 'y' => 100,]]
-		// );
-		// dd($a);
-		///////////////
-
-
-		$base = [
-			[
-				'x' => 54.0,
-				'y' => 10.0,
-				'isOnCurvePoint' => true,
-			],
-			[
-				'x' => 54.0,
-				'y' => 120.0,
-				'isOnCurvePoint' => true,
-			],
-			[
-				'x' => 46.0,
-				'y' => 120.0,
-				'isOnCurvePoint' => true,
-			],
-			[
-				'x' => 46.0,
-				'y' => 10.0,
-				'isOnCurvePoint' => true,
-			],
-		];
-		echo self::testOutlineToSvg([$base]).'<br />';
-
-		$v = [
-			['x' => 104.0, 'y' => 104.0],
-			['x' => 26.0, 'y' => 104.0],
-		];
-
-		// echo '<h1>getCrossPoint</h1>';
-		// $s = $base[0];
-		// $e = $base[1];
-		// $c = self::getCrossPoint($v, [$s, $e]);
-		// dump($c);
-
-
-		$crossPoint = self::getCrossPointToShape($base, $v, null);
 
 
 
-		$rectangle1 = $this->getRectangle(
-			['x' => 10, 'y' => 10],
-			['x' => 700, 'y' => 500]
-		);
-
-		$rectangle2 = $this->getRectangle(
-			['x' => 300, 'y' => 100],
-			['x' => 400, 'y' => 1000]
-		);
-
-		$compoased = self::compose($rectangle1, $rectangle2);
-
-		$c = [];
-		foreach ($compoased as $pos) {
-			$c[] = [
-				'x' => $pos['x'],
-				'y' => $pos['y'],
-				'flags' => 0x01,
-			];
-		}
-
-
-		$glyph = new TtfGlyph([
-			'glyph_index' => 0,
-			'number_of_contours' => null,
-			'x_min' => 0,
-			'y_min' => 0,
-			'x_max' => 1400,
-			'y_max' => 1300,
-			'coordinates' => [
-				$c,
-			],
-			'instructions' => [],
-		]);
-
-		$hm = new TtfHorizontalMetrix([
-			'advance_width' => 1200,
-			'lsb' => 20,
-		]);
-
-        $glyfData = [
-            'header' => [
-                 "xMin" => $glyph->xMin,
-                 "yMin" => $glyph->yMin,
-                 "xMax" => $glyph->xMax,
-                 "yMax" => $glyph->yMax,
-            ],
-            'coordinates' => $glyph->coordinates,
-            'instructions' => $glyph->instructions,
-        ];
-		$gs = new GlyphSvg($glyfData, $hm);
-		echo $gs->getSvg();
-
-		$glyph = new TtfGlyph([
-			'glyph_index' => 0,
-			'number_of_contours' => null,
-			'x_min' => 0,
-			'y_min' => 0,
-			'x_max' => 100,
-			'y_max' => 100,
-			'coordinates' => [
-				[
-					['x' => 500, 'y' => 1000, 'flags' => 0x00],
-					['x' => 1000, 'y' => 500, 'flags' => 0x00],
-					['x' => 500, 'y' => 0, 'flags' => 0x00],
-					['x' => 0, 'y' => 500, 'flags' => 0x000],
-				],
-				[
-					['x' => 500, 'y' => 700, 'flags' => 0x01],
-					['x' => 300, 'y' => 500, 'flags' => 0x01],
-					['x' => 500, 'y' => 300, 'flags' => 0x01],
-					['x' => 700, 'y' => 500, 'flags' => 0x01],
-				],
-			],
-			'instructions' => [],
-		]);
-
-		$hm = new TtfHorizontalMetrix([
-			'advance_width' => 1200,
-			'lsb' => 20,
-		]);
-
-		$glyfData = [
-			'header' => [
-				 'xMin' => $glyph->xMin,
-				 'yMin' => $glyph->yMin,
-				 'xMax' => $glyph->xMax,
-				 'yMax' => $glyph->yMax,
-			],
-			'coordinates' => $glyph->coordinates,
-			'instructions' => $glyph->instructions,
-		];
-		$gs = new GlyphSvg($glyfData, $hm);
-		echo $gs->getSvg();
+		dd('OK');
+		//
+		// $glyph = new TtfGlyph([
+		// 	'glyph_index' => 0,
+		// 	'number_of_contours' => null,
+		// 	'x_min' => 0,
+		// 	'y_min' => 0,
+		// 	'x_max' => 100,
+		// 	'y_max' => 100,
+		// 	'coordinates' => [
+		// 		[
+		// 			['x' => 500, 'y' => 1000, 'flags' => 0x00],
+		// 			['x' => 1000, 'y' => 500, 'flags' => 0x00],
+		// 			['x' => 500, 'y' => 0, 'flags' => 0x00],
+		// 			['x' => 0, 'y' => 500, 'flags' => 0x000],
+		// 		],
+		// 		[
+		// 			['x' => 500, 'y' => 700, 'flags' => 0x01],
+		// 			['x' => 300, 'y' => 500, 'flags' => 0x01],
+		// 			['x' => 500, 'y' => 300, 'flags' => 0x01],
+		// 			['x' => 700, 'y' => 500, 'flags' => 0x01],
+		// 		],
+		// 	],
+		// 	'instructions' => [],
+		// ]);
+		//
+		// $hm = new TtfHorizontalMetrix([
+		// 	'advance_width' => 1200,
+		// 	'lsb' => 20,
+		// ]);
+		//
+		// $glyfData = [
+		// 	'header' => [
+		// 		 'xMin' => $glyph->xMin,
+		// 		 'yMin' => $glyph->yMin,
+		// 		 'xMax' => $glyph->xMax,
+		// 		 'yMax' => $glyph->yMax,
+		// 	],
+		// 	'coordinates' => $glyph->coordinates,
+		// 	'instructions' => $glyph->instructions,
+		// ];
+		// $gs = new GlyphSvg($glyfData, $hm);
+		// echo $gs->getSvg();
 
 
 		// return '<hr />OK';
@@ -463,19 +366,6 @@ dump(compact('test'));
 
 		dump($stroke);
 
-		echo '<hr />アウトライン @o test<br />';
-		$s = '<svg>';
-		$s .= ' <path d="M50,1 50,90 10,90 10,50 90,50" fill="none" stroke="black"/>';
-		$s .= '</svg>';
-
-echo 'SVG<br />'.$s.'<br />';
-
-		$stroke = self::parseStrokeSvg($s);
-		$outline = self::getOutlineFromStroke($stroke);
-		echo self::testOutlineToSvg($outline);
-
-
-
 		echo '<hr />ストローク @shi test<br />';
 		$shi = '<svg>';
 		$shi .= ' <path d="M86,57 c-10.481,21.489 -24.904,32 -39,32 c-13.079,0 -21,-8.539 -21,-28 c0,-16.818 2,-32.069 2,-50" fill="none" stroke="black"/>';
@@ -656,7 +546,22 @@ dd('OK');
 		return 'hello !';
     }
 
-	public static function testOutlineTestData()
+	public static function testOutlineSelfCross()
+	{
+		echo '<hr />アウトライン @o test<br />';
+		$s = '<svg>';
+		$s .= ' <path d="M50,1 50,90 10,90 10,50 90,50" fill="none" stroke="black"/>';
+		$s .= '</svg>';
+
+echo 'SVG<br />'.$s.'<br />';
+
+		$stroke = self::parseStrokeSvg($s);
+		$outline = self::getOutlineFromStroke($stroke);
+		echo self::testOutlineToSvg($outline);
+
+	}
+
+	public static function testOutlinePenetrate()
 	{
 
 		$s1 = [
@@ -763,10 +668,7 @@ dd('OK');
 		echo self::testOutlineToSvg($outline);
 		echo '<hr />';
 
-		// dd('hey');
-
-
-		dd($outline);
+		return $outline;
 	}
 
 	public static function testOutlineA()
@@ -842,8 +744,8 @@ dd('OK');
 		echo '<hr />アウトライン @ma <br />';
 		$s = '<svg>';
 		$s .= '<path d="M57,6 v63.0 c0,15.188 -5.467,20 -18,20 c-11.587,0 -19,-5.989 -19,-15 c0,-8.021 6.047,-13 19,-13 c9.891,0 24.002,6.69 45,24" fill="none" stroke="#000000" stroke-width="2" />';
-		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="84" x2="16" y1="40" y2="40" />';
-		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="87" x2="13" y1="20" y2="20" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="84" x2="16" y1="40" y2="40" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="87" x2="13" y1="20" y2="20" />';
 		$s .= '</svg>';
 
 echo $s.'<br />';
@@ -1165,12 +1067,28 @@ echo $s.'<br />';
 					$offCurveCount = 3;
 					$isRelativePosition = false;
 				}
-				$x = (float)$pathMatches[3][$index];
-				$y = (float)$pathMatches[4][$index];
-				if ($isRelativePosition) {
-					$x += $prevX;
-					$y += $prevY;
+
+				switch ($pathMatches[1][$index]) {
+					case 'v':
+						$x = $prevX;
+						$y = (float)$pathMatches[3][$index];
+						$y += $prevY;
+						break;
+					case 'V':
+						$x = $prevX;
+						$y = (float)$pathMatches[3][$index];
+						break;
+
+					default:
+						$x = (float)$pathMatches[3][$index];
+						$y = (float)$pathMatches[4][$index];
+						if ($isRelativePosition) {
+							$x += $prevX;
+							$y += $prevY;
+						}
+						break;
 				}
+
 
 				if ($offCurveCount > 0) {
 					$isOnCurvePoint = false;
@@ -1768,7 +1686,13 @@ echo self::testOutlineToSvg($outline).'<hr />';
 				$shape[($i + 1) % $pointCount],
 				$shape[($i + 2) % $pointCount],
 			];
-			$sum += self::crossProduct($v1, $v2);
+			$d = self::crossProduct($v1, $v2);
+			if ($d > 0) {
+				$d = 1;
+			} else if ($d < 0) {
+				$d = -1;
+			}
+			$sum += $d;
 		}
 
 		if ($sum > 0) {
@@ -1784,27 +1708,7 @@ echo self::testOutlineToSvg($outline).'<hr />';
 	{
 		$directionList = [];
 		foreach ($shapeList as $lineIndex => $line) {
-			$sum = 0;
-			$pointCount = count($line);
-			for ($i = 0; $i < $pointCount; $i++) {
-				$v1 = [
-					$line[$i],
-					$line[($i + 1) % $pointCount],
-				];
-				$v2 = [
-					$line[($i + 1) % $pointCount],
-					$line[($i + 2) % $pointCount],
-				];
-				$sum += self::crossProduct($v1, $v2);
-			}
-
-			if ($sum > 0) {
-				$directionList[] = 1;
-			} else if ($sum < 0){
-				$directionList[] = -1;
-			} else {
-				$directionList[] = 0;
-			}
+			$directionList[] = self::getShapeDirection($line);
 		}
 		return $directionList;
 	}
@@ -1962,14 +1866,14 @@ echo self::testOutlineToSvg($outline).'<hr />';
 
 	protected static function getNormal($start, $end)
 	{
+		// dump(compact('start', 'end'));
+
 		$vector = [
 			'x' => $end['x'] - $start['x'],
 			'y' => $end['y'] - $start['y'],
 		];
 
-// TODO: 外積で大きさを取得する！！！
 		$len = sqrt(($vector['x'] * $vector['x']) + ($vector['y'] * $vector['y']));
-
 		return [
 			'x' => ($vector['y'] / $len),
 			'y' => -($vector['x'] / $len),
