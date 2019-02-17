@@ -15,6 +15,7 @@ class TestController extends Controller
 {
 	public function test(Request $request)
     {
+		// self::testOutlineMa();
 		self::testOutlineA();
 
 		self::testOutlineTestData();
@@ -835,6 +836,81 @@ dd('OK');
 
 	}
 
+
+	public static function testOutlineMa()
+	{
+		echo '<hr />アウトライン @ma <br />';
+		$s = '<svg>';
+		$s .= '<path d="M57,6 v63.0 c0,15.188 -5.467,20 -18,20 c-11.587,0 -19,-5.989 -19,-15 c0,-8.021 6.047,-13 19,-13 c9.891,0 24.002,6.69 45,24" fill="none" stroke="#000000" stroke-width="2" />';
+		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="84" x2="16" y1="40" y2="40" />';
+		// $s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="87" x2="13" y1="20" y2="20" />';
+		$s .= '</svg>';
+
+echo $s.'<br />';
+
+
+
+		$stroke = self::parseStrokeSvg($s);
+		echo self::testStrokeToSvg($stroke);
+
+// dd($stroke);
+		$outline = self::getOutlineFromStroke($stroke);
+
+
+		echo self::testOutlineToSvg($outline);
+
+// dd($outline);
+		$o = [];
+		foreach ($outline as $contour) {
+			$c = [];
+			foreach ($contour as $i => $point) {
+				$flags = 0;
+				if ($point['isOnCurvePoint']) {
+					$flags |= 0x01;
+				}
+				if ($i == 0) {
+					$flags |= 0x01;
+				}
+// $flags = 0x01;
+
+				$c[] = [
+					'x' => $point['x'] * 10,
+					'y' => 500 - $point['y'] * 10,
+					'flags' => $flags,
+				];
+			}
+			if (count($c) > 0) {
+				$o[] = $c;
+			}
+		}
+
+		echo '<h1>結果</h1>';
+
+
+		$hm = new TtfHorizontalMetrix([
+			'advance_width' => 1200,
+			'lsb' => 20,
+		]);
+
+		$g = new TtfGlyph([
+			'glyph_index' => 1,
+			'number_of_contours' => count($o),
+			'x_min' => 0,
+			'y_min' => 0,
+			'x_max' => 300,
+			'y_max' => 300,
+			'coordinates' => $o,
+			'instructions' => [],
+		]);
+
+// dd($g->coordinates);
+		$s = new GlyphSvg($g, $hm);
+		echo '<h1>GlyphSvg</h1>';
+		echo $s->getSvg();
+
+	}
+
+
 	protected static function testOutlineToSvg($outline, $isPointEnabled = false)
 	{
 		if (empty($outline)) {
@@ -1065,7 +1141,7 @@ dd('OK');
 		$d = [];
 		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
 			$pathMatches = [];
-			preg_match_all('/([MmCc]\s?)?(-?[\d.]+),(-?[\d.]+)/', $d[1], $pathMatches);
+			preg_match_all('/([MmCcVv]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
 
 			$spline = [];
 			$offCurveCount = 0;
@@ -1089,12 +1165,13 @@ dd('OK');
 					$offCurveCount = 3;
 					$isRelativePosition = false;
 				}
-				$x = (float)$pathMatches[2][$index];
-				$y = (float)$pathMatches[3][$index];
+				$x = (float)$pathMatches[3][$index];
+				$y = (float)$pathMatches[4][$index];
 				if ($isRelativePosition) {
 					$x += $prevX;
 					$y += $prevY;
 				}
+
 				if ($offCurveCount > 0) {
 					$isOnCurvePoint = false;
 					$offCurveCount--;
