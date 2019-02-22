@@ -632,8 +632,7 @@ dump(compact('test'));
 		// ];
 
 
-		$p = self::getCrossPoint([$base[1], $base[2]], [$addition[0], $addition[1]]);
-		$p = self::getBezier2CrossPoint([$base[0], $base[1], $base[2]], [$addition[0], $addition[1]])[0];
+		$p = self::getBezier2CrossPoint([$base[0], $base[1], $base[2]], [$addition[0], $addition[1]]);
 dump($p);
 
 
@@ -644,8 +643,8 @@ dump($p);
 		$s .= "<path d='M {$addition[0]['x']},{$addition[0]['y']} {$addition[1]['x']},{$addition[1]['y']}' stroke='blue' fill='none' />";
 
 		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} {$base[1]['x']},{$base[1]['y']} {$base[2]['x']},{$base[2]['y']}' stroke='#e0e0e0' fill='none' />";
-		if (!is_null($p)) {
-			$s .= "<circle cx='{$p['x']}' cy='{$p['y']}' r='3' fill='black' />";
+		if (!empty($p)) {
+			$s .= "<circle cx='{$p[0]['x']}' cy='{$p[0]['y']}' r='3' fill='black' />";
 		}
 
 		$s .= '</svg>';
