@@ -9,12 +9,39 @@ use FontObscure\TtfFile;
 use FontObscure\TtfGlyph;
 use FontObscure\TtfHorizontalMetrix;
 use FontObscure\GlyphSvg;
+use FontObscure\Stroke;
 
 
 class TestController extends Controller
 {
+	public function loadStroke(Request $request)
+	{
+
+		$s = '<svg>';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="14" x2="86" y1="21" y2="21" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="38" x2="38" y1="6" y2="81" />';
+		$s .= '<path d="M68,40 c-8.337,27.624 -28.133,45 -43,45 c-7.852,0 -13,-4.894 -13,-15 c0,-17.828 17.78,-32 43,-32 C76.039,38 88,48.227 88,63 C88,76.87 77.755,86.868 60,90" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
+
+
+		$stroke = Stroke::createFromSvg(1, $s);
+		$stroke->save();
+
+		dump($stroke->data);
+
+
+		return 'OK';
+	}
+
 	public function test(Request $request)
     {
+		self::testBezierCross();
+
+		self::testBezier();
+
+		// self::testOutlineMaya();
+
+
 		self::testOutlineSelfCross();
 
 		self::testOutlineMa();
@@ -117,7 +144,6 @@ class TestController extends Controller
 		echo self::testStrokeToSvg($stroke);
 		echo '<br />';
 
-
 		echo '<hr />アウトライン<br />';
 		$outline = self::getOutlineFromStroke($stroke);
 		$s = '<svg>';
@@ -154,197 +180,6 @@ class TestController extends Controller
 		}
 		$s .= $sc.'</svg>';
 		echo $s;
-
-
-		echo '<hr /><h1> 2 -> 3</h1><br />';
-		$sp = '<svg width="100" height="100">';
-		$sp .= ' <path d="M0,0 C0,100 100,100 100,0" fill="none" stroke="red"/>';
-		$sp .= '</svg>';
-		echo $sp;
-		echo '<hr /><h1>** K **</h1><br />';
-
-		$s = [
-			'x' => 0,
-			'y' => 150,
-		];
-
-		$e = [
-			'x' => 300,
-			'y' => 150,
-		];
-
-
-		$a = [
-			'x' => 0,
-			'y' => 0,
-		];
-		$b = [
-			'x' => 300,
-			'y' => 0,
-		];
-
-
-		$se = self::getMidPoint($s, $e);
-
-		$mp1 = self::getMidPoint($s, $se);
-		// $mp1 = self::getMidPoint($s, $se);
-		$mp2 = self::getMidPoint($e, $se);
-
-		$sa = self::getMidPoint($s, $a);
-		$eb = self::getMidPoint($e, $b);
-
-		$ab = self::getMidPoint($a, $b);
-
-
-
-		// $t = 0.5;
-		// $k = [
-		// 	'x' => ($s['x'] * pow(1 - $t, 3)) + ($a['x'] * (pow(1 - $t, 2) * 3) * $t) + ($b['x'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['x'] * pow($t, 3)),
-		// 	'y' => ($s['y'] * pow(1 - $t, 3)) + ($a['y'] * (pow(1 - $t, 2) * 3) * $t) + ($b['y'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['y'] * pow($t, 3)),
-		// ];
-		$k = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.5);
-
-
-		// $k = [
-		// 	'x' => ($s['x'] * 0.125) + ($a['x'] * (0.25 * 3) * 0.5) + ($b['x'] * (0.125 * 3)) + ($e['x'] * 0.125),
-		// 	'y' => ($s['y'] * 0.125) + ($a['y'] * (0.25 * 3) * 0.5) + ($b['y'] * (0.125 * 3)) + ($e['y'] * 0.125),
-		// ];
-
-		$sk = self::getMidPoint($s, $k);
-		$ka = self::getMidPoint($sk, $a);
-		$ek = self::getMidPoint($e, $k);
-		$kb = self::getMidPoint($ek, $b);
-
-		$aByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.25);
-// dump(compact('aByK'));
-
-		$bByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.75);
-
-// dd($aByK);
-// dump(compact('bByK'));
-		$t = 0.5;
-
-// $aByK['x'] = 10;
-
-		$lenX1 = ($b['x'] - $k['x']);
-		$lenX2 = ($k['x'] - $a['x']);
-
-dump("lenX1={$lenX1}, lenX2={$lenX2}");
-
-$t = 0.58;
-dump(compact('t'));
-
-		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
-		$ax = (($aByK['x'] - $param) / ((1 - $t) * $t * 2));
-		$param = ($s['y'] * pow(1 - $t, 2)) + ($k['y'] * pow($t, 2));
-		$ay = ($aByK['y'] - $param) / ((1 - $t) * $t * 2);
-
-$t = 0.42;
-		$param = ($k['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
-		$bx = (($bByK['x'] - $param) / ((1 - $t) * $t * 2));
-		$param = ($k['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
-		$by = ($bByK['y'] - $param) / ((1 - $t) * $t * 2);
-dump("new a = {$ax},{$ay}");
-
-
-
-		$kAdd = [
-			'x' => ($b['x'] * (pow(0.25, 2) * 3) * 0.75),
-			'y' => ($b['y'] * (pow(0.25, 2) * 3) * 0.75),
-		];
-// dump($inverseK);
-// dump($kAdd);
-
-
-
-
-		echo '<hr />逆算<br />';
-		echo '<hr />';
-
-		$sp = '<svg width="300" height="300">';
-		$sp .= " <path d='M{$s['x']},{$s['y']} C{$a['x']},{$a['y']} {$b['x']},{$b['y']} {$e['x']},{$e['y']}' fill='none' stroke='red'/>";
-		// $sp .= " <circle cx='{$aByK['x']}' cy='{$aByK['y']}' r='3' fill='green' />";
-		$sp .= " <circle cx='{$b['x']}' cy='{$b['y']}' r='3' fill='green' />";
-
-		// $a = [
-		// 	'x' => 4,
-		// 	'y' => 64,
-		// ];
-		// $sp .= " <path d='M{$s['x']},{$s['y']} Q{$ax},{$ay} {$k['x']},{$k['y']} Q{$bx},{$by} {$e['x']},{$e['y']}' fill='none' stroke='blue'/>";
-		$sp .= " <path d='M{$s['x']},{$s['y']} {$se['x']},{$se['y']} {$a['x']},{$a['y']} z' fill='none' stroke='skyblue'/>";
-		$sp .= " <path d='M{$mp1['x']},{$mp1['y']} {$a['x']},{$a['y']} ' fill='none' stroke='black'/>";
-
-		$target = [
-			'x' => 3,
-			'y' => 64,
-		];
-dump(compact('target'));
-		$sp .= " <circle cx='{$target['x']}' cy='{$target['y']}' r='3' fill='skyblue' />";
-
-		$sk = self::getMidPoint($s, $k);
-
-
-		////////////////////////////////////////
-		$sp .= " <path d='M {$s['x']},{$s['y']} {$k['x']},{$k['y']}' stroke='green' />";
-		$sp .= " <path d='M {$e['x']},{$e['y']} {$k['x']},{$k['y']}' stroke='green' />";
-		$sp .= " <circle cx='{$k['x']}' cy='{$k['y']}' r='3' fill='red' />";
-		$sp .= " <circle cx='{$aByK['x']}' cy='{$aByK['y']}' r='3' fill='gray' />";
-		$sp .= " <circle cx='{$bByK['x']}' cy='{$bByK['y']}' r='3' fill='gray' />";
-		// $sp .= " <circle cx='{$mp1['x']}' cy='{$mp1['y']}' r='3' fill='green' />";
-		$sp .= " <circle cx='{$sk['x']}' cy='{$sk['y']}' r='3' fill='blue' />";
-		// $sp .= " <path d='M {$sk['x']},{$sk['y']} {$a['x']},{$a['y']}' stroke='green' />";
-		////////////////////////////////////////
-
-		$sp .= '</svg>';
-		echo $sp;
-		echo '<hr />TEST<br />';
-
-
-		echo '** C to Q<br />';
-		$test = self::svgCtoQ($s, [$a, $b, $e]);
-dump(compact('test'));
-		$cl = [
-			'red',
-			'blue',
-		];
-		$sp2 = '<svg width="300" height="300">';
-		foreach ($test as $i => $t) {
-			$sp2 .= " <path d='M{$t[0]['x']},{$t[0]['y']} Q{$t[1]['x']},{$t[1]['y']} {$t[2]['x']},{$t[2]['y']}' fill='none' stroke='{$cl[$i]}'/>";
-		}
-		$sp2 .= '</svg>';
-		echo $sp2.'<br />';
-
-
-		echo '分解<br />';
-		$sp2 = '<svg width="300" height="300">';
-		$sp2 .= " <path d='M{$s['x']},{$s['y']} Q{$ax},{$ay} {$k['x']},{$k['y']}' fill='none' stroke='blue'/>";
-		$sp2 .= '</svg>';
-		echo "<hr />{$sp2}";
-
-		$sp2 = '<svg width="300" height="300">';
-		$sp2 .= " <path d='M{$k['x']},{$k['y']}  Q{$bx},{$by} {$e['x']},{$e['y']}' fill='none' stroke='blue'/>";
-		$sp2 .= '</svg>';
-		echo "{$sp2}<hr />";
-
-
-
-		// $mpoint = [
-		// 	'x' => 0 + ((100 - 0) / 2),
-		// 	'y' => 0 + ((100 - 100) / 2),
-		// ];
-
-
-
-		// $cntp1 = [
-		// 	'x' => $mpoint['x'] - (50 * 0.77),
-		// 	'y' => $mpoint['y'] + (100 * 0.77),
-		// ];
-		// $cntp2 = [
-		// 	'x' => $mpoint['x'] + (50 * 0.77),
-		// 	'y' => $mpoint['y'] + (100 * 0.77),
-		// ];
-		// dd($cntp2);
-		$sp .= '</svg>';
 
 
 		$sp = '<svg  width="100" height="100">';
@@ -546,9 +381,341 @@ dd('OK');
 		return 'hello !';
     }
 
+	public static function testBezier()
+	{
+		echo '<hr /><h1> 2 -> 3</h1><br />';
+		$sp = '<svg width="100" height="100">';
+		$sp .= ' <path d="M0,0 C0,100 100,100 100,0" fill="none" stroke="red"/>';
+		$sp .= '</svg>';
+		echo $sp;
+		echo '<hr /><h1>** K **</h1><br />';
+
+		$s = [
+			'x' => 0,
+			'y' => 150,
+		];
+
+		$e = [
+			'x' => 300,
+			'y' => 150,
+		];
+
+
+		$a = [
+			'x' => 0,
+			'y' => 0,
+		];
+		$b = [
+			'x' => 300,
+			'y' => 0,
+		];
+
+
+		$se = self::getMidPoint($s, $e);
+
+		$mp1 = self::getMidPoint($s, $se);
+		// $mp1 = self::getMidPoint($s, $se);
+		$mp2 = self::getMidPoint($e, $se);
+
+		$sa = self::getMidPoint($s, $a);
+		$eb = self::getMidPoint($e, $b);
+
+		$ab = self::getMidPoint($a, $b);
+
+
+
+		// $t = 0.5;
+		// $k = [
+		// 	'x' => ($s['x'] * pow(1 - $t, 3)) + ($a['x'] * (pow(1 - $t, 2) * 3) * $t) + ($b['x'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['x'] * pow($t, 3)),
+		// 	'y' => ($s['y'] * pow(1 - $t, 3)) + ($a['y'] * (pow(1 - $t, 2) * 3) * $t) + ($b['y'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['y'] * pow($t, 3)),
+		// ];
+		$k = self::getBezier3CurvePoint($s, $e, $a, $b, 0.5);
+
+
+		// $k = [
+		// 	'x' => ($s['x'] * 0.125) + ($a['x'] * (0.25 * 3) * 0.5) + ($b['x'] * (0.125 * 3)) + ($e['x'] * 0.125),
+		// 	'y' => ($s['y'] * 0.125) + ($a['y'] * (0.25 * 3) * 0.5) + ($b['y'] * (0.125 * 3)) + ($e['y'] * 0.125),
+		// ];
+
+		$sk = self::getMidPoint($s, $k);
+		$ka = self::getMidPoint($sk, $a);
+		$ek = self::getMidPoint($e, $k);
+		$kb = self::getMidPoint($ek, $b);
+
+		$aByK = self::getBezier3CurvePoint($s, $e, $a, $b, 0.25);
+// dump(compact('aByK'));
+
+		$bByK = self::getBezier3CurvePoint($s, $e, $a, $b, 0.75);
+
+// dd($aByK);
+// dump(compact('bByK'));
+		$t = 0.5;
+
+// $aByK['x'] = 10;
+
+		$lenX1 = ($b['x'] - $k['x']);
+		$lenX2 = ($k['x'] - $a['x']);
+
+dump("lenX1={$lenX1}, lenX2={$lenX2}");
+
+$t = 0.58;
+dump(compact('t'));
+
+		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
+		$ax = (($aByK['x'] - $param) / ((1 - $t) * $t * 2));
+		$param = ($s['y'] * pow(1 - $t, 2)) + ($k['y'] * pow($t, 2));
+		$ay = ($aByK['y'] - $param) / ((1 - $t) * $t * 2);
+
+$t = 0.42;
+		$param = ($k['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
+		$bx = (($bByK['x'] - $param) / ((1 - $t) * $t * 2));
+		$param = ($k['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
+		$by = ($bByK['y'] - $param) / ((1 - $t) * $t * 2);
+dump("new a = {$ax},{$ay}");
+
+
+
+		$kAdd = [
+			'x' => ($b['x'] * (pow(0.25, 2) * 3) * 0.75),
+			'y' => ($b['y'] * (pow(0.25, 2) * 3) * 0.75),
+		];
+// dump($inverseK);
+// dump($kAdd);
+
+
+
+
+		echo '<hr />逆算<br />';
+		echo '<hr />';
+
+		$sp = '<svg width="300" height="300">';
+		$sp .= " <path d='M{$s['x']},{$s['y']} C{$a['x']},{$a['y']} {$b['x']},{$b['y']} {$e['x']},{$e['y']}' fill='none' stroke='red'/>";
+		// $sp .= " <circle cx='{$aByK['x']}' cy='{$aByK['y']}' r='3' fill='green' />";
+		$sp .= " <circle cx='{$b['x']}' cy='{$b['y']}' r='3' fill='green' />";
+
+		// $a = [
+		// 	'x' => 4,
+		// 	'y' => 64,
+		// ];
+		// $sp .= " <path d='M{$s['x']},{$s['y']} Q{$ax},{$ay} {$k['x']},{$k['y']} Q{$bx},{$by} {$e['x']},{$e['y']}' fill='none' stroke='blue'/>";
+		$sp .= " <path d='M{$s['x']},{$s['y']} {$se['x']},{$se['y']} {$a['x']},{$a['y']} z' fill='none' stroke='skyblue'/>";
+		$sp .= " <path d='M{$mp1['x']},{$mp1['y']} {$a['x']},{$a['y']} ' fill='none' stroke='black'/>";
+
+		$target = [
+			'x' => 3,
+			'y' => 64,
+		];
+dump(compact('target'));
+		$sp .= " <circle cx='{$target['x']}' cy='{$target['y']}' r='3' fill='skyblue' />";
+
+		$sk = self::getMidPoint($s, $k);
+
+
+		////////////////////////////////////////
+		$sp .= " <path d='M {$s['x']},{$s['y']} {$k['x']},{$k['y']}' stroke='green' />";
+		$sp .= " <path d='M {$e['x']},{$e['y']} {$k['x']},{$k['y']}' stroke='green' />";
+		$sp .= " <circle cx='{$k['x']}' cy='{$k['y']}' r='3' fill='red' />";
+		$sp .= " <circle cx='{$aByK['x']}' cy='{$aByK['y']}' r='3' fill='gray' />";
+		$sp .= " <circle cx='{$bByK['x']}' cy='{$bByK['y']}' r='3' fill='gray' />";
+		// $sp .= " <circle cx='{$mp1['x']}' cy='{$mp1['y']}' r='3' fill='green' />";
+		$sp .= " <circle cx='{$sk['x']}' cy='{$sk['y']}' r='3' fill='blue' />";
+		// $sp .= " <path d='M {$sk['x']},{$sk['y']} {$a['x']},{$a['y']}' stroke='green' />";
+		////////////////////////////////////////
+
+		$sp .= '</svg>';
+		echo $sp;
+		echo '<hr />TEST<br />';
+
+
+		echo '** C to Q<br />';
+		$test = self::svgCtoQ($s, [$a, $b, $e]);
+dump(compact('test'));
+		$cl = [
+			'red',
+			'blue',
+		];
+		$sp2 = '<svg width="300" height="300">';
+		foreach ($test as $i => $t) {
+			$sp2 .= " <path d='M{$t[0]['x']},{$t[0]['y']} Q{$t[1]['x']},{$t[1]['y']} {$t[2]['x']},{$t[2]['y']}' fill='none' stroke='{$cl[$i]}'/>";
+		}
+		$sp2 .= '</svg>';
+		echo $sp2.'<br />';
+
+
+		echo '分解<br />';
+		$sp2 = '<svg width="300" height="300">';
+		$sp2 .= " <path d='M{$s['x']},{$s['y']} Q{$ax},{$ay} {$k['x']},{$k['y']}' fill='none' stroke='blue'/>";
+		$sp2 .= '</svg>';
+		echo "<hr />{$sp2}";
+
+		$sp2 = '<svg width="300" height="300">';
+		$sp2 .= " <path d='M{$k['x']},{$k['y']}  Q{$bx},{$by} {$e['x']},{$e['y']}' fill='none' stroke='blue'/>";
+		$sp2 .= '</svg>';
+		echo "{$sp2}<hr />";
+
+
+
+		// $mpoint = [
+		// 	'x' => 0 + ((100 - 0) / 2),
+		// 	'y' => 0 + ((100 - 100) / 2),
+		// ];
+
+
+
+		// $cntp1 = [
+		// 	'x' => $mpoint['x'] - (50 * 0.77),
+		// 	'y' => $mpoint['y'] + (100 * 0.77),
+		// ];
+		// $cntp2 = [
+		// 	'x' => $mpoint['x'] + (50 * 0.77),
+		// 	'y' => $mpoint['y'] + (100 * 0.77),
+		// ];
+		// dd($cntp2);
+		$sp .= '</svg>';
+
+	}
+
+	public static function testBezierCross()
+	{
+		echo '<hr /><h3>- testBezierCross() -</h3>';
+
+		$b = [
+			[
+				'path' => [
+					[
+						'x' => 1,
+						'y' => 180,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 100,
+						'y' => 0,
+						'isOnCurvePoint' => false,
+					],
+					[
+						'x' => 200,
+						'y' => 180,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => false,
+			],
+
+			[
+				'path' => [
+					[
+						'x' => 160,
+						'y' => 30,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 50,
+						'y' => 200,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => false,
+			]
+		];
+
+		echo self::testStrokeToSvg($b);
+
+
+		$base = $b[0]['path'];
+		dump($base);
+		$addition = $b[1]['path'];
+		dump($addition);
+
+		// $ma = [
+		// 	'x' => $addition[0]['x'] + (($addition[1]['x'] - $addition[0]['x']) / 2),
+		// 	'y' => $addition[0]['y'],
+		// ];
+
+
+		$p = self::getCrossPoint([$base[1], $base[2]], [$addition[0], $addition[1]]);
+		$p = self::getBezier2CrossPoint([$base[0], $base[1], $base[2]], [$addition[0], $addition[1]])[0];
+dump($p);
+
+
+		echo '<h2>曲線と直線の交点</h2>';
+		$s = '<svg width="500px" height="300px">';
+
+		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} Q {$base[1]['x']},{$base[1]['y']} {$base[2]['x']},{$base[2]['y']}' stroke='red' fill='none' />";
+		$s .= "<path d='M {$addition[0]['x']},{$addition[0]['y']} {$addition[1]['x']},{$addition[1]['y']}' stroke='blue' fill='none' />";
+
+		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} {$base[1]['x']},{$base[1]['y']} {$base[2]['x']},{$base[2]['y']}' stroke='#e0e0e0' fill='none' />";
+		if (!is_null($p)) {
+			$s .= "<circle cx='{$p['x']}' cy='{$p['y']}' r='3' fill='black' />";
+		}
+
+		$s .= '</svg>';
+		echo $s;
+
+		echo '<hr />';
+	}
+
+	protected static function getLineParams($v1, $v2)
+	{
+		$a = ($v2['y'] - $v1['y']);
+		$b = ($v2['x'] - $v1['x']);
+		return [
+			'a' => $a,
+			'b' => -$b,
+			'c' => ($v2['y'] * $b) - ($v2['x'] * $a),
+		];
+	}
+
+	protected static function getBezier2CrossPoint($bezir, $line)
+	{
+		$lp = self::getLineParams($line[0], $line[1]);
+		$a = $lp['a'];
+		$b = $lp['b'];
+		$c = $lp['c'];
+
+
+		$b0 = $bezir[0];
+		$b1 = $bezir[2];
+		$cp = $bezir[1];
+
+		$m = ($b * $b1['y']) + ($b * $b0['y']) + ($a * $b0['x']) + ($a * $b1['x']) - (2 * $b * $cp['y']) - (2 * $a * $cp['x']);
+		$n = -(2 * $b * $b0['y']) - (2 * $a * $b0['x']) + (2 * $b * $cp['y']) + (2 * $a * $cp['x']);
+		$l = ($b * $b0['y']) + ($a * $b0['x']) + $c;
+
+		$tList = [];
+		$d = ($n * $n) - (4 * $m * $l);
+		if ($d > 0) {
+			$d = sqrt($d);
+			$t0 = 0.5 * (-$n + $d) / $m;
+		    $t1 = 0.5 * (-$n - $d) / $m;
+
+			if (($t0 >= 0) && ($t1 <= 1.0)) {
+				$tList[] = $t0;
+			}
+			if(($t1 >= 0) && ($t1 <= 1.0)){
+				$tList[] = $t1;
+		    }
+		} else if ($d == 0) {
+			$t1 = 0.5 * -$n / $m;
+			if(($t1 >= 0) && ($t1 <= 1.0)){
+				$tList[] = $t1;
+		    }
+		}
+
+		$crossPointList = [];
+		foreach ($tList as $t) {
+echo "{$t}<br />";
+			$crossPointList[] = self::getBezier2CurvePoint($b0, $b1, $cp, $t);
+		}
+
+// dd($crossPointList);
+
+		return $crossPointList;
+	}
+
+
 	public static function testOutlineSelfCross()
 	{
-		echo '<hr />アウトライン @o test<br />';
+		echo '<hr />アウトライン @self-cross test<br />';
 		$s = '<svg>';
 		$s .= ' <path d="M50,1 50,90 10,90 10,50 90,50" fill="none" stroke="black"/>';
 		$s .= '</svg>';
@@ -739,6 +906,114 @@ echo 'SVG<br />'.$s.'<br />';
 	}
 
 
+	public static function testOutlineMaya()
+	{
+		echo '<hr />アウトライン @maya <br />';
+
+		$svgList = [];
+
+		$s = '<svg>';
+		$s .= '<path d="M57,6 v63.0 c0,15.188 -5.467,20 -18,20 c-11.587,0 -19,-5.989 -19,-15 c0,-8.021 6.047,-13 19,-13 c9.891,0 24.002,6.69 45,24" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="84" x2="16" y1="40" y2="40" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="87" x2="13" y1="20" y2="20" />';
+		$s .= '</svg>';
+		$svgList[] = $s;
+
+		$s = '<svg>';
+		$s .= '<path d="M48,91 c-6.987,-26.081 -14.347,-51.367 -23,-78" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M7,46 c48.111,-18.469 57.416,-21 66,-21 c11.1,0 18,6.727 18,18 c0,11.315 -7.242,18 -19,18 c-4.578,0 -8.745,-0.591 -14,-2" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M63,44 c-2.557,-11.075 -5.676,-23.595 -9,-36" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
+		$svgList[] = $s;
+
+
+echo $s.'<br />';
+
+		$resultList = [];
+
+		foreach ($svgList as $s) {
+
+
+			$stroke = self::parseStrokeSvg($s);
+			echo self::testStrokeToSvg($stroke);
+
+
+			foreach ($stroke as &$l) {
+				foreach ($l['path'] as &$point) {
+					if ($point['y'] > 60.0) {
+						$point['y'] += 80.0;
+					}
+					$point['y'] -= 50;
+					unset($point);
+				}
+			}
+			unset($l);
+
+			$outline = self::getOutlineFromStroke($stroke);
+
+
+			echo self::testOutlineToSvg($outline);
+			// dd($stroke);
+
+	// dd($outline);
+			$o = [];
+			foreach ($outline as $contour) {
+				$c = [];
+				foreach ($contour as $i => $point) {
+					$flags = 0;
+					if ($point['isOnCurvePoint']) {
+						$flags |= 0x01;
+					}
+					if ($i == 0) {
+						$flags |= 0x01;
+					}
+	// $flags = 0x01;
+
+					$c[] = [
+						'x' => $point['x'] * 10,
+						'y' => 500 - $point['y'] * 10,
+						'flags' => $flags,
+					];
+				}
+				if (count($c) > 0) {
+					$o[] = $c;
+				}
+			}
+
+			echo '<h1>結果</h1>';
+
+
+			$hm = new TtfHorizontalMetrix([
+				'advance_width' => 1200,
+				'lsb' => 20,
+			]);
+
+			$g = new TtfGlyph([
+				'glyph_index' => 1,
+				'number_of_contours' => count($o),
+				'x_min' => 0,
+				'y_min' => 0,
+				'x_max' => 300,
+				'y_max' => 300,
+				'coordinates' => $o,
+				'instructions' => [],
+			]);
+
+// dd($g->coordinates);
+
+			$s = new GlyphSvg($g, $hm);
+			echo '<h1>GlyphSvg</h1>';
+
+			$resultList[] = $s->getSvg();
+		}
+
+		foreach ($resultList as $r) {
+			echo $r;
+		}
+	}
+
+
+
 	public static function testOutlineMa()
 	{
 		echo '<hr />アウトライン @ma <br />';
@@ -812,7 +1087,6 @@ echo $s.'<br />';
 
 	}
 
-
 	protected static function testOutlineToSvg($outline, $isPointEnabled = false)
 	{
 		if (empty($outline)) {
@@ -866,6 +1140,8 @@ echo $s.'<br />';
 					$color = 'black';
 					if ($index == 0) {
 						$color = 'red';
+					} else if (!$l['isOnCurvePoint']) {
+						$color = 'gray';
 					}
 					$sc .= "<circle cx='{$l['x']}' cy='{$l['y']}' r='2' fill='" .$color. "'/>";
 				}
@@ -912,10 +1188,10 @@ echo $s.'<br />';
 
 		// $t = 0.5;
 
-		$k = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.51);
+		$k = self::getBezier3CurvePoint($s, $e, $a, $b, 0.51);
 
-		$aByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.25);
-		$bByK = self::getBezierOnCurvePoint($s, $e, $a, $b, 0.75);
+		$aByK = self::getBezier3CurvePoint($s, $e, $a, $b, 0.25);
+		$bByK = self::getBezier3CurvePoint($s, $e, $a, $b, 0.75);
 
 		$t = 0.51;
 		$param = ($s['x'] * pow(1 - $t, 2)) + ($k['x'] * pow($t, 2));
@@ -969,7 +1245,15 @@ echo $s.'<br />';
 		];
 	}
 
-	protected static function getBezierOnCurvePoint($s, $e, $a, $b, $t)
+	protected static function getBezier2CurvePoint($s, $e, $a, $t)
+	{
+		return [
+			'x' => ($s['x'] * pow(1 - $t, 2)) + ($a['x'] * ((1 - $t) * 2) * $t) + ($e['x'] * pow($t, 2)),
+			'y' => ($s['y'] * pow(1 - $t, 2)) + ($a['y'] * ((1 - $t) * 2) * $t) + ($e['y'] * pow($t, 2)),
+		];
+	}
+
+	protected static function getBezier3CurvePoint($s, $e, $a, $b, $t)
 	{
 		return [
 			'x' => ($s['x'] * pow(1 - $t, 3)) + ($a['x'] * (pow(1 - $t, 2) * 3) * $t) + ($b['x'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['x'] * pow($t, 3)),
@@ -1043,7 +1327,7 @@ echo $s.'<br />';
 		$d = [];
 		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
 			$pathMatches = [];
-			preg_match_all('/([MmCcVv]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
+			preg_match_all('/([MmCcVvHh]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
 
 			$spline = [];
 			$offCurveCount = 0;
@@ -1077,6 +1361,15 @@ echo $s.'<br />';
 					case 'V':
 						$x = $prevX;
 						$y = (float)$pathMatches[3][$index];
+						break;
+					case 'h':
+						$y = $prevY;
+						$x = (float)$pathMatches[3][$index];
+						$x += $prevY;
+						break;
+					case 'H':
+						$y = $prevY;
+						$x = (float)$pathMatches[3][$index];
 						break;
 
 					default:
@@ -1206,23 +1499,21 @@ echo $s.'<br />';
 
 	protected static function getOutlineFromStroke($stroke)
 	{
-
-echo '<h1>getOutlineFromStroke</h1>';
+// echo '<h1>getOutlineFromStroke</h1>';
 		$outline = [];
 
 		$shapeList = self::strokeToShapeList($stroke);
 
 echo '<hr />合成前<br />';
-dump($shapeList);
 echo self::testOutlineToSvg($shapeList);
-
+dump($shapeList);
 
 		$slicedShapeOutlineList = self::getNonCrossingOutline($shapeList);
-echo '<hr />sliced<br />';
-echo self::testOutlineToSvg($slicedShapeOutlineList);
+// echo '<hr />sliced<br />';
+// echo self::testOutlineToSvg($slicedShapeOutlineList);
 
 
-echo '<hr />時計と反時計を分ける<br />';
+// echo '<hr />時計と反時計を分ける<br />';
 		$clockwiseShapeList = [];
 		$anticlockwiseShapeList = [];
 		foreach ($slicedShapeOutlineList as $shape) {
@@ -1234,14 +1525,15 @@ echo '<hr />時計と反時計を分ける<br />';
 			}
 		}
 
-		echo self::testOutlineToSvg($clockwiseShapeList);
-		echo self::testOutlineToSvg($anticlockwiseShapeList);
+		// echo self::testOutlineToSvg($clockwiseShapeList);
+		// echo self::testOutlineToSvg($anticlockwiseShapeList);
 
 		//////
 
-dump(compact('clockwiseShapeList'));
+// dump(compact('clockwiseShapeList'));
 
-		echo '<hr />clockとanticlockの合成<br />';
+// echo '<hr />clockとanticlockの合成<br />';
+
 		// base / addition の shapeが XOR関係になるようにする
 		$_nextClockwise = [];
 		foreach ($clockwiseShapeList as $base) {
@@ -1288,11 +1580,12 @@ dump(compact('clockwiseShapeList'));
 		// }
 		// $clockwiseShapeList = $a;
 
-		echo '<h1>同方向の合成</h1>';
-echo self::testOutlineToSvg($clockwiseShapeList);
-echo self::testOutlineToSvg($anticlockwiseShapeList);
-echo '<hr />';
+// echo '<h1>同方向の合成</h1>';
+// echo self::testOutlineToSvg($clockwiseShapeList);
+// echo self::testOutlineToSvg($anticlockwiseShapeList);
+// echo '<hr />';
 
+		// 時計回りシェイプの合成
 		$_next = [];
 		while (!empty($clockwiseShapeList)) {
 			$c = array_shift($clockwiseShapeList);
@@ -1320,17 +1613,17 @@ echo '<hr />';
 			}
 			$_next = $_nextNext;
 
-echo '<hr />'.self::testOutlineToSvg($_next).'<hr />';
+// echo '<hr />'.self::testOutlineToSvg($_next).'<hr />';
 
 		}
 		$clockwiseShapeList = $_next;
 
-		echo self::testOutlineToSvg($clockwiseShapeList).'<hr />';
+// echo self::testOutlineToSvg($clockwiseShapeList).'<hr />';
 
 
 
 		$outline = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
-		echo self::testOutlineToSvg($outline);
+// echo self::testOutlineToSvg($outline);
 
 		$outline = self::removeLostedShape($outline);
 		return $outline;
@@ -1526,8 +1819,8 @@ die;
 		// $outline = $slicedShapeOutlineList[0];
 
 		$ouline = [];
-		foreach ($slicedShapeOutlineList as $i => $addtionOutline) {
-			foreach ($addtionOutline as $s) {
+		foreach ($slicedShapeOutlineList as $i => $additionOutline) {
+			foreach ($additionOutline as $s) {
 
 
 				$isComposed = false;
@@ -1547,20 +1840,20 @@ die;
 
 			// if (0 != $i) {
 			// 	foreach ($outline as $shape) {
-			// 		// $composed = self::composeShapes($shape, $addtionShape);
+			// 		// $composed = self::composeShapes($shape, $additionShape);
 
 // echo '<hr /><hr />もとの要素:<br />';
 // echo self::testOutlineToSvg([$shape]).'<br />';
 // echo '<hr />';
 //
 // echo '加算:<br />';
-// echo self::testOutlineToSvg($addtionOutline).'<br />';
+// echo self::testOutlineToSvg($additionOutline).'<br />';
 
 // 					$c = [];
 // 					$isComposed = false;
-// 					foreach ($addtionOutline as $ai => $addtionShape) {
+// 					foreach ($additionOutline as $ai => $additionShape) {
 // 						if (!$isComposed) {
-// 							$composed = self::composeShapes($shape, $addtionShape);
+// 							$composed = self::composeShapes($shape, $additionShape);
 // // dump($composed);
 // 							if (!is_null($composed)) {
 // 								$c = array_merge($c, $composed);
@@ -1570,7 +1863,7 @@ die;
 // 							}
 // 						}
 // 						if (!$isComposed) {
-// 							$c[] = $addtionShape;
+// 							$c[] = $additionShape;
 // 						}
 // 					}
 				// 	$outline[] = $shape;
@@ -2171,21 +2464,19 @@ echo '<li>composed.. <br />'.self::testOutlineToSvg($composed).'</li>';
 	public static function composeShapes($base, $addition)
 	{
 
-echo '<h2>composeShapes</h2>';
-echo '引数： $base<br />';
-echo self::testOutlineToSvg([$base]).'<br />';
-echo '引数： $addition<br />';
-echo self::testOutlineToSvg([$addition]).'<br />';
-echo '<hr />';
-
-
+// echo '<h2>composeShapes</h2>';
+// echo '引数： $base<br />';
+// echo self::testOutlineToSvg([$base]).'<br />';
+// echo '引数： $addition<br />';
+// echo self::testOutlineToSvg([$addition]).'<br />';
+// echo '<hr />';
 
 
 		$composedList = [];
 		$baseCount = count($base);
 		$isPointPassedList = array_fill(0, $baseCount, false);
 
-		$addtionCount = count($addition);
+		$additionCount = count($addition);
 
 
 		// TODO: 結果が複数シェイプ！..に対応
@@ -2223,11 +2514,11 @@ echo '<hr />';
 		}
 
 		if (empty($composedList)) {
-echo "unconmposed............<hr />";
+// echo "unconmposed............<hr />";
 			return null;
 		}
 
-echo self::testOutlineToSvg($composedList).'<br />';
+// echo self::testOutlineToSvg($composedList).'<br />';
 
 
 return $composedList;
@@ -2239,19 +2530,19 @@ return $composedList;
 
 
 		$isAddtionPassedList = [];
-		$addtionCrossedToList = [];
+		$additionCrossedToList = [];
 		$crossedAddtion = [];
 echo '<hr />';
 		foreach ($addition as $i => $a) {
 			$crossedAddtion[] = $a;
 			$isAddtionPassedList[] = true;
-			$addtionCrossedToList[] = null;
+			$additionCrossedToList[] = null;
 			if (array_key_exists($i, $infoAddtion)) {
 				foreach ($infoAddtion[$i] as $info) {
-echo "addtion after{$i}: {$info['point']['x']}, {$info['point']['y']}<br />";
+echo "addition after{$i}: {$info['point']['x']}, {$info['point']['y']}<br />";
 					$crossedAddtion[] = $info['point'];
 					$isAddtionPassedList[] = false;
-					$addtionCrossedToList[] = null;  // TODO: index!
+					$additionCrossedToList[] = null;  // TODO: index!
 				}
 			}
 		}
@@ -2333,7 +2624,7 @@ echo '<hr />';
 		$baseCount = count($base);
 		$isPointPassedList = array_fill(0, $baseCount, false);
 
-		$addtionCount = count($addition);
+		$additionCount = count($addition);
 
 
 		// TODO: 結果が複数シェイプ！..に対応
@@ -2372,13 +2663,13 @@ return $composedList;
 
 	}
 
-	protected static function comcom($base, $addtion)
+	protected static function comcom($base, $addition)
 	{
 echo '<h2>comcom</h2>';
 echo self::testOutlineToSvg([$base]);
-echo self::testOutlineToSvg([$addtion]);
+echo self::testOutlineToSvg([$addition]);
 echo '<hr />';
-		$corssedShapes = self::insertCrossPointToShape($base, $addtion);
+		$corssedShapes = self::insertCrossPointToShape($base, $addition);
 // dump($corssedShapes);
 
 		$base = $corssedShapes['base'];
@@ -2430,7 +2721,7 @@ dump(compact('baseCrossInfo', 'additionCrossInfo'));
 						$additionCount = count($addition);
 // echo '<ul>';
 						for ($j = 0; $j < $additionCount; $j++) {
-// echo "<li>addtion index: {$aIndex}</li>";
+// echo "<li>addition index: {$aIndex}</li>";
 							$additionPoint = $addition[$aIndex];
 							$additionPointInfo = &$additionCrossInfo[$aIndex];
 
@@ -2447,7 +2738,7 @@ if ($additionPointInfo['idCross'] == $idCrossStartBase) {
 								}
 
 
-// echo "<li>addtion index:{$aIndex} -> base index:{$index}</li>";
+// echo "<li>addition index:{$aIndex} -> base index:{$index}</li>";
 								$basePointInfo = &$baseCrossInfo[$index];
 								$basePointInfo['count']--;
 // echo '</ul>';
@@ -2489,15 +2780,15 @@ echo self::testOutlineToSvg($composed);
 		return $composed;
 	}
 
-	protected static function insertCrossPointToShape($base, $addtion)
+	protected static function insertCrossPointToShape($base, $addition)
 	{
 // echo '<h2>insertCrossPointToShape</h2>';
 // echo self::testOutlineToSvg([$base]);
-// echo self::testOutlineToSvg([$addtion]);
+// echo self::testOutlineToSvg([$addition]);
 // echo '<hr />';
 
 		$baseCount = count($base);
-		$addtionCount = count($addtion);
+		$additionCount = count($addition);
 
 		$crossPointList = [];
 
@@ -2510,7 +2801,7 @@ echo self::testOutlineToSvg($composed);
 		}
 
 		$additionPointList = [];
-		foreach ($addtion as $point) {
+		foreach ($addition as $point) {
 			$additionPointList[] = [
 				'point' => $point,
 				'crossedList' => [],
@@ -2524,10 +2815,10 @@ echo self::testOutlineToSvg($composed);
 			];
 
 			$baseCrossPointList = &$basePointList[$index]['crossedList'];
-			for ($indexAddition = 0; $indexAddition < $addtionCount; $indexAddition++) {
+			for ($indexAddition = 0; $indexAddition < $additionCount; $indexAddition++) {
 				$vAddition = [
 					$additionPointList[$indexAddition]['point'],
-					$additionPointList[($indexAddition + 1) % $addtionCount]['point'],
+					$additionPointList[($indexAddition + 1) % $additionCount]['point'],
 				];
 
 				$additionCrossPointList = &$additionPointList[$indexAddition]['crossedList'];
@@ -2740,9 +3031,9 @@ echo self::testOutlineToSvg($composed);
 
 	public static function compose($base, $addition)
 	{
-echo '<hr /><h2>compose</h2>';
-echo '$base<br />'.self::testOutlineToSvg([$base]).'<br />';
-echo '$addition<br />'.self::testOutlineToSvg([$addition]).'<br />';
+// echo '<hr /><h2>compose</h2>';
+// echo '$base<br />'.self::testOutlineToSvg([$base]).'<br />';
+// echo '$addition<br />'.self::testOutlineToSvg([$addition]).'<br />';
 
 		$composed = [];
 		$isComposed = false;
@@ -2755,14 +3046,14 @@ echo '$addition<br />'.self::testOutlineToSvg([$addition]).'<br />';
 		}
 
 		if (!$isComposed) {
-echo 'unconmposed...<br />';
+// echo 'unconmposed...<br />';
 			return null;
 		}
-echo self::testOutlineToSvg([$composed]).'<br />';
+// echo self::testOutlineToSvg([$composed]).'<br />';
 		return $composed;
 	}
 
-	protected static function addCoordinateToContour(&$coordinateList, &$index, $base, $addition, &$addtionInfo)
+	protected static function addCoordinateToContour(&$coordinateList, &$index, $base, $addition, &$additionInfo)
 	{
 
 // echo '<h3>addCoordinateToContour</h3>';
@@ -2797,7 +3088,7 @@ echo self::testOutlineToSvg([$composed]).'<br />';
 			'index' => $index,
 			'count' => null,
 		];
-		$addtionInfo[$startPointIndex][] = $startPointInfo;
+		$additionInfo[$startPointIndex][] = $startPointInfo;
 
 
 		$count = count($addition);
@@ -2819,6 +3110,7 @@ echo self::testOutlineToSvg([$composed]).'<br />';
 					'x' => $crossPoint['point']['x'],
 					'y' => $crossPoint['point']['y'],
 					'isOnCurvePoint' => true,
+					'isOnCurvePoint' => $p['isOnCurvePoint'],
 				];
 				$coordinateList[] = $p2;
 				$index = $crossPoint['index'];
@@ -2830,7 +3122,7 @@ echo self::testOutlineToSvg([$composed]).'<br />';
 				}
 
 				// $startPointInfo['count'] = 100;
-				$addtionInfo[$endPointIndex][] = [
+				$additionInfo[$endPointIndex][] = [
 					'point' => $p2,
 					'index' => $index,
 					// 'count' => -1,
@@ -2843,7 +3135,7 @@ echo self::testOutlineToSvg([$composed]).'<br />';
 			$additionIndex  = ($additionIndex + 1) % $count;
 		}
 
-		dump(compact('addtionInfo'));
+		// dump(compact('additionInfo'));
 		return true;
 	}
 
@@ -2867,12 +3159,12 @@ echo self::testOutlineToSvg([$composed]).'<br />';
 			'y' => $p['y'],
 			'isOnCurvePoint' => true,
 		];
-		$addtionOffset = $crossInfo['index'] + 1;
+		$additionOffset = $crossInfo['index'] + 1;
 
 		$count = count($other);
 		$prevPoint = $crossInfo['point'];
 		for ($i = 0; $i <= $count; $i++) {
-			$s = $other[($i + $addtionOffset) % $count];
+			$s = $other[($i + $additionOffset) % $count];
 			$ignoreIndex = null;
 			if ($i == 0) {
 				$ignoreIndex = $index;

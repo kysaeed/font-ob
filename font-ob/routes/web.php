@@ -23,6 +23,7 @@ Route::group(['prefix' => 'home', 'middleware' => ['auth']], function() {
 });
 
 Route::group(['prefix' => '-'], function() {
+    Route::get('laod-stroke', 'TestController@loadStroke')->name('load_stroke');
 
     Route::get('test', 'TestController@test')->name('test');
 
