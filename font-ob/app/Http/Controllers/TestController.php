@@ -35,9 +35,11 @@ class TestController extends Controller
 
 	public function test(Request $request)
     {
+		self::testBezierSlice();
+
 		self::testBezierCross();
 
-		self::testBezier();
+		self::testBezierCtoQ();
 
 		// self::testOutlineMaya();
 
@@ -53,6 +55,7 @@ class TestController extends Controller
 
 
 		dd('OK');
+
 		//
 		// $glyph = new TtfGlyph([
 		// 	'glyph_index' => 0,
@@ -381,7 +384,7 @@ dd('OK');
 		return 'hello !';
     }
 
-	public static function testBezier()
+	public static function testBezierCtoQ()
 	{
 		echo '<hr /><h1> 2 -> 3</h1><br />';
 		$sp = '<svg width="100" height="100">';
@@ -653,6 +656,107 @@ dump($p);
 		echo '<hr />';
 	}
 
+	public static function testBezierSlice()
+	{
+		echo '<hr /><h3>- testBezierSlice() -</h3>';
+
+		$b = [
+			[
+				'path' => [
+					[
+						'x' => 1,
+						'y' => 180,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 100,
+						'y' => 0,
+						'isOnCurvePoint' => false,
+					],
+					[
+						'x' => 200,
+						'y' => 180,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => false,
+			],
+
+			[
+				'path' => [
+					[
+						'x' => 50,
+						'y' => 200,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 160,
+						'y' => 30,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => false,
+			]
+		];
+
+		echo self::testStrokeToSvg($b);
+
+
+		$base = $b[0]['path'];
+		dump($base);
+		$addition = $b[1]['path'];
+		dump($addition);
+
+		// $ma = [
+		// 	'x' => $addition[0]['x'] + (($addition[1]['x'] - $addition[0]['x']) / 2),
+		// 	'y' => $addition[0]['y'],
+		// ];
+
+
+		$p = self::getBezier2CrossPoint([$base[0], $base[1], $base[2]], [$addition[0], $addition[1]]);
+
+
+dump($p);
+
+
+
+
+		echo '<h2>元</h2>';
+		$s = '<svg width="500px" height="300px">';
+		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} Q {$base[1]['x']},{$base[1]['y']} {$base[2]['x']},{$base[2]['y']}' stroke='red' fill='none' />";
+		$s .= "<path d='M {$addition[0]['x']},{$addition[0]['y']} {$addition[1]['x']},{$addition[1]['y']}' stroke='blue' fill='none' />";
+
+		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} {$base[1]['x']},{$base[1]['y']} {$base[2]['x']},{$base[2]['y']}' stroke='#e0e0e0' fill='none' />";
+		// if (!empty($p)) {
+		// 	$s .= "<circle cx='{$p[0]['x']}' cy='{$p[0]['y']}' r='3' fill='black' />";
+		// }
+
+		$s .= '</svg>';
+		echo $s;
+
+		$sliced = self::sliceBezier2ByLine([$base[0], $base[1], $base[2]], [$addition[0], $addition[1]]);
+		$base = $sliced['bezier'];
+		$addition = $sliced['line'];
+		$p = $sliced['p'];
+
+		echo '<h2>Slice</h2>';
+		$s = '<svg width="500px" height="300px">';
+		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} Q {$base[1]['x']},{$base[1]['y']} {$base[2]['x']},{$base[2]['y']}' stroke='red' fill='none' />";
+		$s .= "<path d='M {$addition[0]['x']},{$addition[0]['y']} {$addition[1]['x']},{$addition[1]['y']}' stroke='blue' fill='none' />";
+
+		$s .= "<path d='M {$base[0]['x']},{$base[0]['y']} {$p['x']},{$p['y']} {$base[2]['x']},{$base[2]['y']}' stroke='#e0e0e0' fill='none' />";
+
+		$s .= '</svg>';
+		echo $s;
+
+
+		echo '<hr />';
+
+
+
+
+	}
+
 	protected static function getLineParams($v1, $v2)
 	{
 		$a = ($v2['y'] - $v1['y']);
@@ -661,6 +765,83 @@ dump($p);
 			'a' => $a,
 			'b' => -$b,
 			'c' => ($v2['y'] * $b) - ($v2['x'] * $a),
+		];
+	}
+
+	protected static function sliceBezier2ByLine($bezir, $line)
+	{
+		$lp = self::getLineParams($line[0], $line[1]);
+		$a = $lp['a'];
+		$b = $lp['b'];
+		$c = $lp['c'];
+
+		$b0 = $bezir[0];
+		$b1 = $bezir[2];
+		$cp = $bezir[1];
+
+		$m = ($b * $b1['y']) + ($b * $b0['y']) + ($a * $b0['x']) + ($a * $b1['x']) - (2 * $b * $cp['y']) - (2 * $a * $cp['x']);
+		$n = -(2 * $b * $b0['y']) - (2 * $a * $b0['x']) + (2 * $b * $cp['y']) + (2 * $a * $cp['x']);
+		$l = ($b * $b0['y']) + ($a * $b0['x']) + $c;
+
+		$tList = [];
+		$d = ($n * $n) - (4 * $m * $l);
+
+		if ($d > 0) {
+			$d = sqrt($d);
+			$t0 = 0.5 * (-$n + $d) / $m;
+		    $t1 = 0.5 * (-$n - $d) / $m;
+
+			if (($t0 >= 0) && ($t1 <= 1.0)) {
+				$tList[] = $t0;
+			}
+			if(($t1 >= 0) && ($t1 <= 1.0)){
+				$tList[] = $t1;
+		    }
+		} else if ($d == 0) {
+			$t1 = 0.5 * -$n / $m;
+			if(($t1 >= 0) && ($t1 <= 1.0)){
+				$tList[] = $t1;
+		    }
+		}
+
+		$crossPoint = null;
+		$crossLength = 0;
+		$crossT = 0;
+		foreach ($tList as $t) {
+			$p = self::getBezier2CurvePoint($b0, $b1, $cp, $t);
+			$length = (($p['x'] - $line[0]['x']) ** 2) + (($p['y'] - $line[0]['y']) ** 2);
+
+			if (is_null($crossPoint)) {
+				$crossPoint = $p;
+				$crossLength = $length;
+				$crossT = $t;
+			} else {
+				if ($crossLength > $length) {
+					$crossPoint = $p;
+					$crossLength = $length;
+					$crossT = $t;
+				}
+			}
+		}
+
+		$p2 = self::getBezier2CurvePoint($b0, $b1, $cp, $crossT * 0.5);
+dump(compact('p2'));
+		$p3 = self::getBezier2ControlPoint($b0, $crossPoint, $p2, 0.5);
+
+		// TODO: $p2を通る曲線を逆算
+
+
+		return [
+			'bezier' => [
+				$bezir[0],
+				$p3,
+				$crossPoint,
+			],
+			'line' => [
+				$crossPoint,
+				$line[1],
+			],
+			'p' => $p3,
 		];
 	}
 
@@ -1177,6 +1358,20 @@ echo $s.'<br />';
 		}
 		$s .= $sc.'</svg>';
 		return $s;
+	}
+
+	protected static function getBezier2ControlPoint($s, $e, $onCurve, $t)
+	{
+		$paramX = ($s['x'] * pow(1 - $t, 2)) + ($e['x'] * pow($t, 2));
+		$paramY = ($s['y'] * pow(1 - $t, 2)) + ($e['y'] * pow($t, 2));
+
+		// $ax = (($aByK['x'] - $paramX) / ((1 - $t) * $t * 2));
+		// $ay = ($aByK['y'] - $paramY) / ((1 - $t) * $t * 2);
+
+		return [
+			'x' => ($onCurve['x'] - $paramX) / ((1 - $t) * $t * 2),
+			'y' => ($onCurve['y'] - $paramY) / ((1 - $t) * $t * 2),
+		];
 	}
 
 	protected static function svgCtoQ($s, $cParams)
