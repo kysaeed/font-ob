@@ -35,12 +35,17 @@ class TestController extends Controller
 
 	public function test(Request $request)
     {
+		self::testOutlineCurveSelfCross();
+
+		self::testBezierSlice();
+
 		self::testCurveOutlinePenetrate();
+
+die;
 
 		self::testParallelLine();
 
 
-		// self::testBezierSlice();
 
 		// self::testBezierCross();
 		//
@@ -49,10 +54,10 @@ class TestController extends Controller
 		// self::testOutlineMaya();
 
 
-		// self::testOutlineSelfCross();
+		self::testOutlineSelfCross();
 
-		// self::testOutlineMa();
-		// self::testOutlineA();
+		self::testOutlineMa();
+		self::testOutlineA();
 
 		// self::testOutlinePenetrate();
 
@@ -806,7 +811,7 @@ dump($p);
 		$p = self::getBezier2CrossPoint([$base[0], $base[1], $base[2]], [$addition[0], $addition[1]]);
 
 
-dump($p);
+dump(compact('p'));
 
 
 
@@ -894,6 +899,10 @@ dump($p);
 		    }
 		}
 
+		if (empty($tList)) {
+			return null;
+		}
+
 		$crossPoint = null;
 		$crossLength = 0;
 		$crossT = 0;
@@ -915,7 +924,7 @@ dump($p);
 		}
 
 		$p2 = self::getBezier2CurvePoint($b0, $b1, $cp, $crossT * 0.5);
-dump(compact('p2'));
+// dump(compact('p2'));
 		$p3 = self::getBezier2ControlPoint($b0, $crossPoint, $p2, 0.5);
 
 		// TODO: $p2を通る曲線を逆算
@@ -944,8 +953,8 @@ dump(compact('p2'));
 
 
 		$b0 = $bezir[0];
-		$b1 = $bezir[2];
 		$cp = $bezir[1];
+		$b1 = $bezir[2];
 
 		$m = ($b * $b1['y']) + ($b * $b0['y']) + ($a * $b0['x']) + ($a * $b1['x']) - (2 * $b * $cp['y']) - (2 * $a * $cp['x']);
 		$n = -(2 * $b * $b0['y']) - (2 * $a * $b0['x']) + (2 * $b * $cp['y']) + (2 * $a * $cp['x']);
@@ -953,35 +962,99 @@ dump(compact('p2'));
 
 		$tList = [];
 		$d = ($n * $n) - (4 * $m * $l);
-		if ($d > 0) {
-			$d = sqrt($d);
-			$t0 = 0.5 * (-$n + $d) / $m;
-		    $t1 = 0.5 * (-$n - $d) / $m;
+		if (($m != 0)) {
+			if ($d > 0) {
+				$d = sqrt($d);
+				$t0 = 0.5 * (-$n + $d) / $m;
+			    $t1 = 0.5 * (-$n - $d) / $m;
 
-			if (($t0 >= 0) && ($t1 <= 1.0)) {
-				$tList[] = $t0;
+				if (($t0 >= 0) && ($t1 <= 1.0)) {
+					$tList[] = $t0;
+				}
+				if(($t1 >= 0) && ($t1 <= 1.0)){
+					$tList[] = $t1;
+			    }
+			} else if ($d == 0) {
+				$t1 = 0.5 * -$n / $m;
+				if(($t1 >= 0) && ($t1 <= 1.0)){
+					$tList[] = $t1;
+			    }
 			}
-			if(($t1 >= 0) && ($t1 <= 1.0)){
-				$tList[] = $t1;
-		    }
-		} else if ($d == 0) {
-			$t1 = 0.5 * -$n / $m;
-			if(($t1 >= 0) && ($t1 <= 1.0)){
-				$tList[] = $t1;
-		    }
+		}
+
+		if (empty($tList)) {
+			return null;
 		}
 
 		$crossPointList = [];
 		foreach ($tList as $t) {
-echo "{$t}<br />";
-			$crossPointList[] = self::getBezier2CurvePoint($b0, $b1, $cp, $t);
+// echo "{$t}<br />";
+			$point = self::getBezier2CurvePoint($b0, $b1, $cp, $t);
+			$length = self::getLineLength($line ,$point);
+
+			if (($length < 0.0) || ($length > 1.0)) {
+				;
+			} else {
+echo "len: {$length}<br />";
+				$crossPointList[] = [
+					'point' => $point,
+					'bezierLength' => $t,
+					'length' => $length,
+				];
+			}
 		}
 
-// dd($crossPointList);
+		// dd($crossPointList);
+
+
+
 
 		return $crossPointList;
 	}
 
+	protected static function getLineLength($line, $point)
+	{
+		$v = [
+			'x' => (float)($line[1]['x'] - $line[0]['x']),
+			'y' => (float)($line[1]['x'] - $line[0]['y']),
+		];
+
+		$p = [
+			'x' => (float)($point['x'] - $line[0]['x']),
+			'y' => (float)($point['x'] - $line[0]['y']),
+		];
+
+		if ($v['x'] != 0) {
+			return ($p['x'] / $v['x']);
+		}
+		if ($v['y'] != 0) {
+			return ($p['y'] / $v['y']);
+		}
+
+		return 0;
+	}
+
+	public static function testOutlineCurveSelfCross()
+	{
+		echo '<hr /><h1>アウトライン @self-cross-curve test</h1>';
+		$s = '<svg>';
+		$s .= ' <path d="M78,6 50,90 10,90 10,50 Q50,0 90,50" fill="none" stroke="black"/>';
+		$s .= '</svg>';
+
+		echo 'SVG<br />'.$s.'<br />';
+
+		$stroke = self::parseStrokeSvg($s);
+		echo self::testStrokeToSvg($stroke);
+		$outline = self::getOutlineFromStroke($stroke);
+
+		// foreach ($outline as $s) {
+		// 	echo self::testOutlineToSvg([$s]);
+		// }
+
+		echo self::testOutlineToSvg($outline);
+
+
+	}
 
 	public static function testOutlineSelfCross()
 	{
@@ -1183,7 +1256,7 @@ echo 'SVG<br />'.$s.'<br />';
 					[
 						'x' => 65,
 						'y' => 100,
-						'isOnCurvePoint' => false,
+						'isOnCurvePoint' => true,
 					],
 					[
 						'x' => 30,
@@ -1193,7 +1266,7 @@ echo 'SVG<br />'.$s.'<br />';
 					[
 						'x' => 65,
 						'y' => 30,
-						'isOnCurvePoint' => false,
+						'isOnCurvePoint' => true,
 					],
 					[
 						'x' => 100,
@@ -1222,6 +1295,9 @@ echo 'SVG<br />'.$s.'<br />';
 			],
 
 		];
+
+		echo self::testStrokeToSvg($stroke);
+		echo '<br />';
 
 
 		$outline = self::getOutlineFromStroke($stroke);
@@ -1502,10 +1578,10 @@ echo $s.'<br />';
 			$cCount = 0;
 			foreach ($line as $index => $l) {
 				if (!$l['isOnCurvePoint']) {
-					// if ($cCount == 0) {
-					// 	$s .= "Q";
-					// 	$cCount = 2;
-					// }
+					if ($cCount == 0) {
+						$s .= "Q";
+						$cCount = 2;
+					}
 				} else {
 					if ($index != 0) {
 						if ($cCount == 0) {
@@ -1734,7 +1810,7 @@ echo $s.'<br />';
 		$d = [];
 		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
 			$pathMatches = [];
-			preg_match_all('/([MmCcVvHh]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
+			preg_match_all('/([MmCcQqVvHh]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
 
 			$spline = [];
 			$offCurveCount = 0;
@@ -1756,6 +1832,18 @@ echo $s.'<br />';
 				if ($pathMatches[1][$index] == 'C') {
 					$isOnCurvePoint = false;
 					$offCurveCount = 3;
+					$isRelativePosition = false;
+				}
+
+				if ($pathMatches[1][$index] == 'q') {
+					$isOnCurvePoint = false;
+					$offCurveCount = 2;
+					$isRelativePosition = true;
+				}
+
+				if ($pathMatches[1][$index] == 'Q') {
+					$isOnCurvePoint = false;
+					$offCurveCount = 2;
 					$isRelativePosition = false;
 				}
 
@@ -1800,10 +1888,15 @@ echo $s.'<br />';
 					];
 					if ($offCurveCount <= 0) {
 						$isOnCurvePoint = true;
-						$cList = self::svgCtoQ(['x'=>$prevX, 'y'=>$prevY], $spline);
-						foreach ($cList as $c) {
-							$pathParams[] = $c[1];
-							$pathParams[] = $c[2];
+						if (count($spline) <= 2) {
+							$pathParams[] = $spline[0];
+							$pathParams[] = $spline[1];
+						} else {
+							$cList = self::svgCtoQ(['x'=>$prevX, 'y'=>$prevY], $spline);
+							foreach ($cList as $c) {
+								$pathParams[] = $c[1];
+								$pathParams[] = $c[2];
+							}
 						}
 						// foreach ($spline as $p) {
 						// 	$pathParams[] = $p;
@@ -1917,6 +2010,8 @@ dump($shapeList);
 
 		$slicedShapeOutlineList = self::getNonCrossingOutline($shapeList);
 
+
+
 echo '<hr /><h2>sliced</h2>';
 echo self::testOutlineToSvg($slicedShapeOutlineList);
 
@@ -1937,7 +2032,7 @@ echo '<hr />時計と反時計を分ける<br />';
 
 		//////
 
-dump(compact('clockwiseShapeList'));
+dump(compact('clockwiseShapeList', 'anticlockwiseShapeList'));
 
 // echo '<hr />clockとanticlockの合成<br />';
 
@@ -1948,6 +2043,8 @@ dump(compact('clockwiseShapeList'));
 
 			if (!empty($anticlockwiseShapeList)) {
 				foreach ($anticlockwiseShapeList as $addition) {
+
+					// TODO: compose, acを同時に作る
 					$composed = self::composeShapes($base, $addition);
 					$ac = self::composeShapes($addition, $base);
 
@@ -2211,9 +2308,8 @@ echo self::testOutlineToSvg($composedOutline);
 
 $coline = self::removeLostedShape($composedOutline);
 
-echo '<hr />composedOutline=<br />';
-echo self::testOutlineToSvg($coline);
-die;
+// echo '<hr />composedOutline=<br />';
+// echo self::testOutlineToSvg($coline);
 
 		return $composedOutline;
 
@@ -2295,9 +2391,9 @@ echo self::testOutlineToSvg($outline).'<hr />';
 
 	protected static function sliceShape($shapePointList)
 	{
-echo '<h2>sliceShape</h2>';
-echo self::testOutlineToSvg([$shapePointList]);
-echo '<hr />';
+// echo '<h2>sliceShape</h2>';
+// echo self::testOutlineToSvg([$shapePointList]);
+// echo '<hr />';
 
 		$pointsCount = count($shapePointList);
 		$isPointPassedList = array_fill(0, $pointsCount, false);
@@ -2325,7 +2421,12 @@ echo '<hr />';
 
 				$ignoreIndex = -1;
 				while (true) {
-					$crossInfo = self::getSelfCrossInfo($shapePointList, $index, $v, $ignoreIndex);
+					if ($v[1]['isOnCurvePoint']) {
+						$crossInfo = self::getSelfCrossInfo($shapePointList, $index, $v, $ignoreIndex);
+					} else {
+						// TODO: $vが曲線の場合！
+						$crossInfo = self::getSelfCrossInfo($shapePointList, $index, $v, $ignoreIndex);
+					}
 
 					// アウトラインを沿わせる
 					if (!is_null($crossInfo)) {
@@ -2376,7 +2477,21 @@ echo '<hr />';
 				$p = $shapePointList[$index];
 				$next = $shapePointList[($index + 1) % $pointsCount];
 
-				$point = self::getCrossPoint($v, [$p, $next]);
+				if ($next['isOnCurvePoint']) {
+					$point = self::getCrossPoint($v, [$p, $next]);
+				} else {
+					$point = self::getCrossPoint($v, [$p, $next]);
+
+					// $point = null;
+					// $end = $shapePointList[($index + 2) % $pointsCount];
+					// $pointList = self::getBezier2CrossPoint([$p, $next, $end], $v);
+					// $cp = self::getNearestCrossPoint($pointList);
+					// if (!is_null($cp)) {
+					// 	$point = $cp['point'];
+					// 	$point['length'] = $cp['length'];
+					// }
+				}
+
 				if (!is_null($point)) {
 					if (is_null($crossInfo)) {
 						$crossInfo = [
@@ -2802,7 +2917,7 @@ echo '<hr />';
 		);
 
 		if (($a == 0) && ($b == 0)) {
-echo '平行<br />';
+// echo '平行<br />';
 			$crossPointInfo = null;
 			$baseLength = (($v1[1]['x'] - $v1[0]['x']) ** 2) + (($v1[1]['y'] - $v1[0]['y']) ** 2);
 			foreach ($v2 as $i => $p) {
@@ -2835,12 +2950,12 @@ echo '平行<br />';
 				$yy = ($crossPointInfo['point']['y'] - $v1[0]['y']);
 				$ll = $yy / ($v1[1]['y'] - $v1[0]['y']);
 			}
-dump("ll={$ll}");
+// dump("ll={$ll}");
 
 			if ($ll < 0) {
 				return null;
 			}
-echo '重なってる！<br />';
+// echo '重なってる！<br />';
 
 			return [
 				'x' => $crossPointInfo['point']['x'],
@@ -3579,7 +3694,7 @@ echo self::testOutlineToSvg($composed);
 			$base[($index + 1) % count($base)],
 		];
 
-		$crossInfo = self::getCrossPointToShape($addition, $baseVector, null);
+		$crossInfo = self::getCrossPointToShapeByVector($addition, $baseVector, null);
 
 
 // dump($crossInfo);
@@ -3615,7 +3730,7 @@ echo self::testOutlineToSvg($composed);
 				$ignoreIndex = $index;
 			}
 
-			$crossPoint = self::getCrossPointToShape($base, [$prevPoint, $p], $ignoreIndex);
+			$crossPoint = self::getCrossPointToShapeByVector($base, [$prevPoint, $p], $ignoreIndex);
 			if (is_null($crossPoint)) {
 				$coordinateList[] = $p;
 			} else {
@@ -3652,16 +3767,34 @@ echo self::testOutlineToSvg($composed);
 		return true;
 	}
 
-	protected static function addCoordinate(&$coordinateList, &$index, $base, $other)
+	protected static function addCoordinate(&$coordinateList, &$index, $base, $addition)
 	{
 		$coordinateList[] = $base[($index)];
 
-		$baseVector = [
-			$base[$index],
-			$base[($index + 1) % count($base)],
-		];
+		$baseCount = count($base);
+		$s = $base[$index];
+		$n = $base[($index + 1) % $baseCount];
 
-		$crossInfo = self::getCrossPointToShape($other, $baseVector, null);
+		// if ($n['isOnCurvePoint']) {
+			$baseVector = [
+				$s,
+				$n,
+			];
+
+			$crossInfo = self::getCrossPointToShapeByVector($addition, $baseVector, null);
+
+		// } else {
+		// 	$e = $base[($index + 2) % $baseCount];
+		// 	$baseBezier  = [
+		// 		$s,
+		// 		$n,
+		// 		$e,
+		// 	];
+		//
+		// 	$crossInfo = self::getCrossPointToShapeByBezier2($addition, $baseBezier, null);
+		// }
+
+
 		if (is_null($crossInfo)) {
 			return false;
 		}
@@ -3674,15 +3807,15 @@ echo self::testOutlineToSvg($composed);
 		];
 		$additionOffset = $crossInfo['index'] + 1;
 
-		$count = count($other);
+		$count = count($addition);
 		$prevPoint = $crossInfo['point'];
 		for ($i = 0; $i <= $count; $i++) {
-			$s = $other[($i + $additionOffset) % $count];
+			$s = $addition[($i + $additionOffset) % $count];
 			$ignoreIndex = null;
 			if ($i == 0) {
 				$ignoreIndex = $index;
 			}
-			$crossPoint = self::getCrossPointToShape($base, [$prevPoint, $s], $ignoreIndex);
+			$crossPoint = self::getCrossPointToShapeByVector($base, [$prevPoint, $s], $ignoreIndex);
 			if (is_null($crossPoint)) {
 				$coordinateList[] = $s;
 			} else {
@@ -3701,18 +3834,83 @@ echo self::testOutlineToSvg($composed);
 		return true;
 	}
 
-	protected static function getCrossPointToShape($shape, $vector, $ignoreIndex = null)
+	protected static function getNearestCrossPoint($pointList, $additionPoint = null)
+	{
+		if (!is_array($pointList)) {
+			return null;
+		}
+
+		$point = null;
+		foreach ($pointList as $i => $p) {
+			if ($i <= 0) {
+				$point = $p;
+				continue;
+			}
+			if ($p['length'] < $point['length']) {
+				$point = $p;
+			}
+		}
+		return $point;
+	}
+
+	protected static function getCrossPointToShapeByBezier2($shape, $bezier, $ignoreIndex = null)
+	{
+// echo '<h2>getCrossPointToShapeByBezier2</h2>';
+		$count = count($shape);
+		$crossInfo = null;
+
+		for ($i = 0; $i < $count; $i++) {
+			if ($i !== $ignoreIndex) {
+
+				$s = $shape[$i];
+				$e = $shape[($i + 1) % $count];
+
+				$cpList = self::getBezier2CrossPoint($bezier, [$e, $e]);
+				if (!is_null($cpList)) {
+					if (is_null($crossInfo)) {
+						$crossInfo = self::getNearestCrossPoint($cpList);
+					} else {
+						$cp = self::getNearestCrossPoint($cpList);
+						if ($cp['bezierLength'] < $crossInfo['bezierLength']) {
+							$crossInfo = $cp;
+						}
+					}
+				}
+			}
+		}
+		return $crossInfo;
+	}
+
+	protected static function getCrossPointToShapeByVector($shape, $vector, $ignoreIndex = null)
 	{
 		$count = count($shape);
-// echo "<h4>getCrossPointToShape (ignoreIndex : c:{$count} {$ignoreIndex})</h4>";
+// echo "<h4>getCrossPointToShapeByVector (ignoreIndex : c:{$count} {$ignoreIndex})</h4>";
 
 		$crossInfo = null;
 		for ($i = 0; $i < $count; $i++) {
-			$s = $shape[$i];
-			$e = $shape[($i + 1) % $count];
 // echo '辺：'.$i.' -> '.(($i + 1) % $count)." <span>({$s['x']},{$s['y']})->({$e['x']},{$e['y']})</span><br />";
 			if ($i !== $ignoreIndex) {
-				$cp = self::getCrossPoint($vector, [$s, $e]);
+				$s = $shape[$i];
+				$n = $shape[($i + 1) % $count];
+
+				// if ($n['isOnCurvePoint']) {
+					$cp = self::getCrossPoint($vector, [$s, $n]);
+// 				} else {
+// 					$e = $shape[($i + 2) % $count];
+// 					$bezir = [
+// 						$s,
+// 						$n,
+// 						$e,
+// 					];
+// 					$cpList = self::getBezier2CrossPoint($bezir, $vector);
+// 					$cp = [
+// 						'x' => $cpList[0]['point']['x'],
+// 						'y' => $cpList[0]['point']['y'],
+// 						'length' => $cpList[0]['length'],
+// 					];
+// // dd($cp);
+// 				}
+
 				if (!is_null($cp)) {
 // echo "...HIT Index={$i} : len={$cp['length']}<br />";
 // dump($vector);
