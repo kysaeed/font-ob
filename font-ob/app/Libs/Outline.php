@@ -13,6 +13,7 @@ class Outline
 		;
 	}
 
+
 	public static function getOutlineFromStroke($stroke)
 	{
 //echo '<hr />';
@@ -25,12 +26,15 @@ echo '<hr />交差あり<br />';
 echo TestController::testOutlineToSvg($shapeList, false);
 //dump($shapeList);
 
-//		$slicedShapeOutlineList = self::getNonCrossingOutline($shapeList);
-		$slicedShapeOutlineList = ($shapeList);
+		$slicedShapeOutlineList = [];
+		foreach ($shapeList as $s) {
+			$shape = new Shape($s);
+			$slicedShapeOutlineList = array_merge($slicedShapeOutlineList, $shape->getPoints());
+		}
 
 //echo '<hr /><h2>sliced</h2>';
 //echo TestController::testOutlineToSvg($slicedShapeOutlineList);
-// die;
+//die;
 
 echo '<hr />clockとanticlockを分ける<br />';
 
@@ -53,7 +57,6 @@ echo '<hr />clockとanticlockを分ける<br />';
 
 //dump(compact('clockwiseShapeList', 'anticlockwiseShapeList'));
 
-//		 echo '<hr />clockとanticlockの合成<br />';
 
 		// base / addition の shapeが XOR関係になるようにする
 		$_nextClockwise = [];
@@ -105,10 +108,10 @@ echo '<br />';
 		// }
 		// $clockwiseShapeList = $a;
 
-echo '<h1>同方向の合成</h1>';
-echo TestController::testOutlineToSvg($clockwiseShapeList);
-echo TestController::testOutlineToSvg($anticlockwiseShapeList);
-echo '<hr />';
+//echo '<h1>同方向の合成</h1>';
+//echo TestController::testOutlineToSvg($clockwiseShapeList);
+//echo TestController::testOutlineToSvg($anticlockwiseShapeList);
+//echo '<hr />';
 
 //die;
 
@@ -159,9 +162,11 @@ echo '<hr />';
 
 
 		$outline = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
-// echo TestController::testOutlineToSvg($outline);
 
 		$outline = self::removeLostedShape($outline);
+
+
+ echo TestController::testOutlineToSvg($outline);
 		return $outline;
 	}
 
@@ -637,6 +642,119 @@ echo '<hr />';
 		);
 	}
 
+	public static function getCrossPointByRay($v1, $v2)
+	{
+// dump('getCrossPoint *********************');
+// dump($v1);
+// dump($v2);
+		$a = self::crossProduct(
+			$v1,
+			[$v1[0], $v2[0]]
+		);
+		$b = self::crossProduct(
+			$v1,
+			[$v2[1], $v1[0]]
+		);
+
+		if (($a == 0) && ($b == 0)) {
+// echo '平行<br />';
+			$crossPointInfo = null;
+			$baseLength = (($v1[1]['x'] - $v1[0]['x']) ** 2) + (($v1[1]['y'] - $v1[0]['y']) ** 2);
+			foreach ($v2 as $i => $p) {
+				$length = (($p['x'] - $v1[0]['x']) ** 2) + (($p['y'] - $v1[0]['y']) ** 2);
+				if (is_null($crossPointInfo)) {
+					$crossPointInfo = [
+						'point' => $p,
+						'length' => $length,
+						'i' => $i,
+					];
+				} else {
+					if ($length < $crossPointInfo['length']) {
+						$crossPointInfo = [
+							'point' => $p,
+							'length' => $length,
+							'i' => $i,
+						];
+					}
+				}
+			}
+
+			$len = (($crossPointInfo['point']['x'] - $v1[0]['x']) ** 2) + (($crossPointInfo['point']['y'] - $v1[0]['y']) ** 2);
+
+
+			$ll = 0;
+			if (($v1[1]['x'] - $v1[0]['x']) != 0) {
+				$xx = ($crossPointInfo['point']['x'] - $v1[0]['x']);
+				$ll = $xx / ($v1[1]['x'] - $v1[0]['x']);
+			} else if (($crossPointInfo['point']['y'] - $v1[0]['y']) != 0) {
+				$yy = ($crossPointInfo['point']['y'] - $v1[0]['y']);
+				$ll = $yy / ($v1[1]['y'] - $v1[0]['y']);
+			}
+// dump("ll={$ll}");
+
+			if ($ll < 0) {
+				return null;
+			}
+// echo '重なってる！<br />';
+
+			return [
+				'x' => $crossPointInfo['point']['x'],
+				'y' => $crossPointInfo['point']['y'],
+				'length' => $ll,
+			];
+		}
+
+		$ab = $a + $b;
+
+// dump("a = {$a}");
+// dump("b = {$b}");
+// dump("ab = {$ab}");
+
+		if ($ab) {
+			$length2  = ($a / $ab);
+			if (($length2 < 0) || ($length2 >= 1.0)) {
+				return null;
+			}
+		} else {
+			return null;
+		}
+
+
+		$a = self::crossProduct(
+			[$v2[0], $v1[0]],
+			$v2
+		) /* / 2 */;
+
+		$b = self::crossProduct(
+			$v2,
+			[$v2[0], $v1[1]]
+		) /* / 2 */;
+
+		$ab = ($a + $b);
+
+// dump("a = {$a}");
+// dump("b = {$b}");
+// dump("ab = {$ab}");
+
+		if (!$ab) {
+			return null;
+		}
+
+		$crossVectorLengthBase = ($a / $ab);
+// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
+		if (($crossVectorLengthBase < 0)) {
+			return null;
+		}
+
+		$crossed = [
+			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
+			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+			'length' => $crossVectorLengthBase,
+		];
+
+		return $crossed;
+	}
+
 	protected static function getNonCrossingOutline($crossingOutline)
 	{
 		$outline = [];
@@ -755,7 +873,7 @@ echo '<hr />';
 // echo "result: hit to shape{$crossInfo['shapeIndex']}<br />";
 		return $crossInfo['shapeIndex'];
 	}
-	
+
 	protected static function removeLostedShape($outline)
 	{
 		$directionList = self::createDirectionList($outline);
