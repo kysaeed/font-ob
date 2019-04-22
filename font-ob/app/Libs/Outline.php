@@ -12,7 +12,7 @@ class Outline
 
 	public function __construct($strokes)
 	{
-		$this->shapes = self::getOutlineFromStroke($strokes);
+		$this->shapes = $this->getOutlineFromStroke($strokes);
 	}
 
 	public function getShapes()
@@ -21,7 +21,7 @@ class Outline
 	}
 
 
-	public static function getOutlineFromStroke($strokes)
+	public function getOutlineFromStroke($strokes)
 	{
 		$shapeList = self::strokeToShapeList($strokes);
 
@@ -98,8 +98,8 @@ class Outline
 		}
 		$clockwiseShapeList = $_next;
 
-		$outline = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
-		$outline = self::removeLostedShape($outline);
+		$this->shapes = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
+		$outline = $this->removeLostedShape();
 
 		return $outline;
 	}
@@ -392,18 +392,38 @@ class Outline
 		return $outline;
 	}
 
-	protected static function createDirectionList($shapeList)
+	protected function createDirectionList()
 	{
 		$directionList = [];
-		foreach ($shapeList as $lineIndex => $shape) {
+		foreach ($this->shapes as $shape) {
 			$directionList[] = $shape->getShapeDirection();
 		}
 		return $directionList;
 	}
 
-	protected static function getOutsideShapeIndex($outline, $insideShapeIndex)
+	protected function removeLostedShape()
 	{
-		$lineList = $outline[$insideShapeIndex]->getPoints();
+		$directionList = self::createDirectionList();
+		$aliveShapes = [];
+		foreach ($this->shapes as $i => $shape) {
+			$outsideIndex = $this->getOutsideShapeIndex($i);
+			if ($outsideIndex > -1) {
+				if ($directionList[$i] == $directionList[$outsideIndex]) {
+					continue;
+				}
+			}
+
+			$aliveShapes[] = $shape;
+		}
+
+		return $aliveShapes;
+	}
+
+	protected function getOutsideShapeIndex($insideShapeIndex)
+	{
+//		$outline = $this->shapes;
+
+		$lineList = $this->shapes[$insideShapeIndex]->points;
 		$p = $lineList[0];
 		$v = [
 			$p,
@@ -415,17 +435,18 @@ class Outline
 // echo '<br />';
 
 		$crossInfo = null;
-		foreach ($outline as $i => $line) {
+		foreach ($this->shapes as $i => $shape) {
 			if ($i != $insideShapeIndex) {
 
 				$crossCount = 0;
-				$pointCount = count($line->points);
+				$pointCount = count($shape->points);
 				$crossInfoLine = null;
 // echo "{$insideShapeIndex}→{$i}<br />";
 
 				for ($index = 0; $index < $pointCount; $index++) {
-					$p = $line->points[$index];
-					$next = $line->points[($index + 1) % $pointCount];
+					$p = $shape->points[$index];
+					$next = $shape->points[($index + 1) % $pointCount];
+
 					$crossPoint = self::getCrossPointByRay($v, [$p, $next]);
 					if (!is_null($crossPoint)) {
 // echo "... hit! (shape:{$i}, index={$index}, len={$crossPoint['length']})<br />";
@@ -462,32 +483,11 @@ class Outline
 			}
 		}
 
-// dump(compact('insideShapeIndex', 'crossInfo'));
 		if (is_null($crossInfo)) {
-// echo 'result: no hit..<br />';
 			return -1;
 		}
-// echo "result: hit to shape{$crossInfo['shapeIndex']}<br />";
+
 		return $crossInfo['shapeIndex'];
-	}
-
-	protected static function removeLostedShape($outline)
-	{
-		$directionList = self::createDirectionList($outline);
-
-		$aliveShapes = [];
-		foreach ($outline as $i => $line) {
-			$outsideIndex = self::getOutsideShapeIndex($outline, $i);
-			if ($outsideIndex > -1) {
-				if ($directionList[$i] == $directionList[$outsideIndex]) {
-					continue;
-				}
-			}
-
-			$aliveShapes[] = $line;
-		}
-
-		return $aliveShapes;
 	}
 
 }
