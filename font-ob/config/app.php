@@ -154,11 +154,12 @@ return [
         /*
          * Application Service Providers...
          */
-        FontObscure\Providers\AppServiceProvider::class,
-        FontObscure\Providers\AuthServiceProvider::class,
-        // FontObscure\Providers\BroadcastServiceProvider::class,
-        FontObscure\Providers\EventServiceProvider::class,
-        FontObscure\Providers\RouteServiceProvider::class,
+		Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
+		FontObscure\Providers\AppServiceProvider::class,
+		FontObscure\Providers\AuthServiceProvider::class,
+		// FontObscure\Providers\BroadcastServiceProvider::class,
+		FontObscure\Providers\EventServiceProvider::class,
+		FontObscure\Providers\RouteServiceProvider::class,
 
     ],
 

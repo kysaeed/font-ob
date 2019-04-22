@@ -6,12 +6,12 @@ namespace FontObscure\Libs;
 class Shape
 {
 
-	protected $points = [];
+	public $points = [];
 
 
 	function __construct($points)
 	{
-		$this->points = self::sliceShape($points);
+		$this->points = /* self::sliceShape*/ ($points);
 	}
 
 	public function getPoints()
@@ -19,12 +19,9 @@ class Shape
 		return $this->points;
 	}
 
-	protected static function sliceShape($shape)
+	public function slice()
 	{
-// echo '<h2>sliceShape</h2>';
-// echo self::testOutlineToSvg([$shapePointList]);
-// echo '<hr />';
-		$shapeInfo = self::insertSelfCorssPointToShape($shape);
+		$shapeInfo = self::insertSelfCorssPointToShape($this->points);
 //dump($shapeInfo);
 		$slicedShapeList = [];
 
@@ -45,13 +42,13 @@ class Shape
 
 		$firstIndex = 0;
 		while($firstIndex !== false) {
-			$slicedShape = [];
+			$slicedPoints = [];
 			$index = $firstIndex;
 			for ($i = 0; $i < $pointsCount + 1; $i++) {
 				$isPointPassedList[$index] = true;
 
 				$p = $points[$index];
-				$slicedShape[] = $p;
+				$slicedPoints[] = $p;
 
 				if ($infos[$index] > -1) {
 					$index = $infos[$index];
@@ -62,7 +59,8 @@ class Shape
 					break;
 				}
 			}
-			$slicedShapeList[] = $slicedShape;
+
+			$slicedShapeList[] = new Shape($slicedPoints);
 			$firstIndex = array_search(false, $isPointPassedList);
 //break;
 		}
@@ -70,15 +68,347 @@ class Shape
 		return $slicedShapeList;
 	}
 
-
-	protected static function insertSelfCorssPointToShape($shape)
+	public function composeXor($addition)
 	{
-		$pointsCount = count($shape);
+		$baseInfo = [];
+		foreach ($this->points as $p) {
+			$baseInfo[] = [
+				'point' => $p,
+				'crossInfo' => [],
+				'index' => null,
+			];
+		}
+		$baseCount = count($this->points);
+
+		$additionInfo = [];
+		foreach ($addition->points as $a) {
+			$additionInfo[] = [
+				'point' => $a,
+				'crossInfo' => [],
+				'index' => null,
+			];
+		}
+		$additionCount = count($addition->points);
+
+		$infoList = [
+			&$baseInfo,
+			&$additionInfo,
+		];
+
+
+		$crossCount = 0;
+		for ($oc = 0; $oc < $baseCount; $oc++) {
+			$p = &$baseInfo[$oc]['crossInfo'];
+
+			$crossList = $this->getCorssInfoListByShape($oc, $addition);
+			if (!empty($crossList)) {
+				$crossCount += count($crossList);
+				foreach ($crossList as $cp) {
+					$a = &$additionInfo[$cp['index']]['crossInfo'];
+					$indexBase = count($p);
+					$indexAddition = count($a);
+
+					$p[$indexBase] = [
+						'length' => $cp['point']['length'],
+						'point' => [
+							'x' => $cp['point']['x'],
+							'y' => $cp['point']['y'],
+						],
+						'to' => null,
+						'index' => null,
+					];
+					$a[$indexAddition] = [
+						'length' => $cp['point']['length2'],
+						'point' => [
+							'x' => $cp['point']['x'],
+							'y' => $cp['point']['y'],
+						],
+						'to' => null,
+						'index' =>null,
+					];
+
+					$p[$indexBase]['to'] = &$a[$indexAddition];
+					$a[$indexAddition]['to'] = &$p[$indexBase];
+
+					unset($a);
+				}
+
+			}
+			unset($p);
+		}
+
+
+		if ($crossCount < 2) {
+			return null;
+		}
+
+		foreach ($infoList as &$sortInfo) {
+			foreach ($sortInfo as &$list) {
+				usort($list['crossInfo'], function($a, $b) {
+					if ($a['length'] > $b['length']) {
+						return 1;
+					}
+					if ($a['length'] < $b['length']) {
+						return -1;
+					}
+					return 0;
+				});
+			}
+			unset($list);
+		}
+		unset($sortInfo);
+
+		foreach ($infoList as &$infos) {
+			$index = 0;
+			foreach ($infos as &$p) {
+				$p['index'] = $index;
+				$index++;
+				foreach ($p['crossInfo'] as &$list) {
+					$list['index'] = $index;
+					$index++;
+				}
+				unset($list);
+			}
+			unset($p);
+		}
+		unset($infos);
+
+
+		$shapeList = [];
+		$corssIndexInfoList = [];
+		foreach ($infoList as $list) {
+			$shape = [];
+			$corssIndexInfo = [];
+			foreach ($list as $p) {
+				$shape[] = $p['point'];
+				$corssIndexInfo[] = -1;
+				foreach ($p['crossInfo'] as $list) {
+					$shape[] = [
+						'x' => $list['point']['x'],
+						'y' => $list['point']['y'],
+						'isOnCurvePoint' => true,
+					];
+					$corssIndexInfo[] = $list['to']['index'];
+				}
+			}
+			$shapeList[] = new Shape($shape);
+			$corssIndexInfoList[] = $corssIndexInfo;
+		}
+
+		$composed = [];
+		foreach ($shapeList as $shapeIndex => $shape) {
+			$newShapeList = [];
+
+			$corssIndexInfo = $corssIndexInfoList[$shapeIndex];
+			$count = count($shape->points);
+
+			$passedIndexInfo = [];
+			foreach ($corssIndexInfo as $to) {
+				if ($to < 0) {
+					$passedIndexInfo[] = false;
+				} else {
+					$passedIndexInfo[] = true;
+				}
+			}
+
+			$otherCorssIndexInfo = $corssIndexInfoList[1- $shapeIndex];
+			$otherShape = $shapeList[1 - $shapeIndex];
+			$otherCount = count($otherShape->points);
+
+			$firstIndex = array_search(false, $passedIndexInfo);
+			while ($firstIndex !== false) {
+				$index = $firstIndex;
+				$newShape = [];
+				for ($i = 0; $i < $count; $i++) {
+					$isEnd = false;
+					$newShape[] = $shape->points[$index];
+					$passedIndexInfo[$index] = true;
+
+					$otherIndex = $corssIndexInfo[$index];
+					if ($otherIndex > -1) {
+						$otherIndex = ($otherIndex + 1) % $otherCount;
+						for ($oc = 0; $oc < $otherCount; $oc++) {
+							$newShape[] = $otherShape->points[$otherIndex];
+							$crossTo = $otherCorssIndexInfo[$otherIndex];
+							if ($crossTo > -1) {
+								$index = $crossTo;
+								if ($index == $firstIndex) {
+									$isEnd = true;
+								}
+								break;
+							}
+
+							$otherIndex = ($otherIndex + 1) % $otherCount;
+						}
+					}
+
+					$index = ($index + 1) % $count;
+					if ($index == $firstIndex) {
+						$isEnd = true;
+					}
+
+					if ($isEnd) {
+						break;
+					}
+				}
+				$newShapeList[] = new Shape($newShape);
+				$firstIndex = array_search(false, $passedIndexInfo);
+			}
+
+			$composed[] = $newShapeList;
+		}
+
+
+//foreach ($newShapeList as $i => $s) {
+//	$crossPointList = [];
+//	foreach ($infoList[$i] as $list) {
+//		foreach ($list['crossInfo'] as $list) {
+//			$crossPointList[] = $list['point'];
+//		}
+////dd($pl);
+//	}
+//	echo TestController::testOutlineToSvg([$s], true, $crossPointList);
+//}
+
+//		return $composed;
+
+		return [
+			'base' => $composed[0],
+			'addition' => $composed[1],
+		];
+	}
+
+
+	public function getShapeDirection()
+	{
+		$pointCount = count($this->points);
+
+		$sum = 0;
+		for ($i = 0; $i < $pointCount; $i++) {
+			$v1 = [
+				$this->points[$i],
+				$this->points[($i + 1) % $pointCount],
+			];
+			$v2 = [
+				$this->points[($i + 1) % $pointCount],
+				$this->points[($i + 2) % $pointCount],
+			];
+
+			$d = self::crossProduct($v1, $v2);
+			if ($d > 0) {
+				$d = 1;
+			} else if ($d < 0) {
+				$d = -1;
+			}
+			$sum += $d;
+		}
+
+		if ($sum > 0) {
+			return 1;
+		} else if ($sum < 0){
+			return -1;
+		}
+
+		return 0;
+	}
+
+	public static function getCrossPointEx($v1, $v2)
+	{
+// dump('getCrossPoint *********************');
+// dump($v1);
+// dump($v2);
+
+		$a = self::crossProduct(
+			$v1,
+			[$v1[0], $v2[0]]
+		);
+		$b = self::crossProduct(
+			$v1,
+			[$v2[1], $v1[0]]
+		);
+
+		$ab = $a + $b;
+		if ($ab) {
+			$length2  = ($a / $ab);
+			if (($length2 < 0) || ($length2 >= 1.0)) {
+				return null;
+			}
+		} else {
+			return null;
+		}
+
+
+		$a = self::crossProduct(
+			[$v2[0], $v1[0]],
+			$v2
+		) /* / 2 */;
+
+// dump($a);
+		$b = self::crossProduct(
+			$v2,
+			[$v2[0], $v1[1]]
+		) /* / 2 */;
+// dump($b);
+
+// dump("a={$a}, b={$b}");
+		$ab = ($a + $b);
+		if (!$ab) {
+			return null;
+		}
+
+		$crossVectorLengthBase = ($a / $ab);
+// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
+		if (($crossVectorLengthBase < 0) || ($crossVectorLengthBase >= 1.0)) {
+			return null;
+		}
+
+		$crossed = [
+			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
+			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+			'length' => $crossVectorLengthBase,
+			'length2' => $length2,
+		];
+
+		return $crossed;
+	}
+
+	protected function getCorssInfoListByShape($index, $addition)
+	{
+		$baseCount = count($this->points);
+		$additionCount = count($addition->points);
+
+		$v = [
+			$this->points[$index],
+			$this->points[($index + 1) % $baseCount],
+		];
+
+		$corssInfoList = [];
+		for ($i = 0; $i < $additionCount; $i++) {
+			$p = $addition->points[$i];
+			$next = $addition->points[($i + 1) % $additionCount];
+
+			// TODO:  曲線に対応
+			$cp = self::getCrossPointEx($v, [$p, $next]);
+			if (!empty($cp)) {
+				$corssInfoList[] =[
+					'index' => $i,
+					'point' => $cp,
+				];
+			}
+
+		}
+
+		return $corssInfoList;
+	}
+
+	protected static function insertSelfCorssPointToShape($pointList)
+	{
+		$pointsCount = count($pointList);
 		$corssToList = array_fill(0, $pointsCount, []);
 
 
 		$shapeCrossedPointList = [];
-		foreach ($shape as $p) {
+		foreach ($pointList as $p) {
 			$shapeCrossedPointList[] = [
 				'point' => $p,
 				'crossedList' => [],
@@ -88,11 +418,11 @@ class Shape
 		for ($index = 0; $index < $pointsCount; $index++) {
 			$crossPointBase = &$shapeCrossedPointList[$index];
 
-			if (!$shape[$index]['isOnCurvePoint']) {
+			if (!$pointList[$index]['isOnCurvePoint']) {
 				continue;
 			}
 
-			$crossInfo = self::getSelfCrossInfoList($shape, $index, $corssToList[$index]);
+			$crossInfo = self::getSelfCrossInfoList($pointList, $index, $corssToList[$index]);
 			if (!empty($crossInfo)) {
 
 				foreach ($crossInfo['crossPoints'] as $cp) {
@@ -558,4 +888,14 @@ class Shape
 		);
 	}
 
+	protected static function getLineParams($v1, $v2)
+	{
+		$a = ($v2['y'] - $v1['y']);
+		$b = ($v2['x'] - $v1['x']);
+		return [
+			'a' => $a,
+			'b' => -$b,
+			'c' => ($v2['y'] * $b) - ($v2['x'] * $a),
+		];
+	}
 }

@@ -8,29 +8,32 @@ use FontObscure\Http\Controllers\TestController;
 
 class Outline
 {
-	public function __construct()
+	public $shapes = [];
+
+	public function __construct($strokes)
 	{
-		;
+		$this->shapes = self::getOutlineFromStroke($strokes);
+	}
+
+	public function getShapes()
+	{
+		return $this->shapes;
 	}
 
 
-	public static function getOutlineFromStroke($stroke)
+	public static function getOutlineFromStroke($strokes)
 	{
 //echo '<hr />';
 //echo '<h2>getOutlineFromStroke</h2>';
 		$outline = [];
 
-		$shapeList = self::strokeToShapeList($stroke);
-
-echo '<hr />交差あり<br />';
-echo TestController::testOutlineToSvg($shapeList, false);
-//dump($shapeList);
+		$shapeList = self::strokeToShapeList($strokes);
 
 		$slicedShapeOutlineList = [];
-		foreach ($shapeList as $s) {
-			$shape = new Shape($s);
-			$slicedShapeOutlineList = array_merge($slicedShapeOutlineList, $shape->getPoints());
+		foreach ($shapeList as $shape) {
+			$slicedShapeOutlineList = array_merge($slicedShapeOutlineList, $shape->slice());
 		}
+
 
 //echo '<hr /><h2>sliced</h2>';
 //echo TestController::testOutlineToSvg($slicedShapeOutlineList);
@@ -41,7 +44,7 @@ echo '<hr />clockとanticlockを分ける<br />';
 		$clockwiseShapeList = [];
 		$anticlockwiseShapeList = [];
 		foreach ($slicedShapeOutlineList as $shape) {
-			$direction = self::getShapeDirection($shape);
+			$direction = $shape->getShapeDirection();
 			if ($direction > 0) {
 				$clockwiseShapeList[] = $shape;
 			} else if ($direction < 0) {
@@ -49,14 +52,13 @@ echo '<hr />clockとanticlockを分ける<br />';
 			}
 		}
 
-		echo TestController::testOutlineToSvg($clockwiseShapeList);
-		echo TestController::testOutlineToSvg($anticlockwiseShapeList);
-		echo '<hr />';
+//		echo TestController::testOutlineToSvg($clockwiseShapeList);
+//		echo TestController::testOutlineToSvg($anticlockwiseShapeList);
+//		echo '<hr />';
 
 		//////
 
 //dump(compact('clockwiseShapeList', 'anticlockwiseShapeList'));
-
 
 		// base / addition の shapeが XOR関係になるようにする
 		$_nextClockwise = [];
@@ -66,18 +68,14 @@ echo '<hr />clockとanticlockを分ける<br />';
 			if (!empty($anticlockwiseShapeList)) {
 				foreach ($anticlockwiseShapeList as $addition) {
 
-					// TODO: compose, acを同時に作る
-					$composed = self::composeShapesEx($base, $addition);
-//					$ac = self::composeShapes($addition, $base);
-
+					$composed = $base->composeXor($addition);
 					if (!is_null($composed)) {
-//dd($composed);
 						$isComposed = true;
-//echo
-echo 'composed....<br />';
-echo TestController::testOutlineToSvg($composed['base']);
-echo TestController::testOutlineToSvg($composed['addition']);
-echo '<br />';
+
+//echo 'composed....<br />';
+//echo TestController::testOutlineToSvg($composed['base']);
+//echo TestController::testOutlineToSvg($composed['addition']);
+//echo '<br />';
 						$_nextClockwise = array_merge($_nextClockwise, $composed['base']);
 						$_nextAniticock = array_merge($_nextAniticock, $composed['addition']);
 					} else {
@@ -93,28 +91,6 @@ echo '<br />';
 		}
 		$clockwiseShapeList = $_nextClockwise;
 
-		// $a = $clockwiseShapeList;
-		// foreach ($clockwiseShapeList as $shape) {
-		// 	$_a = [];
-		// 	foreach ($a as $s2) {
-		// 		$composed = self::composeShapes($shape, $s2);
-		// 		if (!is_null($composed)) {
-		// 			$_a = array_merge($_a, $composed);
-		// 		} else {
-		// 			$_a[] = $s2;
-		// 		}
-		// 	}
-		// 	$a = $_a;
-		// }
-		// $clockwiseShapeList = $a;
-
-//echo '<h1>同方向の合成</h1>';
-//echo TestController::testOutlineToSvg($clockwiseShapeList);
-//echo TestController::testOutlineToSvg($anticlockwiseShapeList);
-//echo '<hr />';
-
-//die;
-
 		// 時計回りシェイプの合成
 		$_next = [];
 		while (!empty($clockwiseShapeList)) {
@@ -125,8 +101,9 @@ echo '<br />';
 			foreach ($_next as $c2) {
 				if (!$isComposed) {
 
-//					$composed = self::compose($c, $c2);
 					$composed = self::composeShapesEx($c, $c2);
+//					$composed = $c->composeXor($c2);
+
 					if (!is_null($composed)) {
 						$composed = $composed['base'][0];
 					}
@@ -137,7 +114,6 @@ echo '<br />';
 					if (!is_null($composed)) {
 // dump(compact('composed'));
 						$isComposed = true;
-						// $clockwiseShapeList = array_merge($clockwiseShapeList, $composed);
 						$clockwiseShapeList[] = $composed;
 					} else {
 						$_nextNext[] = $c2;
@@ -159,22 +135,19 @@ echo '<br />';
 
 // echo TestController::testOutlineToSvg($clockwiseShapeList).'<hr />';
 
-
-
 		$outline = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
-
 		$outline = self::removeLostedShape($outline);
 
+//dd(compact('clockwiseShapeList', 'anticlockwiseShapeList'));
 
- echo TestController::testOutlineToSvg($outline);
 		return $outline;
 	}
 
-	protected static function strokeToShapeList($stroke)
+	protected static function strokeToShapeList($strokes)
 	{
 		$outline = [];
 		$thickness = 4; // 太さ
-		foreach ($stroke as $index => $line) {
+		foreach ($strokes as $index => $line) {
 			$outlineUp = [];
 			$outlineDown = [];
 			$lineCount = count($line['path']);
@@ -231,7 +204,7 @@ echo '<br />';
 			}
 
 			$shape = array_merge($outlineUp, $outlineDown);
-			$outline[] = $shape;
+			$outline[] = new Shape($shape);
 		}
 
 		return $outline;
@@ -247,24 +220,24 @@ echo '<br />';
 //echo '<br />';
 
 		$baseInfo = [];
-		foreach ($base as $p) {
+		foreach ($base->points as $p) {
 			$baseInfo[] = [
 				'point' => $p,
 				'crossInfo' => [],
 				'index' => null,
 			];
 		}
-		$baseCount = count($base);
+		$baseCount = count($base->points);
 
 		$additionInfo = [];
-		foreach ($addition as $a) {
+		foreach ($addition->points as $a) {
 			$additionInfo[] = [
 				'point' => $a,
 				'crossInfo' => [],
 				'index' => null,
 			];
 		}
-		$additionCount = count($addition);
+		$additionCount = count($addition->points);
 
 		$infoList = [
 			&$baseInfo,
@@ -367,7 +340,7 @@ echo '<br />';
 					$corssIndexInfo[] = $list['to']['index'];
 				}
 			}
-			$shapeList[] = $shape;
+			$shapeList[] = new Shape($shape);
 			$corssIndexInfoList[] = $corssIndexInfo;
 		}
 
@@ -376,7 +349,7 @@ echo '<br />';
 			$newShapeList = [];
 
 			$corssIndexInfo = $corssIndexInfoList[$shapeIndex];
-			$count = count($shape);
+			$count = count($shape->points);
 
 			$passedIndexInfo = [];
 			foreach ($corssIndexInfo as $to) {
@@ -389,7 +362,7 @@ echo '<br />';
 
 			$otherCorssIndexInfo = $corssIndexInfoList[1- $shapeIndex];
 			$otherShape = $shapeList[1 - $shapeIndex];
-			$otherCount = count($otherShape);
+			$otherCount = count($otherShape->points);
 
 			$firstIndex = array_search(false, $passedIndexInfo);
 			while ($firstIndex !== false) {
@@ -397,14 +370,14 @@ echo '<br />';
 				$newShape = [];
 				for ($i = 0; $i < $count; $i++) {
 					$isEnd = false;
-					$newShape[] = $shape[$index];
+					$newShape[] = $shape->points[$index];
 					$passedIndexInfo[$index] = true;
 
 					$otherIndex = $corssIndexInfo[$index];
 					if ($otherIndex > -1) {
 						$otherIndex = ($otherIndex + 1) % $otherCount;
 						for ($oc = 0; $oc < $otherCount; $oc++) {
-							$newShape[] = $otherShape[$otherIndex];
+							$newShape[] = $otherShape->points[$otherIndex];
 							$crossTo = $otherCorssIndexInfo[$otherIndex];
 							if ($crossTo > -1) {
 								$index = $crossTo;
@@ -427,8 +400,7 @@ echo '<br />';
 						break;
 					}
 				}
-
-				$newShapeList[] = $newShape;
+				$newShapeList[] = new Shape($newShape);
 				$firstIndex = array_search(false, $passedIndexInfo);
 			}
 
@@ -456,18 +428,18 @@ echo '<br />';
 
 	protected static function getCorssInfoListByShape($base, $index, $addition)
 	{
-		$baseCount = count($base);
-		$additionCount = count($addition);
+		$baseCount = count($base->points);
+		$additionCount = count($addition->points);
 
 		$v = [
-			$base[$index],
-			$base[($index + 1) % $baseCount],
+			$base->points[$index],
+			$base->points[($index + 1) % $baseCount],
 		];
 
 		$corssInfoList = [];
 		for ($i = 0; $i < $additionCount; $i++) {
-			$p = $addition[$i];
-			$next = $addition[($i + 1) % $additionCount];
+			$p = $addition->points[$i];
+			$next = $addition->points[($i + 1) % $additionCount];
 
 			// TODO:  曲線に対応
 			$cp = self::getCrossPointEx($v, [$p, $next]);
@@ -767,46 +739,15 @@ echo '<br />';
 	protected static function createDirectionList($shapeList)
 	{
 		$directionList = [];
-		foreach ($shapeList as $lineIndex => $line) {
-			$directionList[] = self::getShapeDirection($line);
+		foreach ($shapeList as $lineIndex => $shape) {
+			$directionList[] = $shape->getShapeDirection();
 		}
 		return $directionList;
 	}
 
-	protected static function getShapeDirection($shape)
-	{
-		$pointCount = count($shape);
-		$sum = 0;
-		for ($i = 0; $i < $pointCount; $i++) {
-			$v1 = [
-				$shape[$i],
-				$shape[($i + 1) % $pointCount],
-			];
-			$v2 = [
-				$shape[($i + 1) % $pointCount],
-				$shape[($i + 2) % $pointCount],
-			];
-			$d = self::crossProduct($v1, $v2);
-			if ($d > 0) {
-				$d = 1;
-			} else if ($d < 0) {
-				$d = -1;
-			}
-			$sum += $d;
-		}
-
-		if ($sum > 0) {
-			return 1;
-		} else if ($sum < 0){
-			return -1;
-		}
-
-		return 0;
-	}
-
 	protected static function getOutsideShapeIndex($outline, $insideShapeIndex)
 	{
-		$lineList = $outline[$insideShapeIndex];
+		$lineList = $outline[$insideShapeIndex]->getPoints();
 		$p = $lineList[0];
 		$v = [
 			$p,
@@ -822,13 +763,13 @@ echo '<br />';
 			if ($i != $insideShapeIndex) {
 
 				$crossCount = 0;
-				$pointCount = count($line);
+				$pointCount = count($line->points);
 				$crossInfoLine = null;
 // echo "{$insideShapeIndex}→{$i}<br />";
 
 				for ($index = 0; $index < $pointCount; $index++) {
-					$p = $line[$index];
-					$next = $line[($index + 1) % $pointCount];
+					$p = $line->points[$index];
+					$next = $line->points[($index + 1) % $pointCount];
 					$crossPoint = self::getCrossPointByRay($v, [$p, $next]);
 					if (!is_null($crossPoint)) {
 // echo "... hit! (shape:{$i}, index={$index}, len={$crossPoint['length']})<br />";

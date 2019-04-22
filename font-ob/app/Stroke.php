@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Stroke extends Model
 {
-	public static function createFromSvg($code, $svg = null)
+	public static function createFromSvg($svg, $code = 0)
 	{
 		if (!is_null($svg)) {
 			$data = self::parseStrokeSvg($svg);
@@ -39,7 +39,7 @@ class Stroke extends Model
 	}
 
 
-	protected static function parseLineSvg($svg)
+	public static function parseLineSvg($svg)
 	{
 		$attrbuteNames = [
 			'x1',
@@ -73,13 +73,13 @@ class Stroke extends Model
 
 	}
 
-	protected static function parsePathSvg($svg)
+	public static function parsePathSvg($svg)
 	{
 		$pathParams = [];
 		$d = [];
 		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
 			$pathMatches = [];
-			preg_match_all('/([MmCcVvHh]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
+			preg_match_all('/([MmCcQqVvHh]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
 
 			$spline = [];
 			$offCurveCount = 0;
@@ -103,6 +103,19 @@ class Stroke extends Model
 					$offCurveCount = 3;
 					$isRelativePosition = false;
 				}
+
+				if ($pathMatches[1][$index] == 'q') {
+					$isOnCurvePoint = false;
+					$offCurveCount = 2;
+					$isRelativePosition = true;
+				}
+
+				if ($pathMatches[1][$index] == 'Q') {
+					$isOnCurvePoint = false;
+					$offCurveCount = 2;
+					$isRelativePosition = false;
+				}
+
 
 				switch ($pathMatches[1][$index]) {
 					case 'v':
@@ -145,10 +158,15 @@ class Stroke extends Model
 					];
 					if ($offCurveCount <= 0) {
 						$isOnCurvePoint = true;
-						$cList = self::svgCtoQ(['x'=>$prevX, 'y'=>$prevY], $spline);
-						foreach ($cList as $c) {
-							$pathParams[] = $c[1];
-							$pathParams[] = $c[2];
+						if (count($spline) <= 2) {
+							$pathParams[] = $spline[0];
+							$pathParams[] = $spline[1];
+						} else {
+							$cList = self::svgCtoQ(['x'=>$prevX, 'y'=>$prevY], $spline);
+							foreach ($cList as $c) {
+								$pathParams[] = $c[1];
+								$pathParams[] = $c[2];
+							}
 						}
 						// foreach ($spline as $p) {
 						// 	$pathParams[] = $p;
