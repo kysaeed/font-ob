@@ -51,8 +51,8 @@ class Outline
 					$composed = $base->composeXor($addition);
 					if (!is_null($composed)) {
 						$isComposed = true;
-						$_nextClockwise = array_merge($_nextClockwise, $composed['base']);
-						$_nextAniticock = array_merge($_nextAniticock, $composed['addition']);
+						$_nextClockwise = array_merge($_nextClockwise, $composed[0]);
+						$_nextAniticock = array_merge($_nextAniticock, $composed[1]);
 					} else {
 						// TODO: base / addition の shapeが XOR関係になるようにする
 						$_nextClockwise[] = $base;
@@ -77,7 +77,7 @@ class Outline
 				if (!$isComposed) {
 					$composed = $c->composeXor($c2);
 					if (!is_null($composed)) {
-						$composed = $composed['base'][0];
+						$composed = $composed[0][0];
 					}
 
 					if (!is_null($composed)) {

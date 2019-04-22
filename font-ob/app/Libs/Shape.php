@@ -270,12 +270,7 @@ class Shape
 //	echo TestController::testOutlineToSvg([$s], true, $crossPointList);
 //}
 
-//		return $composed;
-
-		return [
-			'base' => $composed[0],
-			'addition' => $composed[1],
-		];
+		return $composed;
 	}
 
 
