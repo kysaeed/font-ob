@@ -21,8 +21,7 @@ class Shape
 
 	public function slice()
 	{
-		$shapeInfo = self::insertSelfCorssPointToShape($this->points);
-//dump($shapeInfo);
+		$shapeInfo = $this->insertSelfCorssPointToShape();
 		$slicedShapeList = [];
 
 		$points = $shapeInfo['shape'];
@@ -30,7 +29,6 @@ class Shape
 		$pointsCount = count($points);
 		$isPointPassedList = [];
 
-//dd($points);
 		foreach ($infos as $i => $s) {
 			$p = $points[$i];
 			if (($s > -1) || (!$p['isOnCurvePoint'])) {
@@ -396,8 +394,10 @@ class Shape
 		return $corssInfoList;
 	}
 
-	protected static function insertSelfCorssPointToShape($pointList)
+	protected function insertSelfCorssPointToShape()
 	{
+		$pointList = $this->points;
+
 		$pointsCount = count($pointList);
 		$corssToList = array_fill(0, $pointsCount, []);
 
@@ -417,7 +417,7 @@ class Shape
 				continue;
 			}
 
-			$crossInfo = self::getSelfCrossInfoList($pointList, $index, $corssToList[$index]);
+			$crossInfo = $this->getSelfCrossInfoList($index, $corssToList[$index]);
 			if (!empty($crossInfo)) {
 
 				foreach ($crossInfo['crossPoints'] as $cp) {
@@ -606,8 +606,11 @@ class Shape
 		];
 	}
 
-	protected static function getSelfCrossInfoList($shapePointList, $index, $ignoreIndexList = [])
+	protected function getSelfCrossInfoList($index, $ignoreIndexList = [])
 	{
+
+		$shapePointList = $this->points;
+
 //echo "<h3>getSelfCrossInfoList(list, index={$index}, ignore)</h3>";
 //dump(compact('ignoreIndexList'));
 		$pointsCount = count($shapePointList);
