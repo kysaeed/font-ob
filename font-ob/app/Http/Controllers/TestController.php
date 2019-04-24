@@ -51,8 +51,9 @@ class TestController extends Controller
 die;
 		self::testStrokeToFromDatabase();
 
-
 		self::testCurveOutlinePenetrate();
+
+
 
 		self::testOutlineCurveSelfCross();
 
@@ -462,6 +463,11 @@ die;
 					],
 					[
 						'x' => 100,
+						'y' => 30,
+						'isOnCurvePoint' => false,
+					],
+					[
+						'x' => 100,
 						'y' => 65,
 						'isOnCurvePoint' => true,
 					],
@@ -473,12 +479,12 @@ die;
 			[
 				'path' => [
 					[
-						'x' => 50,
+						'x' => 102,
 						'y' => 10,
 						'isOnCurvePoint' => true,
 					],
 					[
-						'x' => 50,
+						'x' => 52,
 						'y' => 120,
 						'isOnCurvePoint' => true,
 					],

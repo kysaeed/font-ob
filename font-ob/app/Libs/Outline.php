@@ -20,7 +20,6 @@ class Outline
 		return $this->shapes;
 	}
 
-
 	public function getOutlineFromStroke($strokes)
 	{
 		$shapeList = self::strokeToShapeList($strokes);
@@ -54,7 +53,6 @@ class Outline
 						$_nextClockwise = array_merge($_nextClockwise, $composed[0]);
 						$_nextAniticock = array_merge($_nextAniticock, $composed[1]);
 					} else {
-						// TODO: base / addition の shapeが XOR関係になるようにする
 						$_nextClockwise[] = $base;
 						$_nextAniticock[] = $addition;
 					}
@@ -76,13 +74,9 @@ class Outline
 			foreach ($_next as $c2) {
 				if (!$isComposed) {
 					$composed = $c->composeXor($c2);
-					if (!is_null($composed)) {
-						$composed = $composed[0][0];
-					}
-
-					if (!is_null($composed)) {
+					if (!empty($composed)) {
 						$isComposed = true;
-						$clockwiseShapeList[] = $composed;
+						$clockwiseShapeList[] = $composed[0][0]; // todo: [0]でなく一番外側のシェイプを追加するように修正
 					} else {
 						$_nextNext[] = $c2;
 					}
