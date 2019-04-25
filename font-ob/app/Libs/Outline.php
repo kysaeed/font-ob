@@ -15,11 +15,6 @@ class Outline
 		$this->shapes = $this->getOutlineFromStroke($strokes);
 	}
 
-	public function getShapes()
-	{
-		return $this->shapes;
-	}
-
 	public function getOutlineFromStroke($strokes)
 	{
 		$shapeList = self::strokeToShapeList($strokes);
@@ -39,6 +34,13 @@ class Outline
 				$anticlockwiseShapeList[] = $shape;
 			}
 		}
+
+//echo '<h4 >anti-clock</h4>';
+//foreach ($anticlockwiseShapeList as $cws) {
+//	echo '<svg>';
+//	echo $cws->toSvg();
+//	echo '</svg>';
+//}
 
 		$_nextClockwise = [];
 		foreach ($clockwiseShapeList as $base) {
@@ -63,6 +65,8 @@ class Outline
 			}
 		}
 		$clockwiseShapeList = $_nextClockwise;
+echo '<hr />';
+
 
 		// 時計回りシェイプの合成
 		$_next = [];
@@ -73,10 +77,21 @@ class Outline
 			$_nextNext = [];
 			foreach ($_next as $c2) {
 				if (!$isComposed) {
-					$composed = $c->composeXor($c2);
+					$composed = $c->compose($c2);
 					if (!empty($composed)) {
+
+//echo '<h4>$composed</h4>';
+//foreach ($composed as $cws) {
+//
+//	echo '<svg>';
+//	echo $cws->toSvg();
+//	echo '</svg>';
+//}
+//echo '<hr />';
+
+
 						$isComposed = true;
-						$clockwiseShapeList[] = $composed[0][0]; // todo: [0]でなく一番外側のシェイプを追加するように修正
+						$clockwiseShapeList = array_merge($clockwiseShapeList, $composed);
 					} else {
 						$_nextNext[] = $c2;
 					}
@@ -91,6 +106,14 @@ class Outline
 			$_next = $_nextNext;
 		}
 		$clockwiseShapeList = $_next;
+
+//echo '<h4>clock</h4>';
+//foreach ($clockwiseShapeList as $cws) {
+//	echo '<svg>';
+//	echo $cws->toSvg();
+//	echo '</svg>';
+//}
+//echo '<hr />';
 
 		$this->shapes = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
 		$outline = $this->removeLostedShape();

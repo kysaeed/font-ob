@@ -443,11 +443,106 @@ die;
 				'path' => [
 					[
 						'x' => 104,
+						'y' => 30,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 35,
+						'y' => 30,
+						'isOnCurvePoint' => true,
+					],
+//					[
+//						'x' => 35,
+//						'y' => 65,
+//						'isOnCurvePoint' => true,
+//					],
+					[
+						'x' => 35,
+						'y' => 80,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 100,
+						'y' => 80,
+						'isOnCurvePoint' => true,
+					],
+
+				],
+				'isClosed' => true,
+			],
+
+			[
+				'path' => [
+					[
+						'x' => 80,
+						'y' => 10,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 70,
+						'y' => 120,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => false,
+			],
+
+		];
+
+
+		echo self::testStrokeToSvg($stroke);
+		echo '<br />';
+
+
+		$outline = new \FontObscure\Libs\Outline($stroke);
+
+
+		$sl = [];
+		foreach ($outline->shapes as $s) {
+			$sl[] = $s->points;
+		}
+
+		echo self::testOutlineToSvg($sl);
+
+		echo '<hr />';
+		echo self::testOutlineToSvg($sl, false);
+
+
+//		$slc = $sl[1]->compose($sl[2]);
+
+
+//		echo self::testOutlineToSvg($outline->shapes, false);
+
+//		if (!is_null($slc)) {
+//			echo '<hr />';
+//			echo self::testOutlineToSvg([$slc->getPoints()]);
+//		}
+
+
+		echo '<hr />';
+	}
+
+	public static function testShapeClassPenetrate()
+	{
+		echo '<h1>Shapeクラス</h1>';
+
+
+//		$svg = '<svg width="100" height="100">';
+//		$svg .= ' <path d="M0,0 C0,100 100,100 100,0" fill="none" stroke="red"/>';
+//		$svg .= '</svg>';
+//		$st = Stroke::createFromSvg($svg);
+//		dd($st->data);
+
+		$stroke = [
+			[
+				'path' => [
+					[
+						'x' => 104,
 						'y' => 62,
 						'isOnCurvePoint' => true,
 					],
 					[
-						'x' => 65,
+						'x' => 35,
 						'y' => 100,
 						'isOnCurvePoint' => true,
 					],
