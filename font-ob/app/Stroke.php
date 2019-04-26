@@ -75,6 +75,292 @@ class Stroke extends Model
 
 	public static function parsePathSvg($svg)
 	{
+		$points = [];
+
+		$d = [];
+		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
+			$pathMatches = [];
+			preg_match_all('/([MmCcSsQqVvHh]\s?)?((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches);
+
+			$prev = [
+				'x' => 0,
+				'y' => 0,
+			];
+
+			$prevC = null;
+			$prevS = null;
+
+
+			$isRelativePosition = false;
+			$count = count($pathMatches[0]);
+			for ($index = 0; $index < $count; $index++) {
+				$command = $pathMatches[1][$index];
+dump($pathMatches[0][$index]);
+				switch ($command) {
+					case 'C':
+					case 'c':
+						$pointList = self::parsePathSvgCommandC($index, $prev,  $isRelativePosition, $pathMatches, $prevC);
+						$points = array_merge($points, $pointList);
+
+						break;
+
+					case 'S':
+					case 's':
+						$pointList = self::parsePathSvgCommandS($index, $prev,  $isRelativePosition, $pathMatches, $prevC);
+						$points = array_merge($points, $pointList);
+						break;
+					case 'Q':
+					case 'q':
+						$pointList = self::parsePathSvgCommandQ($index, $prev, $isRelativePosition, $pathMatches);
+						$points = array_merge($points, $pointList);
+						break;
+
+					case 'H':
+					case 'h':
+						$pointList = self::parsePathSvgCommandH($index, $prev, $isRelativePosition, $pathMatches);
+						break;
+
+					case 'V':
+					case 'v':
+						$points[] = self::parsePathSvgCommandV($index, $prev, $isRelativePosition, $pathMatches);
+						break;
+
+					case 'M':
+					default:
+						$points[] = self::parsePathSvgPoint($index, $prev, $isRelativePosition, $pathMatches);
+						break;
+				}
+//dump($points);
+
+			}
+
+
+			$isClosed = preg_match('/[zZ]\s*$/', $d[1]);
+			return [
+				'path' => $points,
+				'isClosed' => $isClosed,
+			];
+		}
+
+		return self::_parsePathSvg($svg);
+	}
+
+	public static function parsePathSvgPoint(&$index, &$prev, &$isRelativePosition, $pathMatches)
+	{
+		if ($isRelativePosition) {
+			$point = [
+				'x' => (float)$pathMatches[3][$index] + $prev['x'],
+				'y' => (float)$pathMatches[4][$index] + $prev['y'],
+				'isOnCurvePoint' => true,
+			];
+		} else {
+			$point = [
+				'x' => (float)$pathMatches[3][$index],
+				'y' => (float)$pathMatches[4][$index],
+				'isOnCurvePoint' => true,
+			];
+		}
+
+		$prev = [
+			'x' => $point['x'],
+			'y' => $point['y'],
+		];
+
+		return $point;
+	}
+
+	public static function parsePathSvgCommandH(&$index, &$prev, &$isRelativePosition, $pathMatches)
+	{
+		if ($pathMatches[1][$index] == 'H') {
+			$point = [
+				'x' => (float)$pathMatches[3][$index],
+				'y' => $prev['y'],
+				'isOnCurvePoint' => true,
+			];
+			$isRelativePosition = false;
+		} else {
+			$point = [
+				'x' => (float)$pathMatches[3][$index] + $prev['x'],
+				'y' => $prev['y'],
+				'isOnCurvePoint' => true,
+			];
+			$isRelativePosition = true;
+		}
+
+		$prev = [
+			'x' => $point['x'],
+			'y' => $point['y'],
+		];
+
+		return $point;
+	}
+
+	public static function parsePathSvgCommandV(&$index, &$prev, &$isRelativePosition, $pathMatches)
+	{
+		if ($pathMatches[1][$index] == 'V') {
+			$point = [
+				'x' => $prev['x'],
+				'y' => (float)$pathMatches[3][$index],
+				'isOnCurvePoint' => true,
+			];
+			$isRelativePosition = false;
+		} else {
+			$point = [
+				'x' => $prev['x'],
+				'y' => (float)$pathMatches[3][$index] + $prev['y'],
+				'isOnCurvePoint' => true,
+			];
+			$isRelativePosition = true;
+		}
+
+		$prev = [
+			'x' => $point['x'],
+			'y' => $point['y'],
+		];
+
+		return $point;
+	}
+
+	public static function parsePathSvgCommandC(&$index, &$prev, &$isRelativePosition, $pathMatches, &$prevC)
+	{
+		$points = [];
+		if ($pathMatches[1][$index] == 'C') {
+			$isRelativePosition = false;
+			for ($i = 0; $i < 3; $i++) {
+				$points[] = [
+					'x' => (float)$pathMatches[3][$index + $i],
+					'y' => (float)$pathMatches[4][$index + $i],
+				];
+			}
+		} else {
+			$isRelativePosition = true;
+			for ($i = 0; $i < 3; $i++) {
+				$points[] = [
+					'x' => (float)$pathMatches[3][$index + $i] + $prev['x'],
+					'y' => (float)$pathMatches[4][$index + $i] + $prev['y'],
+				];
+			}
+		}
+
+		$index += 2;
+
+		$curves = self::svgCtoQ($prev, $points);
+		$prevC = $points[1];
+		$prev = $points[2];
+
+		return [
+			[
+				'x' => $curves[0][1]['x'],
+				'y' => $curves[0][1]['y'],
+				'isOnCurvePoint' => false,
+			],
+			[
+				'x' => $curves[0][2]['x'],
+				'y' => $curves[0][2]['y'],
+				'isOnCurvePoint' => true,
+			],
+			[
+				'x' => $curves[1][1]['x'],
+				'y' => $curves[1][1]['y'],
+				'isOnCurvePoint' => false,
+			],
+			[
+				'x' => $curves[1][2]['x'],
+				'y' => $curves[1][2]['y'],
+				'isOnCurvePoint' => true,
+			],
+		];
+	}
+
+	public static function parsePathSvgCommandS(&$index, &$prev, &$isRelativePosition, $pathMatches, $prevC)
+	{
+		$points = [];
+
+
+		$points[] = [
+			'x' => $prev['x'] - ($prevC['x'] - $prev['x']),
+			'y' => $prev['y'] - ($prevC['y'] - $prev['y']),
+		];
+
+
+		if ($pathMatches[1][$index] == 'S') {
+			$isRelativePosition = false;
+			for ($i = 0; $i < 2; $i++) {
+				$points[] = [
+					'x' => (float)$pathMatches[3][$index + $i],
+					'y' => (float)$pathMatches[4][$index + $i],
+				];
+			}
+		} else {
+			$isRelativePosition = true;
+			for ($i = 0; $i < 2; $i++) {
+				$points[] = [
+					'x' => (float)$pathMatches[3][$index + $i] + $prev['x'],
+					'y' => (float)$pathMatches[4][$index + $i] + $prev['y'],
+				];
+			}
+		}
+
+		$index += 2;
+
+		$curves = self::svgCtoQ($prev, $points);
+		$prev = $points[2];
+
+		return [
+			[
+				'x' => $curves[0][1]['x'],
+				'y' => $curves[0][1]['y'],
+				'isOnCurvePoint' => true,
+			],
+			[
+				'x' => $curves[0][2]['x'],
+				'y' => $curves[0][2]['y'],
+				'isOnCurvePoint' => true,
+			],
+			[
+				'x' => $curves[1][1]['x'],
+				'y' => $curves[1][1]['y'],
+				'isOnCurvePoint' => true,
+			],
+			[
+				'x' => $curves[1][2]['x'],
+				'y' => $curves[1][2]['y'],
+				'isOnCurvePoint' => true,
+			],
+		];
+	}
+
+	public static function parsePathSvgCommandQ(&$index, &$prev, &$isRelativePosition, $pathMatches)
+	{
+		$points = [];
+		if ($pathMatches[1][$index] == 'Q') {
+			$isRelativePosition = false;
+			for ($i = 0; $i < 2; $i++) {
+				$points[] = [
+					'x' => (float)$pathMatches[3][$index + $i],
+					'y' => (float)$pathMatches[4][$index + $i],
+					'isOnCurvePoint' => ($i == 1),
+				];
+			}
+		} else {
+			$isRelativePosition = true;
+			for ($i = 0; $i < 2; $i++) {
+				$points[] = [
+					'x' => (float)$pathMatches[3][$index + $i] + $prev['x'],
+					'y' => (float)$pathMatches[4][$index + $i] + $prev['y'],
+					'isOnCurvePoint' => ($i == 1),
+				];
+			}
+		}
+
+		$index += 1;
+		$prev = $points[1];
+
+		return $points;
+	}
+
+	public static function _parsePathSvg($svg)
+	{
 		$pathParams = [];
 		$d = [];
 		if (preg_match('/\s+d=["\|\'](.[^"]*)/', $svg, $d)) {
