@@ -95,7 +95,7 @@ class Stroke extends Model
 			$count = count($pathMatches[0]);
 			for ($index = 0; $index < $count; $index++) {
 				$command = $pathMatches[1][$index];
-dump($pathMatches[0][$index]);
+//dump($pathMatches[0][$index]);
 				switch ($command) {
 					case 'C':
 					case 'c':
@@ -556,6 +556,33 @@ dump($pathMatches[0][$index]);
 			'x' => ($s['x'] * pow(1 - $t, 3)) + ($a['x'] * (pow(1 - $t, 2) * 3) * $t) + ($b['x'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['x'] * pow($t, 3)),
 			'y' => ($s['y'] * pow(1 - $t, 3)) + ($a['y'] * (pow(1 - $t, 2) * 3) * $t) + ($b['y'] * (pow($t, 2) * 3 * (1 - $t))) + ($e['y'] * pow($t, 3)),
 		];
+	}
+
+	public function toSvg()
+	{
+		$s = '<svg>';
+		$sc = '';
+
+		foreach ($this->data as $line) {
+			$s .= '<path d="M ';
+			$cCount = 0;
+			foreach ($line['path'] as $index => $l) {
+				if (!$l['isOnCurvePoint']) {
+					if ($cCount == 0) {
+						$cCount = 2;
+						$s .= "Q";
+					}
+				}
+				if ($cCount > 0) {
+					$cCount--;
+				}
+
+				$s .= "{$l['x']},{$l['y']} ";
+			}
+			$s .= '" fill="none" stroke="blue" stroke-width="1" />';
+		}
+		$s .= $sc.'</svg>';
+		return $s;
 	}
 
 	protected $fillable = [

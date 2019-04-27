@@ -873,8 +873,9 @@ class Shape
 					}
 
 				} else {
-//
-//					$end = $addition->points[($i + 2) % $additionCount];
+//echo '<h1>bezier-bezier</h1>';
+
+////					$end = $addition->points[($i + 2) % $additionCount];
 //
 //					// TODO:  曲線に対応
 //	//				$cp = self::getCrossPointEx($v, [$p, $next]);
@@ -1462,7 +1463,7 @@ class Shape
 			$svg .= "{$p['x']},{$p['y']} ";
 		}
 
-		$svg .= "{$this->points[0]['x']},{$this->points[0]['y']} ";
+//		$svg .= "{$this->points[0]['x']},{$this->points[0]['y']} ";
 		$svg .= 'z';
 		$svg .= '" fill="'.'rgba(200, 200, 200, 0.4)'.'" stroke="#000000" stroke-width="1" />';
 

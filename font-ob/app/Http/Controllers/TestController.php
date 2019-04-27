@@ -24,6 +24,7 @@ class TestController extends Controller
 		$s .= '<path d="M68,40 c-8.337,27.624 -28.133,45 -43,45 c-7.852,0 -13,-4.894 -13,-15 c0,-17.828 17.78,-32 43,-32 C76.039,38 88,48.227 88,63 C88,76.87 77.755,86.868 60,90" fill="none" stroke="#000000" stroke-width="2" />';
 		$s .= '</svg>';
 
+
 //		$s = '<svg>';
 //		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="14" x2="86" y1="21" y2="21" />';
 //		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="38" x2="38" y1="6" y2="81" />';
@@ -45,17 +46,24 @@ class TestController extends Controller
 
 	public function test(Request $request)
     {
+		self::testOutlineShi();
 
 		self::testShapeClass();
 
+
 die;
+
 		self::testStrokeToFromDatabase();
 
 		self::testCurveOutlinePenetrate();
 
 
+		self::testOutlineMa();
 
-		self::testOutlineCurveSelfCross();
+		self::testOutlineA();
+
+//
+//		self::testOutlineCurveSelfCross();
 
 //		self::testBezierSlice();
 
@@ -71,18 +79,14 @@ die;
 		// self::testOutlineMaya();
 
 
-		self::testOutlineSelfCross();
-
-		self::testOutlineMa();
-
-		self::testOutlineA();
+//		self::testOutlineSelfCross();
+//
+//
 
 		// self::testOutlinePenetrate();
 
 
 
-
-		dd('OK');
 
 		//
 		// $glyph = new TtfGlyph([
@@ -410,19 +414,51 @@ die;
 		return 'hello !';
     }
 
+	public static function testOutlineShi()
+	{
+
+		echo '<hr />ストローク @shi <br />';
+		$shi = '<svg>';
+		$shi .= '<path d="M18,90 c-3.537,-13.203 -5,-24.992 -5,-40 s1.463,-26.797 5,-40" fill="none" stroke="#000000" stroke-width="2" />';
+		$shi .= '<line fill="none" stroke="#000000" stroke-width="2" x1="94" x2="36" y1="30" y2="30" />';
+		$shi .= '<path d="M51,89 c19.62,-5.258 24,-10.913 24,-40 v-40.0" fill="none" stroke="#000000" stroke-width="2" />';
+		$shi .= '</svg>';
+
+
+//		$shi = '<svg>';
+//		$shi .= ' <path d="M86,57 c-10.481,21.489 -24.904,32 -39,32 c-13.079,0 -21,-8.539 -21,-28 c0,-16.818 2,-32.069 2,-50" fill="none" stroke="black"/>';
+//		$shi .= '</svg>';
+
+		echo $shi;
+
+		$stroke = Stroke::createFromSvg($shi);
+		echo $stroke->toSvg();
+
+		$outline = new \FontObscure\Libs\Outline($stroke->data);
+		echo $outline->toSvg();
+
+	}
+
 	public static function testStrokeToFromDatabase()
 	{
-		echo '<h1>testStrokeToA</h1>';
+		echo '<h1>testStrokeToFromDatabase</h1>';
 
 
 		$st = Stroke::find(1);
 
 		$outline = new \FontObscure\Libs\Outline($st->data);
 
-		dump($outline->getShapes());
+		dump($outline->shapes);
 
 
-		echo self::testOutlineToSvg($outline->getShapes(), false);
+//		echo self::testOutlineToSvg($outline->getShapes(), false);
+
+		echo '<svg>';
+		foreach ($outline->shapes as $s) {
+			echo $s->toSvg();
+		}
+
+		echo '</svg>';
 
 
 	}
@@ -1542,58 +1578,60 @@ echo 'SVG<br />'.$s.'<br />';
 // echo $s.'<br />';
 
 		$stroke = self::parseStrokeSvg($s);
-		$outline = self::getOutlineFromStroke($stroke);
-
-		echo self::testOutlineToSvg($outline);
-
-// dd($outline);
-		$o = [];
-		foreach ($outline as $contour) {
-			$c = [];
-			foreach ($contour as $i => $point) {
-				$flags = 0;
-				if ($point['isOnCurvePoint']) {
-					$flags |= 0x01;
-				}
-				if ($i == 0) {
-					$flags |= 0x01;
-				}
-// $flags = 0x01;
-
-				$c[] = [
-					'x' => $point['x'] * 10,
-					'y' => 500 - $point['y'] * 10,
-					'flags' => $flags,
-				];
-			}
-			if (count($c) > 0) {
-				$o[] = $c;
-			}
-		}
-
-		echo '<h1>結果</h1>';
+		$outline = new \FontObscure\Libs\Outline($stroke);
 
 
-		$hm = new TtfHorizontalMetrix([
-			'advance_width' => 1200,
-			'lsb' => 20,
-		]);
 
-		$g = new TtfGlyph([
-			'glyph_index' => 1,
-			'number_of_contours' => count($o),
-			'x_min' => 0,
-			'y_min' => 0,
-			'x_max' => 300,
-			'y_max' => 300,
-			'coordinates' => $o,
-			'instructions' => [],
-		]);
-
-// dd($g->coordinates);
-		$s = new GlyphSvg($g, $hm);
-		echo '<h1>GlyphSvg</h1>';
-		echo $s->getSvg();
+		dd($outline->shapes);
+//
+//// dd($outline);
+//		$o = [];
+//		foreach ($outline as $contour) {
+//			$c = [];
+//			foreach ($contour as $i => $point) {
+//				$flags = 0;
+//				if ($point['isOnCurvePoint']) {
+//					$flags |= 0x01;
+//				}
+//				if ($i == 0) {
+//					$flags |= 0x01;
+//				}
+//// $flags = 0x01;
+//
+//				$c[] = [
+//					'x' => $point['x'] * 10,
+//					'y' => 500 - $point['y'] * 10,
+//					'flags' => $flags,
+//				];
+//			}
+//			if (count($c) > 0) {
+//				$o[] = $c;
+//			}
+//		}
+//
+//		echo '<h1>結果</h1>';
+//
+//
+//		$hm = new TtfHorizontalMetrix([
+//			'advance_width' => 1200,
+//			'lsb' => 20,
+//		]);
+//
+//		$g = new TtfGlyph([
+//			'glyph_index' => 1,
+//			'number_of_contours' => count($o),
+//			'x_min' => 0,
+//			'y_min' => 0,
+//			'x_max' => 300,
+//			'y_max' => 300,
+//			'coordinates' => $o,
+//			'instructions' => [],
+//		]);
+//
+//// dd($g->coordinates);
+//		$s = new GlyphSvg($g, $hm);
+//		echo '<h1>GlyphSvg</h1>';
+//		echo $s->getSvg();
 
 	}
 
@@ -1720,62 +1758,36 @@ echo $s.'<br />';
 
 
 		$stroke = self::parseStrokeSvg($s);
-		echo self::testStrokeToSvg($stroke);
-
-// dd($stroke);
-		$outline = self::getOutlineFromStroke($stroke);
+		$outline = new \FontObscure\Libs\Outline($stroke);
 
 
-		echo self::testOutlineToSvg($outline);
+		echo $outline->toSvg();
+dd($outline->toSvg());
 
-// dd($outline);
-		$o = [];
-		foreach ($outline as $contour) {
-			$c = [];
-			foreach ($contour as $i => $point) {
-				$flags = 0;
-				if ($point['isOnCurvePoint']) {
-					$flags |= 0x01;
-				}
-				if ($i == 0) {
-					$flags |= 0x01;
-				}
-// $flags = 0x01;
-
-				$c[] = [
-					'x' => $point['x'] * 10,
-					'y' => 500 - $point['y'] * 10,
-					'flags' => $flags,
-				];
-			}
-			if (count($c) > 0) {
-				$o[] = $c;
-			}
-		}
 
 		echo '<h1>結果</h1>';
 
-
-		$hm = new TtfHorizontalMetrix([
-			'advance_width' => 1200,
-			'lsb' => 20,
-		]);
-
-		$g = new TtfGlyph([
-			'glyph_index' => 1,
-			'number_of_contours' => count($o),
-			'x_min' => 0,
-			'y_min' => 0,
-			'x_max' => 300,
-			'y_max' => 300,
-			'coordinates' => $o,
-			'instructions' => [],
-		]);
-
-// dd($g->coordinates);
-		$s = new GlyphSvg($g, $hm);
-		echo '<h1>GlyphSvg</h1>';
-		echo $s->getSvg();
+//
+//		$hm = new TtfHorizontalMetrix([
+//			'advance_width' => 1200,
+//			'lsb' => 20,
+//		]);
+//
+//		$g = new TtfGlyph([
+//			'glyph_index' => 1,
+//			'number_of_contours' => count($o),
+//			'x_min' => 0,
+//			'y_min' => 0,
+//			'x_max' => 300,
+//			'y_max' => 300,
+//			'coordinates' => $o,
+//			'instructions' => [],
+//		]);
+//
+//// dd($g->coordinates);
+//		$s = new GlyphSvg($g, $hm);
+//		echo '<h1>GlyphSvg</h1>';
+//		echo $s->getSvg();
 
 	}
 
@@ -2095,6 +2107,7 @@ echo $s.'<br />';
 					default:
 						$x = (float)$pathMatches[3][$index];
 						$y = (float)$pathMatches[4][$index];
+
 						if ($isRelativePosition) {
 							$x += $prevX;
 							$y += $prevY;
@@ -2123,9 +2136,6 @@ echo $s.'<br />';
 								$pathParams[] = $c[2];
 							}
 						}
-						// foreach ($spline as $p) {
-						// 	$pathParams[] = $p;
-						// }
 
 						$prevX = $x;
 						$prevY = $y;
