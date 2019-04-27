@@ -560,29 +560,31 @@ class Stroke extends Model
 
 	public function toSvg()
 	{
-		$s = '<svg>';
-		$sc = '';
-
+		$svg = '<svg>';
 		foreach ($this->data as $line) {
-			$s .= '<path d="M ';
+			$svg .= '<path d="M ';
 			$cCount = 0;
-			foreach ($line['path'] as $index => $l) {
-				if (!$l['isOnCurvePoint']) {
-					if ($cCount == 0) {
-						$cCount = 2;
-						$s .= "Q";
-					}
-				}
-				if ($cCount > 0) {
-					$cCount--;
-				}
 
-				$s .= "{$l['x']},{$l['y']} ";
+			$count = count($line['path']);
+			for ($index = 0; $index < $count; $index++) {
+				$p = $line['path'][$index];
+				$next = $line['path'][($index + 1) % $count];
+
+				if ($p['isOnCurvePoint']) {
+					if ($index != 0) {
+						$svg .= 'L';
+					}
+					$svg .= "{$p['x']},{$p['y']} ";
+				} else {
+					$svg .= "Q {$p['x']},{$p['y']} ";
+					$svg .= "{$next['x']},{$next['y']} ";
+					$index++;
+				}
 			}
-			$s .= '" fill="none" stroke="blue" stroke-width="1" />';
+			$svg .= '" fill="none" stroke="blue" stroke-width="1" />';
 		}
-		$s .= $sc.'</svg>';
-		return $s;
+		$svg .= '</svg>';
+		return $svg;
 	}
 
 	protected $fillable = [
