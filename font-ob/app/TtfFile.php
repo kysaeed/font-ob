@@ -63,10 +63,10 @@ class TtfFile extends Model
 
         $glyfData = [
             'header' => [
-                 "xMin" => $g->xMin,
-                 "yMin" => $g->yMin,
-                 "xMax" => $g->xMax,
-                 "yMax" => $g->yMax,
+                 'xMin' => $g->xMin,
+                 'yMin' => $g->yMin,
+                 'xMax' => $g->xMax,
+                 'yMax' => $g->yMax,
             ],
             'coordinates' => $g->coordinates,
             'instructions' => $g->instructions,
