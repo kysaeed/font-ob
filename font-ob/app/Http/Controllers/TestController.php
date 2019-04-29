@@ -451,8 +451,13 @@ die;
 echo $st->toSvg();
 
 		$outline = new \FontObscure\Libs\Outline($st->data);
+		foreach ($outline->shapes as $s) {
+			echo '<svg>';
+			echo $s->toSvg();
+			echo '</svg>';
+		}
 
-		echo $outline->toSvg(false);
+		echo $outline->toSvg(true);
 
 		dump($outline->shapes);
 

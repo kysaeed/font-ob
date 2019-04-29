@@ -69,10 +69,10 @@ class Shape
 
 	public function compose($addition)
 	{
-//echo '<h1>composeXor</h1>';
-//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$this->points]);
-//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$addition->points]);
-//echo '<hr />';
+echo '<h1>compose</h1>';
+echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$this->points]);
+echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$addition->points]);
+echo '<hr />';
 
 		$baseInfo = [];
 		foreach ($this->points as $p) {
@@ -105,7 +105,6 @@ class Shape
 			if (!$baseInfo[$oc]['point']['isOnCurvePoint']) {
 				continue;
 			}
-
 			$crossList = $this->getCorssInfoListByShape($oc, $addition);
 			if (!empty($crossList)) {
 				$crossCount += count($crossList);
@@ -160,6 +159,17 @@ class Shape
 //////////////////////////////////
 
 //echo "cross-count={$crossCount}<br />";
+//echo '<svg>';
+//echo $this->toSvg();
+//echo $addition->toSvg();
+//foreach ($baseInfo as $list) {
+//	foreach ($list['crossInfo'] as $c) {
+//		$p = $c['point'];
+//		echo "<circle cx='{$p['x']}' cy='{$p['y']}' r='3' fill='green'>";
+//	//	dump($p);
+//	}
+//}
+//echo '</svg>';
 
 		if ($crossCount < 2) {
 			return null;
@@ -835,7 +845,6 @@ class Shape
 	//				$cp = self::getCrossPointEx($v, [$p, $next]);
 
 					$cpList = self::getBezier2CrossPoint([$p, $next, $end], $v);
-
 					if (!empty($cpList)) {
 						foreach ($cpList as $cp) {
 							$corssInfoList[] =[
@@ -906,7 +915,7 @@ class Shape
 				}
 			}
 		}
-
+//dump(compact('corssInfoList'));
 		return $corssInfoList;
 	}
 
@@ -1350,7 +1359,6 @@ class Shape
 			$length = self::getLineLength($line ,$point);
 
 			if (($length >= 0.0) && ($length < 1.0)) {
-//echo "len: {$length}<br />";
 				$crossPointList[] = [
 					'point' => $point,
 					'bezierLength' => $t,
@@ -1372,26 +1380,59 @@ class Shape
 		];
 	}
 
+	public static function getCrossPointByInfLine($v1, $v2)
+	{
+		$a = self::crossProduct(
+			[$v2[0], $v1[0]],
+			$v2
+		) /* / 2 */;
+
+		$b = self::crossProduct(
+			$v2,
+			[$v2[0], $v1[1]]
+		) /* / 2 */;
+
+		$ab = ($a + $b);
+
+// dump("a = {$a}");
+// dump("b = {$b}");
+// dump("ab = {$ab}");
+
+		if (!$ab) {
+			return null;
+		}
+
+		$crossVectorLengthBase = ($a / $ab);
+// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
+//		if (($crossVectorLengthBase < 0)) {
+//			return null;
+//		}
+
+		$crossed = [
+			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
+			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+			'length' => $crossVectorLengthBase,
+		];
+
+		return $crossed;
+	}
+
 	protected static function getLineLength($line, $point)
 	{
-		$v = [
-			'x' => (float)($line[1]['x'] - $line[0]['x']),
-			'y' => (float)($line[1]['y'] - $line[0]['y']),
+		$vector = [
+			'x' => $point['x'] - $line[0]['x'],
+			'y' => $point['y'] - $line[0]['y'],
+		];
+		$ray = [
+			$point,
+			[
+				'x' => ($vector['y']),
+				'y' => -($vector['x']),
+			]
 		];
 
-		$p = [
-			'x' => (float)($point['x'] - $line[0]['x']),
-			'y' => (float)($point['y'] - $line[0]['y']),
-		];
-
-		if ($v['x'] != 0) {
-			return ($p['x'] / $v['x']);
-		}
-		if ($v['y'] != 0) {
-			return ($p['y'] / $v['y']);
-		}
-
-		return 0;
+		$cross = self::getCrossPointByInfLine($line, $ray);
+		return $cross['length'];
 	}
 
 	public static function crossProduct($v1, $v2)
@@ -1613,11 +1654,22 @@ class Shape
 
 	public function toSvgPath()
 	{
+		if (empty($this->points)) {
+			return '';
+		}
+
 		$svg = 'M ';
 		$curveCount = 0;
+		$count = count($this->points);
+
 		foreach ($this->points as $index => $p) {
 			if (!$p['isOnCurvePoint']) {
 				if ($curveCount == 0) {
+					if ($index == 0) {
+						$s = $this->points[$count - 1];
+						$svg .= "{$s['x']},{$s['y']} ";
+					}
+
 					$svg .= "Q";
 					$curveCount = 2;
 				}
@@ -1628,6 +1680,7 @@ class Shape
 					}
 				}
 			}
+
 			if ($curveCount > 0) {
 				$curveCount--;
 			} else{
@@ -1635,6 +1688,12 @@ class Shape
 					// dd('ばぐったー!');
 				}
 			}
+			$svg .= "{$p['x']},{$p['y']} ";
+		}
+
+		$p = $this->points[$count - 1];
+		if (!$p['isOnCurvePoint']) {
+			$p = $this->points[0];
 			$svg .= "{$p['x']},{$p['y']} ";
 		}
 
