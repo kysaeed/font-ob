@@ -40,13 +40,38 @@ class TestController extends Controller
 
 		dump($stroke->data);
 
+		$s = '<svg>';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="84" x2="16" y1="40" y2="40" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="87" x2="13" y1="20" y2="20" />';
+		$s .= '<path d="M57,6 v63.0 c0,15.188 -5.467,20 -18,20 c-11.587,0 -19,-5.989 -19,-15 c0,-8.021 6.047,-13 19,-13 c9.891,0 24.002,6.69 45,24" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
+
+		echo $s;
+
+		$stroke = Stroke::createFromSvg($s, 2);
+		$stroke->save();
+
+		dump($stroke->data);
+
+		$s = '<svg>';
+		$s .= '<path d="M48,91 c-6.987,-26.081 -14.347,-51.367 -23,-78" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M7,46 c48.111,-18.469 57.416,-21 66,-21 c11.1,0 18,6.727 18,18 c0,11.315 -7.242,18 -19,18 c-4.578,0 -8.745,-0.591 -14,-2" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M63,44 c-2.557,-11.075 -5.676,-23.595 -9,-36" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
+
+		echo $s;
+
+		$stroke = Stroke::createFromSvg($s, 2);
+		$stroke->save();
+
+		dump($stroke->data);
 
 		return 'OK';
 	}
 
 	public function test(Request $request)
     {
-		self::testStrokeToFromDatabase();
+		self::testStrokeToShapeFromDatabase();
 die;
 
 		self::testCurveOutlinePenetrate();
@@ -442,24 +467,28 @@ die;
 
 	}
 
-	public static function testStrokeToFromDatabase()
+	public static function testStrokeToShapeFromDatabase()
 	{
 		echo '<h1>testStrokeToFromDatabase</h1>';
 
 
-		$st = Stroke::find(1);
-echo $st->toSvg();
+		$st = Stroke::find(2);
+//echo $st->toSvg();
 
 		$outline = new \FontObscure\Libs\Outline($st->data);
-		foreach ($outline->shapes as $s) {
-			echo '<svg>';
-			echo $s->toSvg();
-			echo '</svg>';
-		}
+//		foreach ($outline->shapes as $s) {
+//			echo '<svg>';
+//			echo $s->toSvg();
+//			echo '</svg>';
+//		}
+//		dump($outline->shapes);
 
 		echo $outline->toSvg(true);
 
-		dump($outline->shapes);
+		$st = Stroke::find(3);
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		echo $outline->toSvg(true);
+
 
 	}
 

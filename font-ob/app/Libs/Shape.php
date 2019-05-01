@@ -59,7 +59,10 @@ class Shape
 				}
 			}
 
-			$slicedShapeList[] = new Shape($slicedPoints);
+			$shape = new Shape($slicedPoints);
+			if (($firstIndex == 0) || ($shape->getShapeDirection() < 0)) {
+				$slicedShapeList[] = $shape;
+			}
 			$firstIndex = array_search(false, $isPointPassedList);
 //break;
 		}
@@ -69,10 +72,10 @@ class Shape
 
 	public function compose($addition)
 	{
-echo '<h1>compose</h1>';
-echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$this->points]);
-echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$addition->points]);
-echo '<hr />';
+//echo '<h1>compose</h1>';
+//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$this->points]);
+//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$addition->points]);
+//echo '<hr />';
 
 		$baseInfo = [];
 		foreach ($this->points as $p) {
@@ -869,11 +872,8 @@ echo '<hr />';
 					continue;
 				}
 				$next = $addition->points[($i + 1) % $additionCount];
-
 				if ($next['isOnCurvePoint']) {
 					$cpList = self::getBezier2CrossPoint($v, [$p, $next]);
-
-
 					if (!empty($cpList)) {
 //dd($cpList);
 						foreach ($cpList as $cp) {
@@ -888,11 +888,28 @@ echo '<hr />';
 							];
 						}
 					}
-
 				} else {
 //echo '<h1>bezier-bezier</h1>';
+					$end = $addition->points[($i + 2) % $additionCount];
+$cpList = self::getBezier2CrossPointByBezier2($v, [$p, $next, $end]);
+if (!empty($cpList)) {
+	foreach ($cpList as $cp) {
+//dd($cp);
+		$corssInfoList[] =[
+			'index' => $i,
+			'point' => [
+				'x' => $cp['x'],
+				'y' => $cp['y'],
+				'length' => $cp['length'],
+				'length2' => $cp['length2'],
+			],
+		];
+	}
+}
 
-////					$end = $addition->points[($i + 2) % $additionCount];
+//dd($cpList);
+
+
 //
 //					// TODO:  曲線に対応
 //	//				$cp = self::getCrossPointEx($v, [$p, $next]);
@@ -915,7 +932,7 @@ echo '<hr />';
 				}
 			}
 		}
-//dump(compact('corssInfoList'));
+
 		return $corssInfoList;
 	}
 
@@ -1231,6 +1248,22 @@ echo '<hr />';
 						}
 						$otherIndex = ($otherIndex + 1) % $pointsCount;
 					} else {
+						$end = $shapePointList[($otherIndex + 2) % $pointsCount];
+$cpList = self::getBezier2CrossPointByBezier2($v, [$p, $next, $end]);
+if (!empty($cpList)) {
+	foreach ($cpList as $cp) {
+		$crossPoints[] = [
+			'point' => [
+				'x' => $cp['x'],
+				'y' => $cp['y'],
+				'length' => $cp['length'],
+				'length2' => $cp['length2'],
+			],
+			'index' => $otherIndex,
+		];
+	}
+}
+
 						$otherIndex = ($otherIndex + 1) % $pointsCount;
 					}
 				}
@@ -1516,6 +1549,210 @@ echo '<hr />';
 		}
 
 		return false;
+	}
+
+	protected static function getBezier2CrossPointByBezier2($b1, $b2)
+	{
+		$bezierList = [
+			$b1,
+			$b2,
+		];
+
+		$tangentials = [
+			[$b1],
+			[$b2],
+		];
+
+		$crossLengthList = [];
+		for ($loopCounter = 0; $loopCounter < 16; $loopCounter++) {
+			$isCrossedToTangential = false;
+			for ($i = 0; $i < 2; $i++) {
+				$crossLengthListToTangentials = [];
+				foreach ($tangentials[1 - $i] as $tangentialList) {
+					$length = self::getBezier2CrossLengthListByTangentialList($bezierList[$i], $tangentialList);
+					$crossLengthListToTangentials = array_merge($crossLengthListToTangentials, $length);
+				}
+				sort($crossLengthListToTangentials);
+
+				$count = count($crossLengthListToTangentials);
+				if ($count >= 2) {
+					if ($i == 0) {
+						$oldCrossLengthList = $crossLengthListToTangentials;
+						$crossLengthListToTangentials = [];
+						$count = count($oldCrossLengthList);
+						for ($ci = 0; $ci < $count; $ci += 2) {
+							$diff =	 $oldCrossLengthList[$ci + 1] - $oldCrossLengthList[$ci];
+							if ($diff < 0.05) {
+								$s = self::getBezier2CurvePoint($bezierList[$i][0], $bezierList[$i][2], $bezierList[$i][1], $oldCrossLengthList[$ci]);
+								$e = self::getBezier2CurvePoint($bezierList[$i][0], $bezierList[$i][2], $bezierList[$i][1], $oldCrossLengthList[$ci + 1]);
+								$line = [$s, $e];
+
+								$otehrCross = self::getBezier2CrossPoint($bezierList[1 - $i], $line);
+								if (!empty($otehrCross)) {
+									$crossLengthList[] = [
+										$oldCrossLengthList[$ci] + ($diff / 2),
+										$otehrCross[0]['bezierLength'],
+									];
+								}
+
+							} else {
+								$isCrossedToTangential = true;
+								$crossLengthListToTangentials[] = $oldCrossLengthList[$ci];
+								$crossLengthListToTangentials[] = $oldCrossLengthList[$ci + 1];
+							}
+						}
+					}
+				}
+
+
+				if (false) {
+					if (!empty($crossLengthListToTangentials)) {
+						echo '<ul>';
+						foreach ($crossLengthListToTangentials as $t) {
+							echo "<li>{$t}</li>";
+						}
+						echo '</ul>';
+					}
+
+					echo '<svg width="600px" height="600px">';
+					echo "<path d='M{$b1[0]['x']},{$b1[0]['y']} Q{$b1[1]['x']},{$b1[1]['y']} {$b1[2]['x']},{$b1[2]['y']}' stroke='black' fill=none />";
+					echo "<path d='M{$b2[0]['x']},{$b2[0]['y']} Q{$b2[1]['x']},{$b2[1]['y']} {$b2[2]['x']},{$b2[2]['y']}' stroke='blue' fill=none />";
+					if ($i != 0) {
+						foreach ($tangentials[0] as $t) {
+							echo "<path d='M{$t[0]['x']},{$t[0]['y']} {$t[1]['x']},{$t[1]['y']} {$t[2]['x']},{$t[2]['y']} z' stroke='#c0c0c0' fill=none />";
+						}
+					} else {
+						foreach ($tangentials[1] as $t) {
+							echo "<path d='M{$t[0]['x']},{$t[0]['y']} {$t[1]['x']},{$t[1]['y']} {$t[2]['x']},{$t[2]['y']} z' stroke='#c0c0ff' fill=none />";
+						}
+					}
+					foreach ($crossLengthListToTangentials as $t) {
+						$p = self::getBezier2CurvePoint($bezierList[$i][0], $bezierList[$i][2], $bezierList[$i][1], $t);
+						echo "<circle cx='{$p['x']}' cy='{$p['y']}' r='3' fill='red'/>";
+					}
+					echo '</svg>';
+				}
+
+
+				$tangentials[$i] = [];
+				$count = count($crossLengthListToTangentials);
+				for ($ci = 0; $ci < $count; $ci += 2) {
+					$s = $crossLengthListToTangentials[$ci];
+					$e = $crossLengthListToTangentials[$ci + 1];
+					$tangentials[$i][] = self::getBezier2SegmentTangentialLines($bezierList[$i], $s, $e);
+				}
+
+
+				if ($loopCounter > 0) {
+					if (empty($tangentials[$i])) {
+						break;
+					}
+				}
+
+			}
+
+			if (!$isCrossedToTangential) {
+				break;
+			}
+		}
+
+		$corossPoints = [];
+		if (!empty($crossLengthList)) {
+			foreach ($crossLengthList as $t) {
+				$bezier = $bezierList[0];
+				$point = self::getBezier2CurvePoint($bezier[0], $bezier[2], $bezier[1], $t[0]);
+				$corossPoints[] = [
+					'x' => $point['x'],
+					'y' => $point['y'],
+					'length' => $t[0],
+					'length2' => $t[1],
+				];
+			}
+		}
+		return $corossPoints;
+	}
+
+	protected static function getBezier2SegmentTangentialLines($bezier, $s, $e)
+	{
+		$sp = self::getBezier2CurvePoint($bezier[0], $bezier[2], $bezier[1], $s);
+		$ep = self::getBezier2CurvePoint($bezier[0], $bezier[2], $bezier[1], $e);
+		$mp = self::getBezier2CurvePoint($bezier[0], $bezier[2], $bezier[1], $s + (($e - $s) / 2));
+
+
+		$v1 = [
+			'x' => ($bezier[1]['x'] - $bezier[0]['x']),
+			'y' => ($bezier[1]['y'] - $bezier[0]['y']),
+		];
+		$v2 = [
+			'x' => ($bezier[2]['x'] - $bezier[1]['x']),
+			'y' => ($bezier[2]['y'] - $bezier[1]['y']),
+		];
+
+
+		$m = [
+			'x' => $sp['x'] + (($ep['x'] - $sp['x']) / 2),
+			'y' => $sp['y'] + (($ep['y'] - $sp['y']) / 2),
+		];
+
+		$v3 = [
+			'x' => $m['x'] + ($mp['x'] - $m['x']) * 2.0,
+			'y' => $m['y'] + ($mp['y'] - $m['y']) * 2.0,
+		];
+
+		return [
+			$sp,
+			$v3,
+			$ep,
+		];
+	}
+
+	protected static function getBezier2CrossLengthListByTangentialList($bezir, $tangentialList)
+	{
+		$count = count($tangentialList);
+		$crossLengthList = [];
+		for ($i = 0; $i < $count; $i++) {
+			$line = [
+				$tangentialList[$i],
+				$tangentialList[($i + 1) % $count],
+			];
+
+			$crossInfoList = self::getBezier2CrossPoint($bezir, $line);
+			if (!empty($crossInfoList)) {
+				foreach ($crossInfoList as $c) {
+					$crossLengthList[] = $c['bezierLength'];
+				}
+			}
+		}
+
+		if (empty($crossLengthList)) {
+			return [];
+		}
+
+		if ((count($crossLengthList) % 2) != 0) {
+			if (self::isInsideTriangle($tangentialList, $bezir[0])) {
+				$crossLengthList[] = 0.0;
+			} else {
+				$crossLengthList[] = 1.0;
+			}
+		}
+
+		return $crossLengthList;
+	}
+
+	protected static function isInsideTriangle($triangle, $point)
+	{
+		$count = count($triangle);
+		for($i = 0; $i < $count; $i++) {
+			$line = [
+				$triangle[$i],
+				$triangle[($i + 1) % $count],
+			];
+			$c = self::crossProduct($line, [$triangle[$i], $point]);
+			if ($c > 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public static function getCrossPointByRay($v1, $v2)
