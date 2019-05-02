@@ -17,28 +17,28 @@ class Outline
 
 	public function getOutlineFromStroke($strokes)
 	{
-//echo '<h1>getOutlineFromStroke</h1>';
+echo '<h1>getOutlineFromStroke</h1>';
 		$shapeList = self::strokeToShapeList($strokes);
 
-//echo '<h4 >$shapeList..</h4>';
-//foreach ($shapeList as $s) {
-//	echo '<svg>';
-//	echo $s->toSvg();
-//	echo '</svg>';
-//}
+echo '<h4 >$shapeList..</h4>';
+foreach ($shapeList as $s) {
+	echo '<svg>';
+	echo $s->toSvg();
+	echo '</svg>';
+}
 
 		$slicedShapeOutlineList = [];
 		foreach ($shapeList as $shape) {
 			$slicedShapeOutlineList = array_merge($slicedShapeOutlineList, $shape->slice());
 		}
-//
-//echo '<h4 >sliced..</h4>';
-//foreach ($slicedShapeOutlineList as $s) {
-//	echo '<svg>';
-//	echo $s->toSvg();
-//	echo '</svg>';
-//}
-//
+
+echo '<h4 >sliced..</h4>';
+foreach ($slicedShapeOutlineList as $s) {
+	echo '<svg>';
+	echo $s->toSvg();
+	echo '</svg>';
+}
+
 
 		$clockwiseShapeList = [];
 		$anticlockwiseShapeList = [];
@@ -75,29 +75,28 @@ class Outline
 		}
 		$clockwiseShapeList = $_nextClockwise;
 
-//echo '<hr />';
-//echo '<h4 >clock +++++++++++++++++++++++++++++++</h4>';
-//foreach ($clockwiseShapeList as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<h4 >anti-clock +++++++++++++++++++++++++++++++</h4>';
-//foreach ($anticlockwiseShapeList as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
-//echo '<svg>';
-//foreach ($clockwiseShapeList as $cws) {
-//	echo $cws->toSvg();
-//}
-//foreach ($anticlockwiseShapeList as $cws) {
-//	echo $cws->toSvg();
-//}
-//echo '</svg>';
-
+echo '<hr />';
+echo '<h4 >clock +++++++++++++++++++++++++++++++</h4>';
+foreach ($clockwiseShapeList as $cws) {
+	echo '<svg>';
+	echo $cws->toSvg();
+	echo '</svg>';
+}
+echo '<h4 >anti-clock +++++++++++++++++++++++++++++++</h4>';
+foreach ($anticlockwiseShapeList as $cws) {
+	echo '<svg>';
+	echo $cws->toSvg();
+	echo '</svg>';
+}
+echo '<hr />';
+echo '<svg>';
+foreach ($clockwiseShapeList as $cws) {
+	echo $cws->toSvg();
+}
+foreach ($anticlockwiseShapeList as $cws) {
+	echo $cws->toSvg();
+}
+echo '</svg>';
 		// 時計回りシェイプの合成
 		$_next = [];
 		while (!empty($clockwiseShapeList)) {
@@ -109,15 +108,15 @@ class Outline
 				if (!$isComposed) {
 					$composed = $c->compose($c2);
 					if (!empty($composed)) {
-//
-//echo '<h4>$composed</h4>';
-//foreach ($composed as $cws) {
-//
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
+
+echo '<h4>$composed</h4>';
+foreach ($composed as $cws) {
+
+	echo '<svg>';
+	echo $cws->toSvg();
+	echo '</svg>';
+}
+echo '<hr />';
 
 						$isComposed = true;
 						$clockwiseShapeList = array_merge($clockwiseShapeList, $composed);
@@ -138,25 +137,26 @@ class Outline
 		}
 		$clockwiseShapeList = $_next;
 
-//echo '<h4>clock</h4>';
-//foreach ($clockwiseShapeList as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
+echo '<h4>clock</h4>';
+foreach ($clockwiseShapeList as $cws) {
+	echo '<svg>';
+	echo $cws->toSvg();
+	echo '</svg>';
+}
+echo '<hr />';
+
 
 		$this->shapes = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
 		$outline = $this->removeLostedShape();
 
-//echo '<h4>shapes....</h4>';
-////dd($outline);
-//foreach ($outline as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
+echo '<h4>shapes....</h4>';
+//dd($outline);
+foreach ($outline as $cws) {
+	echo '<svg>';
+	echo $cws->toSvg();
+	echo '</svg>';
+}
+echo '<hr />';
 
 		return $outline;
 	}
@@ -164,159 +164,10 @@ class Outline
 	protected static function strokeToShapeList($strokes)
 	{
 		$outline = [];
-		$thickness = 6; // 太さ
 		foreach ($strokes as $index => $line) {
-			$outlineUp = [];
-			$outlineDown = [];
-			$lineCount = count($line['path']);
-			$maxLineIndex = $lineCount - 1;
-			foreach ($line['path'] as $index => $l) {
-				$prevIndex = ($index + ($lineCount - 1)) % $lineCount;
-				if ($index == 0) {
-					$lNext = $line['path'][($index + 1) % $lineCount];
-					$n = self::getNormal($l, $lNext);
-
-					$up = [
-						'x' => $l['x'] + ($n['x'] * $thickness),
-						'y' => $l['y'] + ($n['y'] * $thickness),
-						'isOnCurvePoint' => $l['isOnCurvePoint'],
-					];
-					$down = [
-						'x' => $l['x'] + ($n['x'] * -$thickness),
-						'y' => $l['y'] + ($n['y'] * -$thickness),
-						'isOnCurvePoint' => $l['isOnCurvePoint'],
-					];
-				} else if ($index == $maxLineIndex) {
-					$lPrev = $line['path'][$prevIndex];
-					$n = self::getNormal($lPrev, $l);
-
-					$up = [
-						'x' => $l['x'] + ($n['x'] * $thickness),
-						'y' => $l['y'] + ($n['y'] * $thickness),
-						'isOnCurvePoint' => $l['isOnCurvePoint'],
-					];
-					$down = [
-						'x' => $l['x'] + ($n['x'] * -$thickness),
-						'y' => $l['y'] + ($n['y'] * -$thickness),
-						'isOnCurvePoint' => $l['isOnCurvePoint'],
-					];
-				} else {
-
-					$lPrev = $line['path'][$prevIndex];
-					$lNext = $line['path'][($index + 1) % $lineCount];
-					$up = self::getOutlinePoint($lPrev, $l, $lNext, $thickness);
-					$down = self::getOutlinePoint($lPrev, $l, $lNext, -$thickness);
-
-				}
-
-				$outlineUp[] = [
-					'x' => $up['x'],
-					'y' => $up['y'],
-					'isOnCurvePoint' => $up['isOnCurvePoint'],
-				];
-				array_unshift($outlineDown, [
-					'x' => $down['x'],
-					'y' => $down['y'],
-					'isOnCurvePoint' => $down['isOnCurvePoint'],
-				]);
-			}
-
-			$shape = array_merge($outlineUp, $outlineDown);
-			$outline[] = new Shape($shape);
+			$outline[] = Shape::createFromStroke($line);
 		}
-
 		return $outline;
-	}
-
-	protected static function getOutlinePoint($prevPoint, $currentPoint, $nextPoint, $add)
-	{
-// dump($currentPoint);
-		$n = self::getNormal($prevPoint, $currentPoint);
-
-		$prevO1 = [
-			'x' => $prevPoint['x'] + ($n['x'] * $add),
-			'y' => $prevPoint['y'] + ($n['y'] * $add),
-			'flags' => $prevPoint['isOnCurvePoint'],
-		];
-
-		$prevO2 = [
-			'x' => $currentPoint['x'] + ($n['x'] * $add),
-			'y' => $currentPoint['y'] + ($n['y'] * $add),
-			'flags' => $currentPoint['isOnCurvePoint'],
-		];
-		$n = self::getNormal($currentPoint, $nextPoint);
-
-
-		$o1 = [
-			'x' => $currentPoint['x'] + ($n['x'] * $add),
-			'y' => $currentPoint['y'] + ($n['y'] * $add),
-			'flags' => $currentPoint['isOnCurvePoint'],
-		];
-		$o2 = [
-			'x' => $nextPoint['x'] + ($n['x'] * $add),
-			'y' => $nextPoint['y'] + ($n['y'] * $add),
-			'flags' => $nextPoint['isOnCurvePoint'],
-		];
-		$point = self::getCrossPointToOutsideOfVector([$prevO1, $prevO2], [$o1, $o2]);
-		if (is_null($point)) {
-			$point = $o1;
-		}
-
-		return [
-			'x' => $point['x'],
-			'y' => $point['y'],
-			'isOnCurvePoint' => $currentPoint['isOnCurvePoint'],
-		];
-	}
-
-	protected static function getNormal($start, $end)
-	{
-		// dump(compact('start', 'end'));
-
-		$vector = [
-			'x' => $end['x'] - $start['x'],
-			'y' => $end['y'] - $start['y'],
-		];
-
-		$len = sqrt(($vector['x'] * $vector['x']) + ($vector['y'] * $vector['y']));
-		return [
-			'x' => ($vector['y'] / $len),
-			'y' => -($vector['x'] / $len),
-		];
-	}
-
-	public static function getCrossPointToOutsideOfVector($v1, $v2)
-	{
-// dump('getCrossPoint *********************');
-		$a = self::crossProduct(
-			[$v2[0], $v1[0]],
-			$v2
-		);
-// dump($a);
-		$b = self::crossProduct(
-			$v2,
-			[$v2[0], $v1[1]]
-		);
-// dump($b);
-
-		$ab = ($a + $b);
-		if (!$ab) {
-			return null;
-		}
-
-		$crossVectorLengthBase = ($a / $ab);
-// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
-		// if (($crossVectorLengthBase < 0) || ($crossVectorLengthBase > 1)) {
-		// 	return null;
-		// }
-
-		$crossed = [
-			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
-			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
-			'length' => $crossVectorLengthBase,
-		];
-
-		return $crossed;
 	}
 
 	public static function crossProduct($v1, $v2)

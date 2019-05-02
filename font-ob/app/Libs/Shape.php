@@ -9,10 +9,107 @@ class Shape
 
 	public $points = [];
 
-
 	function __construct($points)
 	{
 		$this->points = /* self::sliceShape*/ ($points);
+	}
+
+	public static function createFromStroke($stroke)
+	{
+		$thickness = 9; // 太さ
+
+
+		$outlineUp = [];
+		$outlineDown = [];
+		$lineCount = count($stroke['path']);
+		$maxLineIndex = $lineCount - 1;
+		foreach ($stroke['path'] as $index => $l) {
+			$prevIndex = ($index + ($lineCount - 1)) % $lineCount;
+			if ($index == 0) {
+				$lNext = $stroke['path'][($index + 1) % $lineCount];
+				$n = self::getNormal($l, $lNext);
+
+				$up = [
+					'x' => $l['x'] + ($n['x'] * $thickness),
+					'y' => $l['y'] + ($n['y'] * $thickness),
+					'isOnCurvePoint' => $l['isOnCurvePoint'],
+				];
+				$down = [
+					'x' => $l['x'] + ($n['x'] * -$thickness),
+					'y' => $l['y'] + ($n['y'] * -$thickness),
+					'isOnCurvePoint' => $l['isOnCurvePoint'],
+				];
+			} else if ($index == $maxLineIndex) {
+				$lPrev = $stroke['path'][$prevIndex];
+				$n = self::getNormal($lPrev, $l);
+
+				$up = [
+					'x' => $l['x'] + ($n['x'] * $thickness),
+					'y' => $l['y'] + ($n['y'] * $thickness),
+					'isOnCurvePoint' => $l['isOnCurvePoint'],
+				];
+				$down = [
+					'x' => $l['x'] + ($n['x'] * -$thickness),
+					'y' => $l['y'] + ($n['y'] * -$thickness),
+					'isOnCurvePoint' => $l['isOnCurvePoint'],
+				];
+			} else {
+
+				$lPrev = $stroke['path'][$prevIndex];
+				$lNext = $stroke['path'][($index + 1) % $lineCount];
+				$up = self::getOutlinePoint($lPrev, $l, $lNext, $thickness);
+				$down = self::getOutlinePoint($lPrev, $l, $lNext, -$thickness);
+
+			}
+
+			$outlineUp[] = [
+				'x' => $up['x'],
+				'y' => $up['y'],
+				'isOnCurvePoint' => $up['isOnCurvePoint'],
+			];
+			array_unshift($outlineDown, [
+				'x' => $down['x'],
+				'y' => $down['y'],
+				'isOnCurvePoint' => $down['isOnCurvePoint'],
+			]);
+		}
+
+		$points = array_merge($outlineUp, $outlineDown);
+		return new Self($points);
+	}
+
+	public static function getCrossPointToOutsideOfVector($v1, $v2)
+	{
+// dump('getCrossPoint *********************');
+		$a = self::crossProduct(
+			[$v2[0], $v1[0]],
+			$v2
+		);
+// dump($a);
+		$b = self::crossProduct(
+			$v2,
+			[$v2[0], $v1[1]]
+		);
+// dump($b);
+
+		$ab = ($a + $b);
+		if (!$ab) {
+			return null;
+		}
+
+		$crossVectorLengthBase = ($a / $ab);
+// echo('<br />v-len='.$crossVectorLengthBase.'<br />');
+		// if (($crossVectorLengthBase < 0) || ($crossVectorLengthBase > 1)) {
+		// 	return null;
+		// }
+
+		$crossed = [
+			'x' => $v1[0]['x'] + (($v1[1]['x'] - $v1[0]['x']) * $crossVectorLengthBase),
+			'y' => $v1[0]['y'] + (($v1[1]['y'] - $v1[0]['y']) * $crossVectorLengthBase),
+			'length' => $crossVectorLengthBase,
+		];
+
+		return $crossed;
 	}
 
 	public function getPoints()
@@ -724,6 +821,21 @@ class Shape
 		return $composed;
 	}
 
+	protected static function getNormal($start, $end)
+	{
+		// dump(compact('start', 'end'));
+
+		$vector = [
+			'x' => $end['x'] - $start['x'],
+			'y' => $end['y'] - $start['y'],
+		];
+
+		$len = sqrt(($vector['x'] * $vector['x']) + ($vector['y'] * $vector['y']));
+		return [
+			'x' => ($vector['y'] / $len),
+			'y' => -($vector['x'] / $len),
+		];
+	}
 
 	public function getShapeDirection()
 	{
@@ -1941,4 +2053,44 @@ if (!empty($cpList)) {
 		return $svg;
 	}
 
+	protected static function getOutlinePoint($prevPoint, $currentPoint, $nextPoint, $add)
+	{
+// dump($currentPoint);
+		$n = self::getNormal($prevPoint, $currentPoint);
+
+		$prevO1 = [
+			'x' => $prevPoint['x'] + ($n['x'] * $add),
+			'y' => $prevPoint['y'] + ($n['y'] * $add),
+			'flags' => $prevPoint['isOnCurvePoint'],
+		];
+
+		$prevO2 = [
+			'x' => $currentPoint['x'] + ($n['x'] * $add),
+			'y' => $currentPoint['y'] + ($n['y'] * $add),
+			'flags' => $currentPoint['isOnCurvePoint'],
+		];
+		$n = self::getNormal($currentPoint, $nextPoint);
+
+
+		$o1 = [
+			'x' => $currentPoint['x'] + ($n['x'] * $add),
+			'y' => $currentPoint['y'] + ($n['y'] * $add),
+			'flags' => $currentPoint['isOnCurvePoint'],
+		];
+		$o2 = [
+			'x' => $nextPoint['x'] + ($n['x'] * $add),
+			'y' => $nextPoint['y'] + ($n['y'] * $add),
+			'flags' => $nextPoint['isOnCurvePoint'],
+		];
+		$point = self::getCrossPointToOutsideOfVector([$prevO1, $prevO2], [$o1, $o2]);
+		if (is_null($point)) {
+			$point = $o1;
+		}
+
+		return [
+			'x' => $point['x'],
+			'y' => $point['y'],
+			'isOnCurvePoint' => $currentPoint['isOnCurvePoint'],
+		];
+	}
 }

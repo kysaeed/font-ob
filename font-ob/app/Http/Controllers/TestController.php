@@ -471,7 +471,6 @@ die;
 	{
 		echo '<h1>testStrokeToFromDatabase</h1>';
 
-
 		$st = Stroke::find(2);
 //echo $st->toSvg();
 
@@ -483,13 +482,14 @@ die;
 //		}
 //		dump($outline->shapes);
 
-		echo $outline->toSvg(true);
+		$ma = $outline->toSvg(true);
 
 		$st = Stroke::find(3);
 		$outline = new \FontObscure\Libs\Outline($st->data);
-		echo $outline->toSvg(true);
+		$ya = $outline->toSvg(true);
 
-
+		echo $ma;
+		echo $ya;
 	}
 
 	public static function testShapeClass()
