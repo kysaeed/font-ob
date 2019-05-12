@@ -72,9 +72,14 @@ class TestController extends Controller
 	public function test(Request $request)
     {
 		self::testStrokeToShapeFromDatabase();
+
+
 die;
 
+
+
 		self::testCurveOutlinePenetrate();
+
 
 		self::testOutlineShi();
 
@@ -470,6 +475,13 @@ die;
 	public static function testStrokeToShapeFromDatabase()
 	{
 		echo '<h1>testStrokeToFromDatabase</h1>';
+
+		$st = Stroke::find(1);
+//echo $st->toSvg();
+
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		echo $outline->toSvg();
+
 
 		$st = Stroke::find(2);
 //echo $st->toSvg();
@@ -1582,21 +1594,17 @@ echo 'SVG<br />'.$s.'<br />';
 
 		];
 
+//		$st = new Stroke($stroke);
+//		echo $st->toSvg();
+
+		echo self::testStrokeToSvg($stroke);
+
 		$outline = new \FontObscure\Libs\Outline($stroke);
 		echo $outline->toSvg();
 
 		echo '<hr />結果<br />';
 
 
-		echo self::testStrokeToSvg($stroke);
-		echo '<br />';
-
-
-		$outline = self::getOutlineFromStroke($stroke);
-		echo self::testOutlineToSvg($outline, true);
-		echo '<hr />';
-		echo self::testOutlineToSvg($outline, false);
-		echo '<hr />';
 
 		return $outline;
 	}

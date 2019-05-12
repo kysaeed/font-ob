@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 9; // 太さ
+		$thickness = 4; // 太さ
 
 
 		$outlineUp = [];
@@ -137,6 +137,17 @@ class Shape
 		}
 
 		$firstIndex = 0;
+		foreach ($points as $i => $p) {
+			if ($p['isOnCurvePoint']) {
+				if ($infos[$i] < 0) {
+					if (!self::isInsideShapePoint($points, $p, $i)) {
+						$firstIndex = $i;
+						break;
+					}
+				}
+			}
+		}
+
 		while($firstIndex !== false) {
 			$slicedPoints = [];
 			$index = $firstIndex;
@@ -146,8 +157,10 @@ class Shape
 				$p = $points[$index];
 				$slicedPoints[] = $p;
 
-				if ($infos[$index] > -1) {
-					$index = $infos[$index];
+				if ($i != 0) {
+					if ($infos[$index] > -1) {
+						$index = $infos[$index];
+					}
 				}
 
 				$index = ($index + 1) % $pointsCount;
@@ -157,12 +170,12 @@ class Shape
 			}
 
 			$shape = new Shape($slicedPoints);
-			if (($firstIndex == 0) || ($shape->getShapeDirection() < 0)) {
+			if ((count($slicedShapeList) <= 0) || ($shape->getShapeDirection() < 0)) {
 				$slicedShapeList[] = $shape;
 			}
 			$firstIndex = array_search(false, $isPointPassedList);
-//break;
 		}
+
 
 		return $slicedShapeList;
 	}
@@ -1634,7 +1647,7 @@ if (!empty($cpList)) {
 		return self::isInsideShapePoint($this->points, $point);
 	}
 
-	protected static function isInsideShapePoint($shape, $point)
+	protected static function isInsideShapePoint($shape, $point, $ignoreIndex = -1)
 	{
 		$v = [
 			$point,
@@ -1644,7 +1657,15 @@ if (!empty($cpList)) {
 		$crossCount = 0;
 		$pointCount = count($shape);
 		$crossInfoLine = null;
-		for ($index = 0; $index < $pointCount; $index++) {
+
+		$index = 0;
+		$loopCount = $pointCount;
+		if ($ignoreIndex > -1) {
+			$index = ($ignoreIndex + 1) % $pointCount;
+			$loopCount = ($pointCount - 2);
+		}
+
+		for ($i = 0; $i < $loopCount; $i++) {
 			$p = $shape[$index];
 			$next = $shape[($index + 1) % $pointCount];
 
@@ -1654,6 +1675,8 @@ if (!empty($cpList)) {
 					$crossCount++;
 				}
 			}
+
+			$index = ($index + 1) % $pointCount;
 		}
 
 		if (($crossCount % 2) > 0) {

@@ -119,8 +119,7 @@ foreach ($composed as $cws) {
 echo '<hr />';
 
 						$isComposed = true;
-						$clockwiseShapeList = array_merge($clockwiseShapeList, $composed);
-//						$clockwiseShapeList[] = $composed[0];
+						$clockwiseShapeList[] = $composed[0]; // TODO: [0]を一番外側に修正する
 
 					} else {
 						$_nextNext[] = $c2;
