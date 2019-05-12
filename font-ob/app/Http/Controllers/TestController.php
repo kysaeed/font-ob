@@ -71,7 +71,7 @@ class TestController extends Controller
 
 	public function test(Request $request)
     {
-		self::testStrokeToShapeFromDatabase();
+		self::testStrokeToOutlineFromDatabase();
 
 
 die;
@@ -472,9 +472,9 @@ die;
 
 	}
 
-	public static function testStrokeToShapeFromDatabase()
+	public static function testStrokeToOutlineFromDatabase()
 	{
-		echo '<h1>testStrokeToFromDatabase</h1>';
+		echo '<h1>testStrokeToOutlineFromDatabase</h1>';
 
 		$st = Stroke::find(1);
 //echo $st->toSvg();
