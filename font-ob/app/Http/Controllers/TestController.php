@@ -482,6 +482,8 @@ die;
 		$outline = new \FontObscure\Libs\Outline($st->data);
 		echo $outline->toSvg();
 
+		echo '<hr />';
+
 
 		$st = Stroke::find(2);
 //echo $st->toSvg();

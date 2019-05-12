@@ -148,6 +148,7 @@ class Shape
 			}
 		}
 
+		$hasClockwiseShape = false;
 		while($firstIndex !== false) {
 			$slicedPoints = [];
 			$index = $firstIndex;
@@ -170,9 +171,16 @@ class Shape
 			}
 
 			$shape = new Shape($slicedPoints);
-			if ((count($slicedShapeList) <= 0) || ($shape->getShapeDirection() < 0)) {
+			$direction = $shape->getShapeDirection();
+			if ($direction > 0) {
+				if (!$hasClockwiseShape) {
+					$slicedShapeList[] = $shape;
+					$hasClockwiseShape = true;
+				}
+			} else {
 				$slicedShapeList[] = $shape;
 			}
+
 			$firstIndex = array_search(false, $isPointPassedList);
 		}
 
