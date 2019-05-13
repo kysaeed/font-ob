@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 4; // 太さ
+		$thickness = 10; // 太さ
 
 
 		$outlineUp = [];
@@ -148,6 +148,7 @@ class Shape
 			}
 		}
 
+echo '<br />******************<br />';
 		$hasClockwiseShape = false;
 		while($firstIndex !== false) {
 			$slicedPoints = [];
@@ -169,7 +170,8 @@ class Shape
 					break;
 				}
 			}
-
+echo 'shape-count : '.count($slicedShapeList).'<br />';
+dump(compact('hasClockwiseShape'));
 			$shape = new Shape($slicedPoints);
 			$direction = $shape->getShapeDirection();
 			if ($direction > 0) {
@@ -184,6 +186,13 @@ class Shape
 			$firstIndex = array_search(false, $isPointPassedList);
 		}
 
+echo '<hr />';
+foreach ($slicedShapeList as $s) {
+	echo 'direction='.$s->getShapeDirection().'<br />';
+	echo '<svg>';
+	echo $s->toSvg();
+	echo '</svg>';
+}
 
 		return $slicedShapeList;
 	}
@@ -874,11 +883,6 @@ class Shape
 			];
 
 			$d = self::crossProduct($v1, $v2);
-			if ($d > 0) {
-				$d = 1;
-			} else if ($d < 0) {
-				$d = -1;
-			}
 			$sum += $d;
 		}
 
