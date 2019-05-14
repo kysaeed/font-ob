@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 10; // 太さ
+		$thickness = 12; // 太さ
 
 
 		$outlineUp = [];
@@ -148,7 +148,6 @@ class Shape
 			}
 		}
 
-echo '<br />******************<br />';
 		$hasClockwiseShape = false;
 		while($firstIndex !== false) {
 			$slicedPoints = [];
@@ -170,8 +169,6 @@ echo '<br />******************<br />';
 					break;
 				}
 			}
-echo 'shape-count : '.count($slicedShapeList).'<br />';
-dump(compact('hasClockwiseShape'));
 			$shape = new Shape($slicedPoints);
 			$direction = $shape->getShapeDirection();
 			if ($direction > 0) {
@@ -185,14 +182,6 @@ dump(compact('hasClockwiseShape'));
 
 			$firstIndex = array_search(false, $isPointPassedList);
 		}
-
-echo '<hr />';
-foreach ($slicedShapeList as $s) {
-	echo 'direction='.$s->getShapeDirection().'<br />';
-	echo '<svg>';
-	echo $s->toSvg();
-	echo '</svg>';
-}
 
 		return $slicedShapeList;
 	}
@@ -527,10 +516,10 @@ foreach ($slicedShapeList as $s) {
 
 	public function composeXor($addition)
 	{
-//echo '<h1>composeXor</h1>';
-//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$this->points]);
-//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$addition->points]);
-//echo '<hr />';
+echo '<h1>composeXor</h1>';
+echo '<svg>'.$this->toSvg().'</svg>';
+echo '<svg>'.$addition->toSvg().'</svg>';
+echo '<hr />';
 
 		$baseInfo = [];
 		foreach ($this->points as $p) {
@@ -600,24 +589,6 @@ foreach ($slicedShapeList as $s) {
 			}
 			unset($p);
 		}
-
-///////////////////////////////////////
-//$o = [];
-//$o[] = $this->points;
-//$o[] = $addition->points;
-//
-//$cross = [];
-//foreach ($baseInfo as $info) {
-//	foreach ($info['crossInfo'] as $ci) {
-//		$cross[] = $ci['point'];
-//	}
-//}
-//echo TestController::testOutlineToSvg($o, false, $cross);
-////dd($o);
-////return null;
-//////////////////////////////////
-
-//echo "cross-count={$crossCount}<br />";
 
 		if ($crossCount < 2) {
 			return null;
@@ -740,13 +711,6 @@ foreach ($slicedShapeList as $s) {
 			$corssIndexInfoList[] = $corssIndexInfo;
 		}
 
-//echo '<hr />new<br >';
-//dump($corssIndexInfoList);
-//foreach ($shapeList as $s) {
-//	echo TestController::testOutlineToSvg([$s->points]);
-//}
-
-
 		$composed = [];
 		foreach ($shapeList as $shapeIndex => $shape) {
 			$newShapeList = [];
@@ -838,15 +802,11 @@ foreach ($slicedShapeList as $s) {
 			$composed[] = $newShapeList;
 		}
 
-//echo '<h3>結果</h3>';
-//foreach ($composed as $outline) {
-//	$o = [];
-//	foreach ($outline as $shape) {
-//		$o[] = $shape->points;
-//	}
-//	echo TestController::testOutlineToSvg($o);
-//}
-//echo '<hr />';
+echo '<h1>結果</h1>';
+foreach ($composed[0] as $c) {
+	echo '<svg>'.$c->toSvg().'</svg>';
+}
+echo '<hr />';
 
 		return $composed;
 	}
