@@ -477,31 +477,29 @@ die;
 		echo '<h1>testStrokeToOutlineFromDatabase</h1>';
 
 		$st = Stroke::find(1);
-//echo $st->toSvg();
-
 		$outline = new \FontObscure\Libs\Outline($st->data);
 		echo $outline->toSvg();
 
-		echo '<hr />';
-
 
 		$st = Stroke::find(2);
-//echo $st->toSvg();
-
 		$outline = new \FontObscure\Libs\Outline($st->data);
-//		foreach ($outline->shapes as $s) {
-//			echo '<svg>';
-//			echo $s->toSvg();
-//			echo '</svg>';
-//		}
-//		dump($outline->shapes);
+		foreach ($outline->shapes as $s) {
+			echo '<svg>';
+			echo $s->toSvg();
+			echo '</svg>';
+		}
+		dump($outline->shapes);
 
 		$ma = $outline->toSvg(true);
+		echo $ma;
 
 		$st = Stroke::find(3);
 		$outline = new \FontObscure\Libs\Outline($st->data);
 		$ya = $outline->toSvg(true);
+		echo $ya;
 
+
+		echo '<hr />';
 		echo $ma;
 		echo $ya;
 	}

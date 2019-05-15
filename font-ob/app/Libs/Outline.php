@@ -67,42 +67,62 @@ foreach ($anticlockwiseShapeList as $cws) {
 }
 echo '</svg>';
 
+$ncl = [];
+foreach ($clockwiseShapeList as $base) {
+	$a = $base->composeXorByAnticlockList($anticlockwiseShapeList);
+	dump($a);
+	$ncl = array_merge($ncl, $a[0]);
+	$anticlockwiseShapeList = $a[1];
+}
+$clockwiseShapeList = $ncl;
 
-		$_nextClockwise = [];
-		foreach ($clockwiseShapeList as $base) {
-//echo '<svg>'.$base->toSvg().'</svg><br />';
 
-//echo '<hr />';
-//echo '<h4 >$_nextClockwise </h4>';
-//foreach ($_nextClockwise as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-
-			$_nextAniticock = [];
-			$isComposed = false;
-			if (!empty($anticlockwiseShapeList)) {
-				foreach ($anticlockwiseShapeList as $addition) {
-					$composed = $base->composeXor($addition);
-					if (!is_null($composed)) {
-						$isComposed = true;
-						$_nextClockwise = array_merge($_nextClockwise, $composed[0]);
-						$_nextAniticock = array_merge($_nextAniticock, $composed[1]);
-						break;
-					} else {
-						$_nextAniticock[] = $addition;
-					}
-				}
-				$anticlockwiseShapeList = $_nextAniticock;
-			}
-			if (!$isComposed) {
-echo 'add-base:<svg>'.$base->toSvg().'</svg><br />';
-				$_nextClockwise[] = $base;
-			}
-
-		}
-		$clockwiseShapeList = $_nextClockwise;
+//		$_nextClockwise = [];
+//		foreach ($clockwiseShapeList as $base) {
+////echo '<svg>'.$base->toSvg().'</svg><br />';
+//
+////echo '<hr />';
+////echo '<h4 >$_nextClockwise </h4>';
+////foreach ($_nextClockwise as $cws) {
+////	echo '<svg>';
+////	echo $cws->toSvg();
+////	echo '</svg>';
+////}
+//
+//
+//			$_nextAniticock = [];
+//			$isComposed = false;
+//			if (!empty($anticlockwiseShapeList)) {
+//				$baseList = [$base];
+//				foreach ($anticlockwiseShapeList as $addition) {
+//
+//					$_nb = [];
+//					foreach ($baseList as $b) {
+//						$composed = $b->composeXor($addition);
+//						if (!is_null($composed)) {
+//							$baseList = $composed[0];
+//
+////							$_nextClockwise = array_merge($_nextClockwise, $composed[0]);
+//							$_nextAniticock = array_merge($_nextAniticock, $composed[1]);
+//						} else {
+//
+//						}
+//					}
+//					$baseList = $_nb;
+//
+//					if (false) {
+//						$_nextAniticock[] = $addition;
+//					}
+//				}
+//
+//				$_nextClockwise = array_merge($_nextClockwise, $baseList);
+//				$anticlockwiseShapeList = $_nextAniticock;
+//			} else {
+////echo 'add-base:<svg>'.$base->toSvg().'</svg><br />';
+//				$_nextClockwise[] = $base;
+//			}
+//		}
+//		$clockwiseShapeList = $_nextClockwise;
 
 echo '<hr />';
 echo '<h4 >clock +++++++++++++++++++++++++++++++</h4>';
@@ -174,9 +194,10 @@ echo '</svg>';
 //}
 //echo '<hr />';
 
-
+dump(compact('anticlockwiseShapeList'));
 		$this->shapes = array_merge($clockwiseShapeList, $anticlockwiseShapeList);
 		$outline = $this->removeLostedShape();
+dump($this->shapes);
 
 //echo '<h4>shapes....</h4>';
 //foreach ($outline as $cws) {
@@ -339,7 +360,8 @@ echo '</svg>';
 
 	protected function removeLostedShape()
 	{
-		$directionList = self::createDirectionList();
+		$directionList = $this->createDirectionList();
+dump($directionList);
 		$aliveShapes = [];
 		foreach ($this->shapes as $i => $shape) {
 			$outsideIndex = $this->getOutsideShapeIndex($i);
@@ -435,6 +457,6 @@ echo '</svg>';
 		}
 		$svg .= '" fill="'.'rgba(200, 200, 200, 0.4)'.'" stroke="#000000" stroke-width="1" />';
 
-		return "<svg width='100'>{$svg}</svg>";
+		return "<svg width='110'>{$svg}</svg>";
 	}
 }

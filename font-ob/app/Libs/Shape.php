@@ -11,12 +11,12 @@ class Shape
 
 	function __construct($points)
 	{
-		$this->points = /* self::sliceShape*/ ($points);
+		$this->points = $points;
 	}
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 12; // 太さ
+		$thickness = 9; // 太さ
 
 
 		$outlineUp = [];
@@ -514,12 +514,63 @@ class Shape
 		return $newShapeList;
 	}
 
+	public function composeXorByAnticlockList($anticlockList)
+	{
+echo '<h1>composeXorByAnticlockList</h1>';
+echo '<svg>'.$this->toSvg().'</svg>';
+
+dump($anticlockList);
+foreach ($anticlockList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '<br />- - - - - - - -<br />';
+
+		$newClockList = [$this];
+		$newAnticlockList = [];
+
+		foreach ($anticlockList as $anticlock) {
+			$nc = [];
+			$scliedAnticlock = [$anticlock];
+			foreach ($newClockList as $c) {
+				$_ac = [];
+				foreach ($scliedAnticlock as $a) {
+					$composed = $c->composeXor($a);
+					if (empty($composed)) {
+						$nc[] = $c;
+						$_ac[] = $a;
+					} else {
+						$nc = array_merge($nc, $composed[0]);
+						$_ac = array_merge($_ac, $composed[1]);
+					}
+				}
+				$scliedAnticlock = $_ac;
+			}
+			$newClockList = $nc;
+			$newAnticlockList = array_merge($newAnticlockList, $scliedAnticlock);
+		}
+
+echo '<hr />結果：<br />';
+foreach ($newClockList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '**';
+foreach ($newAnticlockList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '<hr />';
+
+		return [
+			$newClockList,
+			$newAnticlockList,
+		];
+	}
+
 	public function composeXor($addition)
 	{
-echo '<h1>composeXor</h1>';
-echo '<svg>'.$this->toSvg().'</svg>';
-echo '<svg>'.$addition->toSvg().'</svg>';
-echo '<hr />';
+//echo '<h1>composeXor</h1>';
+//echo '<svg>'.$this->toSvg().'</svg>';
+//echo '<svg>'.$addition->toSvg().'</svg>';
+//echo '<hr />';
 
 		$baseInfo = [];
 		foreach ($this->points as $p) {
@@ -802,11 +853,11 @@ echo '<hr />';
 			$composed[] = $newShapeList;
 		}
 
-echo '<h1>結果</h1>';
-foreach ($composed[0] as $c) {
-	echo '<svg>'.$c->toSvg().'</svg>';
-}
-echo '<hr />';
+//echo '<h1>結果</h1>';
+//foreach ($composed[0] as $c) {
+//	echo '<svg>'.$c->toSvg().'</svg>';
+//}
+//echo '<hr />';
 
 		return $composed;
 	}
@@ -834,24 +885,28 @@ echo '<hr />';
 		$sum = 0;
 		for ($i = 0; $i < $pointCount; $i++) {
 			$v1 = [
-				$this->points[$i],
+				$this->points[$i % $pointCount],
 				$this->points[($i + 1) % $pointCount],
 			];
-			$v2 = [
-				$this->points[($i + 1) % $pointCount],
-				$this->points[($i + 2) % $pointCount],
-			];
+//			$v2 = [
+//				$this->points[($i + 1) % $pointCount],
+//				$this->points[($i + 2) % $pointCount],
+//			];
+//			$d = self::crossProduct($v1, $v2);
 
-			$d = self::crossProduct($v1, $v2);
+			$d = ($v1[0]['x'] * $v1[1]['y']) - ($v1[1]['x'] * $v1[0]['y']);
+
 			$sum += $d;
 		}
+
+//echo "<h4>direciton-sum={$sum}</h4>";
+//echo '<svg>'.$this->toSvg().'</svg>';
 
 		if ($sum > 0) {
 			return 1;
 		} else if ($sum < 0){
 			return -1;
 		}
-
 		return 0;
 	}
 
