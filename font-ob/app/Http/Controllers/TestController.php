@@ -483,12 +483,13 @@ die;
 
 		$st = Stroke::find(2);
 		$outline = new \FontObscure\Libs\Outline($st->data);
-		foreach ($outline->shapes as $s) {
-			echo '<svg>';
-			echo $s->toSvg();
-			echo '</svg>';
-		}
-		dump($outline->shapes);
+
+//		foreach ($outline->shapes as $s) {
+//			echo '<svg>';
+//			echo $s->toSvg();
+//			echo '</svg>';
+//		}
+//		dump($outline->shapes);
 
 		$ma = $outline->toSvg(true);
 		echo $ma;

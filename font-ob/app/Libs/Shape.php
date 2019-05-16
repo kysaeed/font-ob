@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 9; // 太さ
+		$thickness = 9.8; // 太さ
 
 
 		$outlineUp = [];
@@ -516,14 +516,14 @@ class Shape
 
 	public function composeXorByAnticlockList($anticlockList)
 	{
-echo '<h1>composeXorByAnticlockList</h1>';
-echo '<svg>'.$this->toSvg().'</svg>';
-
-dump($anticlockList);
-foreach ($anticlockList as $s) {
-	echo '<svg>'.$s->toSvg().'</svg>';
-}
-echo '<br />- - - - - - - -<br />';
+//echo '<h1>composeXorByAnticlockList</h1>';
+//echo '<svg>'.$this->toSvg().'</svg>';
+//
+//dump($anticlockList);
+//foreach ($anticlockList as $s) {
+//	echo '<svg>'.$s->toSvg().'</svg>';
+//}
+//echo '<br />- - - - - - - -<br />';
 
 		$newClockList = [$this];
 		$newAnticlockList = [];
@@ -549,15 +549,15 @@ echo '<br />- - - - - - - -<br />';
 			$newAnticlockList = array_merge($newAnticlockList, $scliedAnticlock);
 		}
 
-echo '<hr />結果：<br />';
-foreach ($newClockList as $s) {
-	echo '<svg>'.$s->toSvg().'</svg>';
-}
-echo '**';
-foreach ($newAnticlockList as $s) {
-	echo '<svg>'.$s->toSvg().'</svg>';
-}
-echo '<hr />';
+//echo '<hr />結果：<br />';
+//foreach ($newClockList as $s) {
+//	echo '<svg>'.$s->toSvg().'</svg>';
+//}
+//echo '**';
+//foreach ($newAnticlockList as $s) {
+//	echo '<svg>'.$s->toSvg().'</svg>';
+//}
+//echo '<hr />';
 
 		return [
 			$newClockList,
@@ -884,23 +884,15 @@ echo '<hr />';
 
 		$sum = 0;
 		for ($i = 0; $i < $pointCount; $i++) {
-			$v1 = [
+			$vector = [
 				$this->points[$i % $pointCount],
 				$this->points[($i + 1) % $pointCount],
 			];
-//			$v2 = [
-//				$this->points[($i + 1) % $pointCount],
-//				$this->points[($i + 2) % $pointCount],
-//			];
-//			$d = self::crossProduct($v1, $v2);
 
-			$d = ($v1[0]['x'] * $v1[1]['y']) - ($v1[1]['x'] * $v1[0]['y']);
+			$d = ($vector[0]['x'] * $vector[1]['y']) - ($vector[1]['x'] * $vector[0]['y']);
 
 			$sum += $d;
 		}
-
-//echo "<h4>direciton-sum={$sum}</h4>";
-//echo '<svg>'.$this->toSvg().'</svg>';
 
 		if ($sum > 0) {
 			return 1;
