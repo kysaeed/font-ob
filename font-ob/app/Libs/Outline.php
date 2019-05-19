@@ -69,45 +69,43 @@ foreach ($anticlockwiseShapeList as $cws) {
 echo '</svg>';
 
 		///////////////
-echo '<hr /><h1>修正後</h1>';
+//echo '<hr /><h1>修正後</h1>';
 		$list = $clockwiseShapeList;
 		$aclist = [];
 
 		$newClockwiseList = [];
 		$newAnticlockwiseList = $anticlockwiseShapeList;
 		while (!empty($clockwiseShapeList)) {
-echo '<h4>$list!!!</h4>';
-echo '<svg>';
-foreach ($clockwiseShapeList as $c) {
-echo $c->tosvg();
-}
-echo '</svg>';
-echo '<hr />';
+//echo '<h4>$list!!!</h4>';
+//echo '<svg>';
+//foreach ($clockwiseShapeList as $c) {
+//echo $c->tosvg();
+//}
+//echo '</svg>';
+//echo '<hr />';
 
 			$s = array_shift($clockwiseShapeList);
-echo '<p><h1>$s=</h1><br />';
-echo '<svg>'.$s->tosvg().'</svg>';
-echo '</p>';
+//echo '<p><h1>$s=</h1><br />';
+//echo '<svg>'.$s->tosvg().'</svg>';
+//echo '</p>';
 
-//			if (!empty($clockwiseShapeList)) {
+			if (!empty($clockwiseShapeList)) {
 				$isComposed = false;
 				$nc = [];
-				$na = [];
 				foreach ($clockwiseShapeList as $addition) {
-echo '<p>$addition=<br />';
-echo '<svg>'.$addition->tosvg().'</svg>';
-echo '</p>';
+//echo '<p>$addition=<br />';
+//echo '<svg>'.$addition->tosvg().'</svg>';
+//echo '</p>';
 					if (!$isComposed) {
 						$composed = $s->compose($addition);
 						if (empty($composed)) {
 							$nc[] = $addition;
 						} else {
-
-echo '<h4>corssed!!!</h4>';
-foreach ($composed as $c) {
-echo '<svg>'.$c->tosvg().'</svg>';
-}
-echo '<hr />';
+//echo '<h4>corssed!!!</h4>';
+//foreach ($composed as $c) {
+//echo '<svg>'.$c->tosvg().'</svg>';
+//}
+//echo '<hr />';
 							$isComposed = true;
 							foreach ($composed as $s) {
 								if ($s->getShapeDirection() > 0) {
@@ -142,12 +140,9 @@ echo '<hr />';
 				if (!$isComposed) {
 					$newClockwiseList[] = $s;
 				}
-
-
-				// TODO: anticlockに影響させる部分をフォローする
-				//
-				//
-//			}
+			} else {
+				$newClockwiseList[] = $s;
+			}
 		}
 
 
