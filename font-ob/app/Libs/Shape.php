@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 9.8; // 太さ
+		$thickness = 4; // 太さ
 
 
 		$outlineUp = [];
@@ -136,18 +136,13 @@ class Shape
 			}
 		}
 
-		$firstIndex = 0;
 		foreach ($points as $i => $p) {
-			if ($p['isOnCurvePoint']) {
-				if ($infos[$i] < 0) {
-					if (!self::isInsideShapePoint($points, $p, $i)) {
-						$firstIndex = $i;
-						break;
-					}
-				}
+			if (self::isInsideShapePoint($points, $p, $i)) {
+				$isPointPassedList[$i] = true;
 			}
 		}
 
+		$firstIndex = array_search(false, $isPointPassedList);
 		$hasClockwiseShape = false;
 		while($firstIndex !== false) {
 			$slicedPoints = [];
@@ -188,11 +183,7 @@ class Shape
 
 	public function compose($addition)
 	{
-//echo '<h1>compose</h1>';
-//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$this->points]);
-//echo \FontObscure\Http\Controllers\TestController::testOutlineToSvg([$addition->points]);
-//echo '<hr />';
-
+//z
 		$baseInfo = [];
 		foreach ($this->points as $p) {
 			$baseInfo[] = [
@@ -428,7 +419,14 @@ class Shape
 			$passedIndexInfoList[] = $passedIndexInfo;
 		}
 
+//echo '<p><h1>shapeList</h1>';
+//foreach ($shapeList as $s) {
+//	echo '<svg>'.$s->toSvg().'</svg>';
+//}
+//echo '</p>';
+
 		$newShapeList = [];
+		$hasClockWiseShape = false;
 		foreach ($shapeList as $shapeIndex => $shape) {
 
 			$corssIndexInfo = $corssIndexInfoList[$shapeIndex];
@@ -440,7 +438,22 @@ class Shape
 			$otherShape = $shapeList[1 - $shapeIndex];
 			$otherCount = count($otherShape->points);
 
-			$firstIndex = array_search(false, $passedIndexInfo);
+			$firstIndex = 0;
+			foreach ($shape->points as $i => $p) {
+				if (!$p['isOnCurvePoint']) {
+					continue;
+				}
+				if ($corssIndexInfo[$i] > -1) {
+					$firstIndex = $i;
+					break;
+				}
+				if (!$otherShape->isInsidePoint($p)) {
+					$firstIndex = $i;
+					break;
+
+				}
+			}
+
 			while ($firstIndex !== false) {
 				$index = $firstIndex;
 				$newShape = [];
@@ -456,34 +469,37 @@ class Shape
 					$passedIndexInfo[$index] = true;
 
 					$otherIndex = $corssIndexInfo[$index];
-					if ($otherIndex > -1) {
+					if ($i != 0) {
+						if ($otherIndex > -1) {
 //dd($corssIndexInfo);
-//						if ($isCurve) {
-//							$s = $shape->points[$index];
-//							$segment = self::getBezier2Segmet([$s], 0, 1);
-//							$newShape[] = [
-//								'x' => $segment[1]['x'],
-//								'y' => $segment[1]['y'],
-//								'isOnCurvePoint' => false,
-//							];
-//						}
-
-						$otherIndex = ($otherIndex + 1) % $otherCount;
-						for ($oc = 0; $oc < $otherCount; $oc++) {
-							$otherPassedIndexInfo[$otherIndex] = true;
-							$newShape[] = $otherShape->points[$otherIndex];
-							$crossTo = $otherCorssIndexInfo[$otherIndex];
-							if ($crossTo > -1) {
-								$index = $crossTo;
-								if ($index == $firstIndex) {
-									$isEnd = true;
-								}
-								break;
-							}
+//							if ($isCurve) {
+//								$s = $shape->points[$index];
+//								$segment = self::getBezier2Segmet([$s], 0, 1);
+//								$newShape[] = [
+//									'x' => $segment[1]['x'],
+//									'y' => $segment[1]['y'],
+//									'isOnCurvePoint' => false,
+//								];
+//							}
 
 							$otherIndex = ($otherIndex + 1) % $otherCount;
+							for ($oc = 0; $oc < $otherCount; $oc++) {
+								$otherPassedIndexInfo[$otherIndex] = true;
+								$newShape[] = $otherShape->points[$otherIndex];
+								$crossTo = $otherCorssIndexInfo[$otherIndex];
+								if ($crossTo > -1) {
+									$index = $crossTo;
+									if ($index == $firstIndex) {
+										$isEnd = true;
+									}
+									break;
+								}
+
+								$otherIndex = ($otherIndex + 1) % $otherCount;
+							}
 						}
 					}
+
 
 					$index = ($index + 1) % $count;
 					if ($index == $firstIndex) {
@@ -494,14 +510,23 @@ class Shape
 						break;
 					}
 				}
-				$newShapeList[] = new Shape($newShape);
+
+				$s = new Shape($newShape);
+				if ($s->getShapeDirection() > 0) {
+					if (!$hasClockWiseShape) {
+						$hasClockWiseShape = true;
+						$newShapeList[] = $s;
+					}
+				} else {
+					$newShapeList[] = $s;
+				}
+
 				$firstIndex = array_search(false, $passedIndexInfo);
 			}
 			unset($passedIndexInfo);
 			unset($otehrPassedIndexInfo);
 		}
 
-//
 //echo '<h3>結果</h3>';
 //echo 'count='.count($newShapeList).'<br />';
 //foreach ($newShapeList as $shape) {
@@ -516,14 +541,14 @@ class Shape
 
 	public function composeXorByAnticlockList($anticlockList)
 	{
-//echo '<h1>composeXorByAnticlockList</h1>';
-//echo '<svg>'.$this->toSvg().'</svg>';
-//
-//dump($anticlockList);
-//foreach ($anticlockList as $s) {
-//	echo '<svg>'.$s->toSvg().'</svg>';
-//}
-//echo '<br />- - - - - - - -<br />';
+echo '<h1>composeXorByAnticlockList</h1>';
+echo '<svg>'.$this->toSvg().'</svg>';
+
+dump($anticlockList);
+foreach ($anticlockList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '<br />- - - - - - - -<br />';
 
 		$newClockList = [$this];
 		$newAnticlockList = [];
@@ -549,15 +574,15 @@ class Shape
 			$newAnticlockList = array_merge($newAnticlockList, $scliedAnticlock);
 		}
 
-//echo '<hr />結果：<br />';
-//foreach ($newClockList as $s) {
-//	echo '<svg>'.$s->toSvg().'</svg>';
-//}
-//echo '**';
-//foreach ($newAnticlockList as $s) {
-//	echo '<svg>'.$s->toSvg().'</svg>';
-//}
-//echo '<hr />';
+echo '<hr />結果：<br />';
+foreach ($newClockList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '**';
+foreach ($newAnticlockList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '<hr />';
 
 		return [
 			$newClockList,
@@ -772,8 +797,6 @@ class Shape
 
 			$corssIndexInfo = $corssIndexInfoList[$shapeIndex];
 			$count = count($shape->points);
-//			$cross = $infoList[$shapeIndex];
-//dd($cross);
 
 			$passedIndexInfo = [];
 			foreach ($corssIndexInfo as $i => $to) {
@@ -1282,10 +1305,10 @@ if (!empty($cpList)) {
 			}
 		}
 
-//dd(compact('newShape', 'crossInfo'));
+//echo '<h1>交点あり</h1>';
+//$s = new Shape($newShape);
+//echo '<svg>'.$s->toSvg().'</svg>';
 
-//echo '<h1>test</h1>';
-//echo self::testOutlineToSvg([$newShape], true);
 		return [
 			'shape' => $newShape,
 			'crossInfo' => $crossInfo,
@@ -1979,7 +2002,7 @@ if (!empty($cpList)) {
 
 		if ($ab) {
 			$length2  = ($a / $ab);
-			if (($length2 < 0) || ($length2 >= 1.0)) {
+			if (($length2 < 0) || ($length2 > 1.0)) {
 				return null;
 			}
 		} else {

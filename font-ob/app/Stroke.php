@@ -50,7 +50,7 @@ class Stroke extends Model
 
 		$lineParams = [];
 		foreach ($attrbuteNames as $attr) {
-			if (preg_match('/'.$attr.'\s*=\s*"(\d+)"/', $svg, $d)) {
+			if (preg_match('/'.$attr.'\s*=\s*"([^"]+)"/', $svg, $d)) {
 				$lineParams[$attr] = (float)$d[1];
 			}
 		}
@@ -117,7 +117,7 @@ class Stroke extends Model
 
 					case 'H':
 					case 'h':
-						$pointList = self::parsePathSvgCommandH($index, $prev, $isRelativePosition, $pathMatches);
+						$points[] = self::parsePathSvgCommandH($index, $prev, $isRelativePosition, $pathMatches);
 						break;
 
 					case 'V':

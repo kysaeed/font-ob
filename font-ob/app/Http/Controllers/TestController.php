@@ -61,10 +61,31 @@ class TestController extends Controller
 
 		echo $s;
 
-		$stroke = Stroke::createFromSvg($s, 2);
+		$stroke = Stroke::createFromSvg($s, 3);
 		$stroke->save();
 
 		dump($stroke->data);
+
+
+
+		$s = '<svg>';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="28" x2="28" y1="11.5" y2="56" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="11.5" x2="45.49" y1="41" y2="41" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="11.5" x2="45.49" y1="25.5" y2="25.5" />';
+
+		$s .= '<path d="M40,78 c-1.045,-4.762 -2.381,-9.932 -4,-15.5" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M30,82.25 c-0.666,-5.847 -1.643,-12.114 -3,-19" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M20,86.5 c-0.287,-6.932 -0.904,-14.298 -2,-22.5" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M6,89.5 c2.229,-7.541 3.926,-16.133 5,-26" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M47,10.5 h-36.5 v46.5 h36.0 c0,30.181 -2.043,34.5 -5,34.5 c-2.813,0 -6.941,-0.3 -12,-1" fill="none" stroke="#000000" stroke-width="2" />';
+
+		$s .= '<path d="M57.5,42 h33.0 v-31.0 h-34.0 v31.0 c0,22.843 -2.312,38.206 -6.5,50" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M93.5,92 c-10.365,-13.469 -18.158,-31.894 -21,-50" fill="none" stroke="#000000" stroke-width="2" />';
+
+		$s .= '</svg>';
+		echo $s;
+		$stroke = Stroke::createFromSvg($s, 4);
+		$stroke->save();
 
 		return 'OK';
 	}
@@ -483,15 +504,7 @@ die;
 
 		$st = Stroke::find(2);
 		$outline = new \FontObscure\Libs\Outline($st->data);
-
-//		foreach ($outline->shapes as $s) {
-//			echo '<svg>';
-//			echo $s->toSvg();
-//			echo '</svg>';
-//		}
-//		dump($outline->shapes);
-
-		$ma = $outline->toSvg(true);
+		$ma = $outline->toSvg(false);
 		echo $ma;
 
 		$st = Stroke::find(3);
@@ -499,10 +512,17 @@ die;
 		$ya = $outline->toSvg(true);
 		echo $ya;
 
+		$st = Stroke::find(4);
+		echo $st->toSvg();
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$eki = $outline->toSvg(false);
+		echo $eki;
+
 
 		echo '<hr />';
 		echo $ma;
 		echo $ya;
+		echo $eki;
 	}
 
 	public static function testShapeClass()
