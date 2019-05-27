@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 4; // 太さ
+		$thickness = 10; // 太さ
 
 
 		$outlineUp = [];
@@ -413,17 +413,40 @@ class Shape
 				if ($to < 0) {
 					$passedIndexInfo[] = false;
 				} else {
-					$passedIndexInfo[] = true;
+					$passedIndexInfo[] = false;
 				}
 			}
 			$passedIndexInfoList[] = $passedIndexInfo;
 		}
 
-//echo '<p><h1>shapeList</h1>';
-//foreach ($shapeList as $s) {
-//	echo '<svg>'.$s->toSvg().'</svg>';
+//foreach ($points as $i => $p) {
+//	if (self::isInsideShapePoint($points, $p, $i)) {
+//		$isPointPassedList[$i] = true;
+//	}
 //}
-//echo '</p>';
+
+		foreach ($shapeList as $shapeIndex => $shape) {
+//echo '<svg>'.$shape->toSvg().'</svg>';
+			$corssIndexInfo = $corssIndexInfoList[$shapeIndex];
+			$otehrShape = $shapeList[1 - $shapeIndex];
+			foreach ($shape->points as $i => $p) {
+				if ($corssIndexInfo[$i] < 0) {
+					if (self::isInsideShapePoint($otehrShape->points, $p)) {
+						$passedIndexInfoList[$shapeIndex][$i] = true;
+					}
+				} else {
+					$passedIndexInfoList[$shapeIndex][$i] = true;
+				}
+			}
+		}
+
+dump(compact('passedIndexInfoList'));
+
+echo '<p><h1>shapeList</h1>';
+foreach ($shapeList as $s) {
+	echo '<svg>'.$s->toSvg().'</svg>';
+}
+echo '</p>';
 
 		$newShapeList = [];
 		$hasClockWiseShape = false;
@@ -433,12 +456,12 @@ class Shape
 			$count = count($shape->points);
 			$passedIndexInfo = &$passedIndexInfoList[$shapeIndex];
 
+			$otherShape = $shapeList[1 - $shapeIndex];
 			$otherPassedIndexInfo = &$passedIndexInfoList[1- $shapeIndex];
 			$otherCorssIndexInfo = $corssIndexInfoList[1- $shapeIndex];
-			$otherShape = $shapeList[1 - $shapeIndex];
 			$otherCount = count($otherShape->points);
 
-			$firstIndex = 0;
+			$firstIndex = array_search(false, $passedIndexInfo);
 			foreach ($shape->points as $i => $p) {
 				if (!$p['isOnCurvePoint']) {
 					continue;
@@ -527,14 +550,14 @@ class Shape
 			unset($otehrPassedIndexInfo);
 		}
 
-//echo '<h3>結果</h3>';
-//echo 'count='.count($newShapeList).'<br />';
-//foreach ($newShapeList as $shape) {
-//	echo '<svg>';
-//	echo $shape->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
+echo '<h3>結果</h3>';
+echo 'count='.count($newShapeList).'<br />';
+foreach ($newShapeList as $shape) {
+	echo '<svg>';
+	echo $shape->toSvg();
+	echo '</svg>';
+}
+echo '<hr />';
 
 		return $newShapeList;
 	}

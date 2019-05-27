@@ -11,6 +11,9 @@ use FontObscure\TtfHorizontalMetrix;
 use FontObscure\GlyphSvg;
 use FontObscure\Stroke;
 
+use FontObscure\Libs\Outline;
+use FontObscure\Libs\Shape;
+
 
 class TestController extends Controller
 {
@@ -92,10 +95,12 @@ class TestController extends Controller
 
 	public function test(Request $request)
     {
+
 		self::testStrokeToOutlineFromDatabase();
 
-
 die;
+
+		self::testLineLine();
 
 
 
@@ -468,6 +473,49 @@ die;
 		return 'hello !';
     }
 
+	public static function testLineLine()
+	{
+		echo '<h1>LINE to LINE hit</h1>';
+
+		$stroke = [
+			[
+				'path' => [
+					[
+						'x' => 10,
+						'y' => 50,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 110,
+						'y' => 50,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => true,
+			],
+
+			[
+				'path' => [
+					[
+						'x' => 10,
+						'y' => 55,
+						'isOnCurvePoint' => true,
+					],
+					[
+						'x' => 110,
+						'y' => 55,
+						'isOnCurvePoint' => true,
+					],
+				],
+				'isClosed' => true,
+			],
+		];
+
+		$outline = new \FontObscure\Libs\Outline($stroke);
+
+
+	}
+
 	public static function testOutlineShi()
 	{
 
@@ -497,20 +545,20 @@ die;
 	{
 		echo '<h1>testStrokeToOutlineFromDatabase</h1>';
 
-		$st = Stroke::find(1);
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		echo $outline->toSvg();
-
-
-		$st = Stroke::find(2);
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		$ma = $outline->toSvg(false);
-		echo $ma;
-
-		$st = Stroke::find(3);
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		$ya = $outline->toSvg(true);
-		echo $ya;
+//		$st = Stroke::find(1);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		echo $outline->toSvg();
+//
+//
+//		$st = Stroke::find(2);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$ma = $outline->toSvg(false);
+//		echo $ma;
+//
+//		$st = Stroke::find(3);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$ya = $outline->toSvg(true);
+//		echo $ya;
 
 		$st = Stroke::find(4);
 		echo $st->toSvg();
@@ -520,8 +568,8 @@ die;
 
 
 		echo '<hr />';
-		echo $ma;
-		echo $ya;
+//		echo $ma;
+//		echo $ya;
 		echo $eki;
 	}
 

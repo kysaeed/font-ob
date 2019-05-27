@@ -69,43 +69,43 @@ foreach ($anticlockwiseShapeList as $cws) {
 echo '</svg>';
 
 		///////////////
-//echo '<hr /><h1>修正後</h1>';
+echo '<hr /><h1>合成</h1>';
 		$list = $clockwiseShapeList;
 		$aclist = [];
 
 		$newClockwiseList = [];
 		$newAnticlockwiseList = $anticlockwiseShapeList;
 		while (!empty($clockwiseShapeList)) {
-//echo '<h4>$list!!!</h4>';
-//echo '<svg>';
-//foreach ($clockwiseShapeList as $c) {
-//echo $c->tosvg();
-//}
-//echo '</svg>';
-//echo '<hr />';
+echo '<h4>$list!!!</h4>';
+echo '<svg>';
+foreach ($clockwiseShapeList as $c) {
+echo $c->tosvg();
+}
+echo '</svg>';
+echo '<hr />';
 
 			$s = array_shift($clockwiseShapeList);
-//echo '<p><h1>$s=</h1><br />';
-//echo '<svg>'.$s->tosvg().'</svg>';
-//echo '</p>';
+echo '<p><h1>$s=</h1><br />';
+echo '<svg>'.$s->tosvg().'</svg>';
+echo '</p>';
 
 			if (!empty($clockwiseShapeList)) {
 				$isComposed = false;
 				$nc = [];
 				foreach ($clockwiseShapeList as $addition) {
-//echo '<p>$addition=<br />';
-//echo '<svg>'.$addition->tosvg().'</svg>';
-//echo '</p>';
+echo '<p>$addition=<br />';
+echo '<svg>'.$addition->tosvg().'</svg>';
+echo '</p>';
 					if (!$isComposed) {
 						$composed = $s->compose($addition);
 						if (empty($composed)) {
 							$nc[] = $addition;
 						} else {
-//echo '<h4>corssed!!!</h4>';
-//foreach ($composed as $c) {
-//echo '<svg>'.$c->tosvg().'</svg>';
-//}
-//echo '<hr />';
+echo '<h4>corssed!!!</h4>';
+foreach ($composed as $c) {
+	echo '<svg>'.$c->tosvg().'</svg>';
+}
+echo '<hr />';
 							$isComposed = true;
 							foreach ($composed as $s) {
 								if ($s->getShapeDirection() > 0) {
@@ -161,75 +161,16 @@ foreach ($newAnticlockwiseList as $cws) {
 }
 echo '<hr />';
 
-
-
-//echo '<svg>';
-//foreach ($clockwiseShapeList as $cws) {
-//	echo $cws->toSvg();
-//}
-//foreach ($anticlockwiseShapeList as $cws) {
-//	echo $cws->toSvg();
-//}
-//echo '</svg>';
-//
-//		// 時計回りシェイプの合成
-//		$_next = [];
-//		while (!empty($clockwiseShapeList)) {
-//			$c = array_shift($clockwiseShapeList);
-//
-//			$isComposed = false;
-//			$_nextNext = [];
-//			foreach ($_next as $c2) {
-//				if (!$isComposed) {
-//					$composed = $c->compose($c2);
-//					if (!empty($composed)) {
-//
-////echo '<h4>$composed</h4>';
-////foreach ($composed as $cws) {
-////
-////	echo '<svg>';
-////	echo $cws->toSvg();
-////	echo '</svg>';
-////}
-////echo '<hr />';
-//
-//						$isComposed = true;
-//						$clockwiseShapeList = array_merge($clockwiseShapeList, $composed);
-//
-//					} else {
-//						$_nextNext[] = $c2;
-//					}
-//				} else {
-//					$_nextNext[] = $c2;
-//				}
-//			}
-//
-//			if (!$isComposed) {
-//				$_nextNext[] = $c;
-//			}
-//			$_next = $_nextNext;
-//		}
-//		$clockwiseShapeList = $_next;
-
-//echo '<h4>clock</h4>';
-//foreach ($clockwiseShapeList as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
-
 		$this->shapes = array_merge($newClockwiseList, $newAnticlockwiseList);
 		$outline = $this->removeLostedShape();
 
-
-//echo '<h4>shapes....</h4>';
-//foreach ($outline as $cws) {
-//	echo '<svg>';
-//	echo $cws->toSvg();
-//	echo '</svg>';
-//}
-//echo '<hr />';
+echo '<h4>shapes....</h4>';
+foreach ($outline as $cws) {
+	echo '<svg>';
+	echo $cws->toSvg();
+	echo '</svg>';
+}
+echo '<hr />';
 
 		return $outline;
 	}
