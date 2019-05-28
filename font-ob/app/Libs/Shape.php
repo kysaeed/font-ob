@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 10; // 太さ
+		$thickness = 4; // 太さ
 
 
 		$outlineUp = [];
@@ -183,7 +183,7 @@ class Shape
 
 	public function compose($addition)
 	{
-//z
+echo '<h4>** compose **</h4>';
 		$baseInfo = [];
 		foreach ($this->points as $p) {
 			$baseInfo[] = [
@@ -252,34 +252,18 @@ class Shape
 			unset($p);
 		}
 
-///////////////////////////////////////
-//$o = [];
-//$o[] = $this->points;
-//$o[] = $addition->points;
-//
-//$cross = [];
-//foreach ($baseInfo as $info) {
-//	foreach ($info['crossInfo'] as $ci) {
-//		$cross[] = $ci['point'];
-//	}
-//}
-//echo TestController::testOutlineToSvg($o, false, $cross);
-////dd($o);
-////return null;
-//////////////////////////////////
-
-//echo "cross-count={$crossCount}<br />";
-//echo '<svg>';
-//echo $this->toSvg();
-//echo $addition->toSvg();
-//foreach ($baseInfo as $list) {
-//	foreach ($list['crossInfo'] as $c) {
+echo "cross-count={$crossCount}<br />";
+echo '<svg>';
+echo $this->toSvg();
+echo $addition->toSvg();
+foreach ($baseInfo as $list) {
+	foreach ($list['crossInfo'] as $c) {
 //		$p = $c['point'];
 //		echo "<circle cx='{$p['x']}' cy='{$p['y']}' r='3' fill='green'>";
 //	//	dump($p);
-//	}
-//}
-//echo '</svg>';
+	}
+}
+echo '</svg>';
 
 		if ($crossCount < 2) {
 			return null;
@@ -287,15 +271,17 @@ class Shape
 
 		foreach ($infoList as &$sortInfo) {
 			foreach ($sortInfo as &$list) {
-				usort($list['crossInfo'], function($a, $b) {
-					if ($a['length'] > $b['length']) {
-						return 1;
-					}
-					if ($a['length'] < $b['length']) {
-						return -1;
-					}
-					return 0;
-				});
+//				if (!empty($list['crossInfo'])) {
+					usort($list['crossInfo'], function($a, $b) {
+						if ($a['length'] > $b['length']) {
+							return 1;
+						}
+						if ($a['length'] < $b['length']) {
+							return -1;
+						}
+						return 0;
+					});
+//				}
 			}
 			unset($list);
 		}
@@ -552,9 +538,15 @@ echo '</p>';
 
 echo '<h3>結果</h3>';
 echo 'count='.count($newShapeList).'<br />';
-foreach ($newShapeList as $shape) {
+foreach ($newShapeList as $i => $shape) {
 	echo '<svg>';
-	echo $shape->toSvg();
+	foreach ($baseInfo as $bi) {
+		foreach ($bi['crossInfo'] as $c) {
+			echo "<circle cx='{$c['point']['x']}' cy='{$c['point']['y']}' r='2' fill='red' />";
+
+		}
+	}
+	echo $shape->toSvg(false);
 	echo '</svg>';
 }
 echo '<hr />';
@@ -1002,7 +994,7 @@ echo '<hr />';
 
 	protected function getCorssInfoListByShape($index, $addition)
 	{
-//echo "<h1>{$index}</h1>";
+//echo "<h1>getCorssInfoListByShape : {$index}</h1>";
 		$baseCount = count($this->points);
 		$additionCount = count($addition->points);
 
@@ -1033,10 +1025,6 @@ echo '<hr />';
 
 				} else {
 					$end = $addition->points[($i + 2) % $additionCount];
-
-					// TODO:  曲線に対応
-	//				$cp = self::getCrossPointEx($v, [$p, $next]);
-
 					$cpList = self::getBezier2CrossPoint([$p, $next, $end], $v);
 					if (!empty($cpList)) {
 						foreach ($cpList as $cp) {
@@ -1065,7 +1053,6 @@ echo '<hr />';
 				if ($next['isOnCurvePoint']) {
 					$cpList = self::getBezier2CrossPoint($v, [$p, $next]);
 					if (!empty($cpList)) {
-//dd($cpList);
 						foreach ($cpList as $cp) {
 							$corssInfoList[] =[
 								'index' => $i,
@@ -1079,23 +1066,23 @@ echo '<hr />';
 						}
 					}
 				} else {
-//echo '<h1>bezier-bezier</h1>';
+//echo "<h2>bezier-bezier : i={$i}</h2>";
 					$end = $addition->points[($i + 2) % $additionCount];
-$cpList = self::getBezier2CrossPointByBezier2($v, [$p, $next, $end]);
-if (!empty($cpList)) {
-	foreach ($cpList as $cp) {
-//dd($cp);
-		$corssInfoList[] =[
-			'index' => $i,
-			'point' => [
-				'x' => $cp['x'],
-				'y' => $cp['y'],
-				'length' => $cp['length'],
-				'length2' => $cp['length2'],
-			],
-		];
-	}
-}
+					$cpList = self::getBezier2CrossPointByBezier2($v, [$p, $next, $end]);
+					if (!empty($cpList)) {
+						foreach ($cpList as $cp) {
+							//dd($cp);
+							$corssInfoList[] =[
+								'index' => $i,
+								'point' => [
+									'x' => $cp['x'],
+									'y' => $cp['y'],
+									'length' => $cp['length'],
+									'length2' => $cp['length2'],
+								],
+							];
+						}
+					}
 
 //dd($cpList);
 
@@ -1340,7 +1327,6 @@ if (!empty($cpList)) {
 
 	protected function getSelfCrossInfoList($index, $ignoreIndexList = [])
 	{
-
 		$shapePointList = $this->points;
 
 //echo "<h3>getSelfCrossInfoList(list, index={$index}, ignore)</h3>";
@@ -1369,11 +1355,6 @@ if (!empty($cpList)) {
 			if (!$p['isOnCurvePoint']) {
 				$otherIndex = ($otherIndex + 1) % $pointsCount;
 				continue;
-			}
-
-			if (in_array($otherIndex, $ignoreIndexList)) {
-				//
-
 			}
 
 			if (!in_array($otherIndex, $ignoreIndexList)) {
@@ -1439,20 +1420,20 @@ if (!empty($cpList)) {
 						$otherIndex = ($otherIndex + 1) % $pointsCount;
 					} else {
 						$end = $shapePointList[($otherIndex + 2) % $pointsCount];
-$cpList = self::getBezier2CrossPointByBezier2($v, [$p, $next, $end]);
-if (!empty($cpList)) {
-	foreach ($cpList as $cp) {
-		$crossPoints[] = [
-			'point' => [
-				'x' => $cp['x'],
-				'y' => $cp['y'],
-				'length' => $cp['length'],
-				'length2' => $cp['length2'],
-			],
-			'index' => $otherIndex,
-		];
-	}
-}
+						$cpList = self::getBezier2CrossPointByBezier2($v, [$p, $next, $end]);
+						if (!empty($cpList)) {
+							foreach ($cpList as $cp) {
+								$crossPoints[] = [
+									'point' => [
+										'x' => $cp['x'],
+										'y' => $cp['y'],
+										'length' => $cp['length'],
+										'length2' => $cp['length2'],
+									],
+									'index' => $otherIndex,
+								];
+							}
+						}
 
 						$otherIndex = ($otherIndex + 1) % $pointsCount;
 					}
@@ -1753,6 +1734,13 @@ if (!empty($cpList)) {
 
 	protected static function getBezier2CrossPointByBezier2($b1, $b2)
 	{
+//echo '<h4>getBezier2CrossPointByBezier2</h4>';
+//dump(compact('b1', 'b2'));
+//echo '<svg>';
+//echo "<path d='M{$b1[0]['x']},{$b1[0]['y']} Q{$b1[1]['x']},{$b1[1]['y']} {$b1[2]['x']},{$b1[2]['y']}' stroke='red' fill='none' />";
+//echo "<path d='M{$b2[0]['x']},{$b2[0]['y']} Q{$b2[1]['x']},{$b2[1]['y']} {$b2[2]['x']},{$b2[2]['y']}' stroke='gray' fill='none' />";
+//echo '</svg>';
+
 		$bezierList = [
 			$b1,
 			$b2,
@@ -1869,6 +1857,16 @@ if (!empty($cpList)) {
 				];
 			}
 		}
+
+//echo '<svg>';
+//echo "<path d='M{$b1[0]['x']},{$b1[0]['y']} Q{$b1[1]['x']},{$b1[1]['y']} {$b1[2]['x']},{$b1[2]['y']}' stroke='red' fill='none' />";
+//echo "<path d='M{$b2[0]['x']},{$b2[0]['y']} Q{$b2[1]['x']},{$b2[1]['y']} {$b2[2]['x']},{$b2[2]['y']}' stroke='gray' fill='none' />";
+//foreach ($corossPoints as $c) {
+//	echo "<circle cx='{$c['x']}' cy='{$c['y']}' r='2' fill='blue' />";
+//}
+//echo '</svg>';
+//
+
 		return $corossPoints;
 	}
 
@@ -1941,17 +1939,23 @@ if (!empty($cpList)) {
 
 	protected static function isInsideTriangle($triangle, $point)
 	{
-		$count = count($triangle);
-		for($i = 0; $i < $count; $i++) {
-			$line = [
-				$triangle[$i],
-				$triangle[($i + 1) % $count],
-			];
-			$c = self::crossProduct($line, [$triangle[$i], $point]);
-			if ($c > 0) {
-				return false;
-			}
+		$c1 = ($point['x'] - $triangle[1]['x']) * ($triangle[0]['y'] - $triangle[1]['y']) - ($triangle[0]['x'] - $triangle[1]['x']) * ($point['y'] - $triangle[1]['y']);
+		$c2 = ($point['x'] - $triangle[2]['x']) * ($triangle[1]['y'] - $triangle[2]['y']) - ($triangle[1]['x'] - $triangle[2]['x']) * ($point['y'] - $triangle[2]['y']);
+		if (($c1 < 0) && ($c2 > 0)) {
+			return false;
 		}
+		if (($c1 > 0) && ($c2 < 0)) {
+			return false;
+		}
+
+		$c3 = ($point['x'] - $triangle[0]['x']) * ($triangle[2]['y'] - $triangle[0]['y']) - ($triangle[2]['x'] - $triangle[0]['x']) * ($point['y'] - $triangle[0]['y']);
+		if (($c2 < 0) && ($c3 > 0)) {
+			return false;
+		}
+		if (($c2 > 0) && ($c3 < 0)) {
+			return false;
+		}
+
 		return true;
 	}
 
