@@ -35,9 +35,37 @@ class Stroke extends Model
 				$stroke[] = self::parseLineSvg($p);
 			}
 		}
+		if (preg_match_all('/<polyline\s+[^\/]+\/>/', $svg, $pathSvg)) {
+			foreach ($pathSvg[0] as $p) {
+				$stroke[] = self::parsePolylineSvg($p);
+			}
+		}
+
 		return $stroke;
 	}
 
+	public static function parsePolylineSvg($svg)
+	{
+		$points = [];
+		if (preg_match('/points\s*=\s*"([^"]+)"/', $svg, $d)) {
+
+			if (preg_match_all('/((-?[\d.]+),?(-?[\d.]+)?)/', $d[1], $pathMatches)) {
+				$count = count($pathMatches[0]);
+				for ($i = 0; $i < $count; $i++) {
+					$points[] = [
+						'x' => (float)$pathMatches[2][$i],
+						'y' => (float)$pathMatches[3][$i],
+						'isOnCurvePoint' => true,
+					];
+				}
+			}
+		}
+
+		return [
+			'path' => $points,
+			'isClosed' => false,
+		];
+	}
 
 	public static function parseLineSvg($svg)
 	{

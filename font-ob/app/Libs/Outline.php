@@ -76,7 +76,8 @@ echo '<hr /><h1>合成</h1>';
 		$newClockwiseList = [];
 		$newAnticlockwiseList = $anticlockwiseShapeList;
 		while (!empty($clockwiseShapeList)) {
-echo '<h4>$list!!!</h4>';
+echo '<h4>$clockwiseShapeList!!!</h4>';
+dump($clockwiseShapeList);
 echo '<svg>';
 foreach ($clockwiseShapeList as $c) {
 echo $c->tosvg();
@@ -92,7 +93,7 @@ echo '</p>';
 			if (!empty($clockwiseShapeList)) {
 				$isComposed = false;
 				$nc = [];
-				foreach ($clockwiseShapeList as $addition) {
+				foreach ($clockwiseShapeList as $index => $addition) {
 echo '<p>$addition=<br />';
 echo '<svg>'.$addition->tosvg().'</svg>';
 echo '</p>';
@@ -106,20 +107,14 @@ foreach ($composed as $c) {
 	echo '<svg>'.$c->tosvg().'</svg>';
 }
 echo '<hr />';
+
 							$isComposed = true;
-							foreach ($composed as $s) {
-								if ($s->getShapeDirection() > 0) {
-									$nc[] = $s;
-								} else {
-									$newAnticlockwiseList[] = $s;
-								}
-							}
 
 							$na = [];
 							foreach ($newAnticlockwiseList as $s) {
-								$composed = $s->compose($addition);
-								if (!empty($composed)) {
-									foreach ($composed as $s) {
+								$composedAnticlock = $s->compose($addition);
+								if (!empty($composedAnticlock)) {
+									foreach ($composedAnticlock as $s) {
 										if ($s->getShapeDirection() < 0) {
 											$na[] = $s;
 										}
@@ -129,6 +124,13 @@ echo '<hr />';
 								}
 							}
 							$newAnticlockwiseList = $na;
+							foreach ($composed as $s) {
+								if ($s->getShapeDirection() > 0) {
+									$nc[] = $s;
+								} else {
+									$newAnticlockwiseList[] = $s;
+								}
+							}
 						}
 
 					} else {

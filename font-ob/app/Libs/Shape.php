@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 4; // 太さ
+		$thickness = 8; // 太さ
 
 
 		$outlineUp = [];
@@ -342,7 +342,6 @@ echo '</svg>';
 					foreach ($p['crossInfo'] as $cross) {
 						if ($isCurve) {
 
-
 							$bezier = [
 								$p['point'],
 								$next['point'],
@@ -361,7 +360,6 @@ echo '</svg>';
 
 						}
 
-
 						$shape[] = [
 							'x' => $cross['point']['x'],
 							'y' => $cross['point']['y'],
@@ -369,10 +367,6 @@ echo '</svg>';
 						];
 						$corssIndexInfo[] = $cross['to']['index'];
 						$start = $cross['length'];
-
-//						$shape[] = $next['point'];
-//						$corssIndexInfo[] = -1;
-
 					}
 
 					if ($isCurve) {
@@ -452,6 +446,9 @@ echo '</p>';
 				if (!$p['isOnCurvePoint']) {
 					continue;
 				}
+//				if (($corssIndexInfo[$i] > -1)) {
+//					continue;
+//				}
 				if ($corssIndexInfo[$i] > -1) {
 					$firstIndex = $i;
 					break;
@@ -469,28 +466,11 @@ echo '</p>';
 				for ($i = 0; $i < $count; $i++) {
 					$isEnd = false;
 					$newShape[] = $shape->points[$index];
-
-//					$isCurve = false;
-//					if (!$shape->points[$index]['isOnCurvePoint']) {
-//						$isCurve = true;
-//					}
-
 					$passedIndexInfo[$index] = true;
 
 					$otherIndex = $corssIndexInfo[$index];
 					if ($i != 0) {
 						if ($otherIndex > -1) {
-//dd($corssIndexInfo);
-//							if ($isCurve) {
-//								$s = $shape->points[$index];
-//								$segment = self::getBezier2Segmet([$s], 0, 1);
-//								$newShape[] = [
-//									'x' => $segment[1]['x'],
-//									'y' => $segment[1]['y'],
-//									'isOnCurvePoint' => false,
-//								];
-//							}
-
 							$otherIndex = ($otherIndex + 1) % $otherCount;
 							for ($oc = 0; $oc < $otherCount; $oc++) {
 								$otherPassedIndexInfo[$otherIndex] = true;
@@ -536,73 +516,23 @@ echo '</p>';
 			unset($otehrPassedIndexInfo);
 		}
 
+
 echo '<h3>結果</h3>';
 echo 'count='.count($newShapeList).'<br />';
 foreach ($newShapeList as $i => $shape) {
 	echo '<svg>';
+	echo $shape->toSvg();
 	foreach ($baseInfo as $bi) {
 		foreach ($bi['crossInfo'] as $c) {
-			echo "<circle cx='{$c['point']['x']}' cy='{$c['point']['y']}' r='2' fill='red' />";
+			echo "<circle cx='{$c['point']['x']}' cy='{$c['point']['y']}' r='2' fill='none' stroke='red' />";
 
 		}
 	}
-	echo $shape->toSvg(false);
 	echo '</svg>';
 }
 echo '<hr />';
 
 		return $newShapeList;
-	}
-
-	public function composeXorByAnticlockList($anticlockList)
-	{
-echo '<h1>composeXorByAnticlockList</h1>';
-echo '<svg>'.$this->toSvg().'</svg>';
-
-dump($anticlockList);
-foreach ($anticlockList as $s) {
-	echo '<svg>'.$s->toSvg().'</svg>';
-}
-echo '<br />- - - - - - - -<br />';
-
-		$newClockList = [$this];
-		$newAnticlockList = [];
-
-		foreach ($anticlockList as $anticlock) {
-			$nc = [];
-			$scliedAnticlock = [$anticlock];
-			foreach ($newClockList as $c) {
-				$_ac = [];
-				foreach ($scliedAnticlock as $a) {
-					$composed = $c->composeXor($a);
-					if (empty($composed)) {
-						$nc[] = $c;
-						$_ac[] = $a;
-					} else {
-						$nc = array_merge($nc, $composed[0]);
-						$_ac = array_merge($_ac, $composed[1]);
-					}
-				}
-				$scliedAnticlock = $_ac;
-			}
-			$newClockList = $nc;
-			$newAnticlockList = array_merge($newAnticlockList, $scliedAnticlock);
-		}
-
-echo '<hr />結果：<br />';
-foreach ($newClockList as $s) {
-	echo '<svg>'.$s->toSvg().'</svg>';
-}
-echo '**';
-foreach ($newAnticlockList as $s) {
-	echo '<svg>'.$s->toSvg().'</svg>';
-}
-echo '<hr />';
-
-		return [
-			$newClockList,
-			$newAnticlockList,
-		];
 	}
 
 	public function composeXor($addition)
