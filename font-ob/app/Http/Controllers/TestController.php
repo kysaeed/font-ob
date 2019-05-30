@@ -589,7 +589,7 @@ die;
 		$ya = $outline->toSvg(true);
 		echo $ya;
 
-		$st = Stroke::find(5);
+		$st = Stroke::find(4);
 		echo $st->toSvg();
 		$outline = new \FontObscure\Libs\Outline($st->data);
 		$eki = $outline->toSvg(false);

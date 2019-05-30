@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 8; // 太さ
+		$thickness = 4.1; // 太さ
 
 
 		$outlineUp = [];
@@ -129,7 +129,7 @@ class Shape
 
 		foreach ($infos as $i => $s) {
 			$p = $points[$i];
-			if (($s > -1) || (!$p['isOnCurvePoint'])) {
+			if (!$p['isOnCurvePoint']) {
 				$isPointPassedList[] = true;
 			} else {
 				$isPointPassedList[] = false;
@@ -147,7 +147,7 @@ class Shape
 		while($firstIndex !== false) {
 			$slicedPoints = [];
 			$index = $firstIndex;
-			for ($i = 0; $i < $pointsCount + 1; $i++) {
+			for ($i = 0; $i < ($pointsCount + 1); $i++) {
 				$isPointPassedList[$index] = true;
 
 				$p = $points[$index];
@@ -157,6 +157,9 @@ class Shape
 					if ($infos[$index] > -1) {
 						$index = $infos[$index];
 					}
+					if ($index == $firstIndex) {
+						break;
+					}
 				}
 
 				$index = ($index + 1) % $pointsCount;
@@ -164,6 +167,7 @@ class Shape
 					break;
 				}
 			}
+
 			$shape = new Shape($slicedPoints);
 			$direction = $shape->getShapeDirection();
 			if ($direction > 0) {
