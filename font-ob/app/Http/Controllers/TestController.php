@@ -116,7 +116,22 @@ class TestController extends Controller
 		$stroke->save();
 
 		echo '<hr />';
-		echo $stroke->toSvg();
+
+		$s = '<svg xmlns="http://www.w3.org/2000/svg" height="100px" version="1.0" viewBox="0 0 100 100" width="100px" x="0px" y="0px">';
+
+		$s .= '<polyline fill="none" points="20,25 81,25 81,10 19,10 19,26" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M8,92 c13.08,-3.282 24.369,-7.771 31,-12" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M92,93 c-7.982,-4.208 -19.018,-8.679 -31,-12.5" fill="none" stroke="#000000" stroke-width="2" />';
+
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="16" x2="84" y1="61.5" y2="61.5" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="16" x2="84" y1="47.5" y2="47.5" />';
+		$s .= '<polyline fill="none" points="16,75.5 85,75.5 85,33.5 15,33.5 15,76.5" stroke="#000000" stroke-width="2" />';
+		echo $s;
+		$stroke = Stroke::createFromSvg($s, 6);
+		$stroke->save();
+
+
+
 		echo '<hr />';
 
 		return 'OK';
@@ -595,11 +610,17 @@ die;
 		$eki = $outline->toSvg(false);
 		echo $eki;
 
+		$st = Stroke::find(6);
+		echo $st->toSvg();
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$in = $outline->toSvg(false);
+		echo $in;
 
 		echo '<hr />';
 		echo $ma;
 		echo $ya;
 		echo $eki;
+		echo $in;
 	}
 
 	public static function testShapeClass()
