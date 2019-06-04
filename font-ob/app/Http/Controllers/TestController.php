@@ -126,9 +126,34 @@ class TestController extends Controller
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="16" x2="84" y1="61.5" y2="61.5" />';
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="16" x2="84" y1="47.5" y2="47.5" />';
 		$s .= '<polyline fill="none" points="16,75.5 85,75.5 85,33.5 15,33.5 15,76.5" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
 		echo $s;
 		$stroke = Stroke::createFromSvg($s, 6);
 		$stroke->save();
+		echo '<hr />';
+
+
+
+		$s = '<svg xmlns="http://www.w3.org/2000/svg" height="100px" version="1.0" viewBox="0 0 100 100" width="100px" x="0px" y="0px">';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="30.5" x2="93" y1="14" y2="14" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="49.5" x2="49.5" y1="22" y2="4" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="75" x2="75" y1="22" y2="4" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="30" x2="93.5" y1="68" y2="68" />';
+		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="32" x2="91.5" y1="54.5" y2="54.5" />';
+		$s .= '<polyline fill="none" points="37,43.5 89,43.5 89,26 36,26 36,44.5" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M29.5,91 c20.092,-5.015 33,-16.851 33,-26.5 V27.0" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M92.5,91 c-18.154,-5.014 -30,-16.853 -30,-26.5" fill="none" stroke="#000000" stroke-width="2" />';
+
+		$s .= '<path d="M9,91.5 c7.072,-9.315 12.963,-19.819 17,-30.5" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M26,22.5 c-4.551,-4.456 -9.955,-9.209 -16,-14" fill="none" stroke="#000000" stroke-width="2" />';
+		$s .= '<path d="M22.5,45.5 c-5.014,-4.892 -10.751,-9.858 -17.5,-15" fill="none" stroke="#000000" stroke-width="2" />';
+
+		$s .= '</svg>';
+		echo $s;
+		$stroke = Stroke::createFromSvg($s, 7);
+		$stroke->save();
+		echo '<hr />';
+
 
 
 
@@ -589,38 +614,52 @@ die;
 	{
 		echo '<h1>testStrokeToOutlineFromDatabase</h1>';
 
-		$st = Stroke::find(1);
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		echo $outline->toSvg();
+//		$st = Stroke::find(1);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		echo $outline->toSvg();
 
 
-		$st = Stroke::find(2);
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		$ma = $outline->toSvg(false);
-		echo $ma;
+//		$st = Stroke::find(2);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$ma = $outline->toSvg(false);
+//		echo $ma;
+//
+//		$st = Stroke::find(3);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$ya = $outline->toSvg(true);
+//		echo $ya;
+//
+//		$st = Stroke::find(4);
+//		echo $st->toSvg();
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$eki = $outline->toSvg(false);
+//		echo $eki;
+//
+//		$st = Stroke::find(5);
+//		echo $st->toSvg();
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$ai = $outline->toSvg(false);
+//		echo $ai;
+//
+//		$st = Stroke::find(6);
+//		echo $st->toSvg();
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$in = $outline->toSvg(false);
+//		echo $in;
 
-		$st = Stroke::find(3);
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		$ya = $outline->toSvg(true);
-		echo $ya;
-
-		$st = Stroke::find(4);
+		$st = Stroke::find(7);
 		echo $st->toSvg();
 		$outline = new \FontObscure\Libs\Outline($st->data);
-		$eki = $outline->toSvg(false);
-		echo $eki;
-
-		$st = Stroke::find(6);
-		echo $st->toSvg();
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		$in = $outline->toSvg(false);
-		echo $in;
+		$kan = $outline->toSvg(false);
+		echo $kan;
 
 		echo '<hr />';
-		echo $ma;
-		echo $ya;
-		echo $eki;
-		echo $in;
+//		echo $ma;
+//		echo $ya;
+//		echo $eki;
+//		echo $in;
+//		echo $ai;
+		echo $kan;
 	}
 
 	public static function testShapeClass()

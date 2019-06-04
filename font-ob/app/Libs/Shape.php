@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 4; // 太さ
+		$thickness = 2; // 太さ
 
 
 		$outlineUp = [];
