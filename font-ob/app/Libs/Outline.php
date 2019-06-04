@@ -90,7 +90,7 @@ echo '<hr /><h1>合成</h1>';
 		$newAnticlockwiseList = $anticlockwiseShapeList;
 		while (!empty($clockwiseShapeList)) {
 echo '<h4>$clockwiseShapeList!!!</h4>';
-dump($clockwiseShapeList);
+//dump($clockwiseShapeList);
 echo '<svg>';
 foreach ($clockwiseShapeList as $c) {
 echo $c->tosvg();
@@ -98,7 +98,7 @@ echo $c->tosvg();
 echo '</svg>';
 echo '<hr />';
 echo '<h4>$anticlockwiseShapeList!!!</h4>';
-dump($anticlockwiseShapeList);
+//dump($anticlockwiseShapeList);
 echo '<svg>';
 foreach ($anticlockwiseShapeList as $c) {
 echo $c->tosvg();

@@ -614,38 +614,38 @@ die;
 	{
 		echo '<h1>testStrokeToOutlineFromDatabase</h1>';
 
-//		$st = Stroke::find(1);
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		echo $outline->toSvg();
+		$st = Stroke::find(1);
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		echo $outline->toSvg();
 
 
-//		$st = Stroke::find(2);
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$ma = $outline->toSvg(false);
-//		echo $ma;
-//
-//		$st = Stroke::find(3);
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$ya = $outline->toSvg(true);
-//		echo $ya;
-//
-//		$st = Stroke::find(4);
-//		echo $st->toSvg();
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$eki = $outline->toSvg(false);
-//		echo $eki;
-//
-//		$st = Stroke::find(5);
-//		echo $st->toSvg();
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$ai = $outline->toSvg(false);
-//		echo $ai;
-//
-//		$st = Stroke::find(6);
-//		echo $st->toSvg();
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$in = $outline->toSvg(false);
-//		echo $in;
+		$st = Stroke::find(2);
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$ma = $outline->toSvg(false);
+		echo $ma;
+
+		$st = Stroke::find(3);
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$ya = $outline->toSvg(true);
+		echo $ya;
+
+		$st = Stroke::find(4);
+		echo $st->toSvg();
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$eki = $outline->toSvg(false);
+		echo $eki;
+
+		$st = Stroke::find(5);
+		echo $st->toSvg();
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$ai = $outline->toSvg(false);
+		echo $ai;
+
+		$st = Stroke::find(6);
+		echo $st->toSvg();
+		$outline = new \FontObscure\Libs\Outline($st->data);
+		$in = $outline->toSvg(false);
+		echo $in;
 
 		$st = Stroke::find(7);
 		echo $st->toSvg();
@@ -654,11 +654,11 @@ die;
 		echo $kan;
 
 		echo '<hr />';
-//		echo $ma;
-//		echo $ya;
-//		echo $eki;
-//		echo $in;
-//		echo $ai;
+		echo $ma;
+		echo $ya;
+		echo $eki;
+		echo $in;
+		echo $ai;
 		echo $kan;
 	}
 
