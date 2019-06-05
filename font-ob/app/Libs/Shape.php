@@ -16,8 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = 2; // 太さ
-
+		$thickness = (float)2.0; // 太さ
 
 		$outlineUp = [];
 		$outlineDown = [];
@@ -2020,7 +2019,7 @@ echo '<hr />';
 				} else if (!$p['isOnCurvePoint']) {
 					$color = 'gray';
 				}
-				$svg .= "<circle cx='{$p['x']}' cy='{$p['y']}' r='2' fill='{$color}' data-index='{$index}' />";
+				$svg .= "<circle cx='{$p['x']}' cy='{$p['y']}' r='2' stroke='{$color}' fill='none' data-index='{$index}' />";
 			}
 		}
 
