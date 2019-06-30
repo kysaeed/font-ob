@@ -133,14 +133,16 @@ class TestController extends Controller
 		echo '<hr />';
 
 
-
+		// 漢
 		$s = '<svg xmlns="http://www.w3.org/2000/svg" height="100px" version="1.0" viewBox="0 0 100 100" width="100px" x="0px" y="0px">';
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="30.5" x2="93" y1="14" y2="14" />';
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="49.5" x2="49.5" y1="22" y2="4" />';
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="75" x2="75" y1="22" y2="4" />';
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="30" x2="93.5" y1="68" y2="68" />';
 		$s .= '<line fill="none" stroke="#000000" stroke-width="2" x1="32" x2="91.5" y1="54.5" y2="54.5" />';
+
 		$s .= '<polyline fill="none" points="37,43.5 89,43.5 89,26 36,26 36,44.5" stroke="#000000" stroke-width="2" />';
+
 		$s .= '<path d="M29.5,91 c20.092,-5.015 33,-16.851 33,-26.5 V27.0" fill="none" stroke="#000000" stroke-width="2" />';
 		$s .= '<path d="M92.5,91 c-18.154,-5.014 -30,-16.853 -30,-26.5" fill="none" stroke="#000000" stroke-width="2" />';
 
@@ -154,24 +156,28 @@ class TestController extends Controller
 		$stroke->save();
 		echo '<hr />';
 
-
-
-
+		$s = '<svg xmlns="http://www.w3.org/2000/svg" height="100px" version="1.0" viewBox="0 0 100 100" width="100px" x="0px" y="0px">';
+		$s .= '<polyline fill="none" points="10,12 50,12 50,88 90,88" stroke="#000000" stroke-width="2" />';
+		$s .= '<polyline fill="none" points="88,10 88,50 12,50 12,90" stroke="#000000" stroke-width="2" />';
+		$s .= '</svg>';
+		echo $s;
+		$stroke = Stroke::createFromSvg($s, 8);
+		$stroke->save();
 		echo '<hr />';
+
+
 
 		return 'OK';
 	}
 
 	public function test(Request $request)
     {
-
 		self::testStrokeToOutlineFromDatabase();
-
 die;
+		self::testCornerCross();
+
 
 		self::testLineLine();
-
-
 
 		self::testCurveOutlinePenetrate();
 
@@ -610,6 +616,233 @@ die;
 
 	}
 
+	public static function testCornerCross()
+	{
+		echo '<h1>testCornerCross</h1>';
+
+		$shapesData = [];
+
+//		$shapesData[] = [
+//			[
+//				'x' => 1,
+//				'y' => 130,
+//				'isOnCurvePoint' => false,
+//			], [
+//				'x' => 180,
+//				'y' => 100,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 180,
+//				'y' => 120,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 10,
+//				'y' => 120,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 10,
+//				'y' => 10,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 40,
+//				'y' => 10,
+//				'isOnCurvePoint' => true,
+//			]
+//		];
+//
+//		$shapesData[] = [
+//			[
+//				'x' => 30,
+//				'y' => 30,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 50,
+//				'y' => 10,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 110,
+//				'y' => 40,
+//				'isOnCurvePoint' => false,
+//			], [
+//				'x' => 110,
+//				'y' => 90,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 90,
+//				'y' => 110,
+//				'isOnCurvePoint' => true,
+//			], [
+//				'x' => 80,
+//				'y' => 40,
+//				'isOnCurvePoint' => false,
+//			]
+//		];
+
+		$shapesData[] = [
+			[
+				'x' => 34.6,
+				'y' => 43.0614880032,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 34.4263143151,
+				'y' => 47.4380636549,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 34.8549002515,
+				'y' => 48.0630081791,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 34.8756451441,
+				'y' => 48.0888980616,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 37.598343522,
+				'y' => 48.1003873925,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 37.9052286281,
+				'y' => 48.1185806408,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 37.9052286281,
+				'y' => 48.1185806408,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 38.2245990505,
+				'y' => 48.1358847356,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 40.3113961509,
+				'y' => 48.248951358,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 42.9312465221,
+				'y' => 48.3240560927,
+				'isOnCurvePoint' => true,
+
+
+			], [
+				'x' => 42.7566514039,
+				'y' => 54.5215980233,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 40.7121520184,
+				'y' => 54.4629872013,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 39.0467890885,
+				'y' => 54.3858166074,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 38.1719050731,
+				'y' => 54.3452757032,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 37.401656478,
+				'y' => 54.2996126075,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 33.8732639829,
+				'y' => 54.2847233825,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 31.7771337627,
+				'y' => 53.2485500467,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 30.5981405788,
+				'y' => 52.6657421235,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 29.8722625865,
+				'y' => 51.7598374089,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 28.1496084457,
+				'y' => 49.2479414722,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 28.4,
+				'y' => 42.9385119968,
+				'isOnCurvePoint' => true,
+			]
+		];
+
+		$shapesData[] = [
+			[
+				'x' => 23.5474566991,
+				'y' => 60.8358529869,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 27.768242785,
+				'y' => 57.5515880764,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 31.7771337627,
+				'y' => 53.2485500467,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 34.4129645624,
+				'y' => 50.4193191059,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 36.9571927491,
+				'y' => 47.1496712436,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 38.2245990505,
+				'y' => 48.1358847356,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 41.8503287564,
+				'y' => 50.9571927491,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 40.4678152736,
+				'y' => 52.7338935486,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 39.0467890885,
+				'y' => 54.3858166074,
+				'isOnCurvePoint' => true,
+			], [
+				'x' => 35.278895539,
+				'y' => 58.7659401424,
+				'isOnCurvePoint' => false,
+			], [
+				'x' => 31.2402341493,
+				'y' => 62.2687998835,
+				'isOnCurvePoint' => true,
+			]
+		];
+
+		$shapeList = [];
+		echo '<svg>';
+		foreach ($shapesData as $s) {
+			$shape = new Shape($s);
+			echo $shape->toSvg();
+			$shapeList[] = $shape;
+		}
+		echo '</svg>';
+
+		echo '<hr />';
+		echo '<h2>slice TEST</h2>';
+		foreach ($shapeList as $s) {
+			echo '<svg>';
+			$slicedList = $s->slice();
+			foreach ($slicedList as $ss) {
+				echo $ss->toSvg();
+			}
+			echo '</svg>';
+		}
+		echo '<hr />';
+
+		$outline = Outline::createFromShapeList($shapeList);
+		echo $outline->toSvg();
+
+		dump($shapesData);
+	}
+
 	public static function testStrokeToOutlineFromDatabase()
 	{
 		echo '<h1>testStrokeToOutlineFromDatabase</h1>';
@@ -620,7 +853,11 @@ die;
 //		$outline = new \FontObscure\Libs\Outline($st->data);
 //		echo $outline->toSvg();
 
-
+//		$st = Stroke::find(2);
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$ma = $outline->toSvg(false);
+//		echo $ma;
+//		$svgList[] = $ma;
 
 //		$st = Stroke::find(3);
 //		$outline = new \FontObscure\Libs\Outline($st->data);
@@ -628,11 +865,6 @@ die;
 //		echo $ya;
 //		$svgList[] = $ya;
 
-//		$st = Stroke::find(2);
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$ma = $outline->toSvg(false);
-//		echo $ma;
-//		$svgList[] = $ma;
 
 //		$st = Stroke::find(4);
 //		echo $st->toSvg();
@@ -641,27 +873,28 @@ die;
 //		echo $eki;
 //		$svgList[] = $eki;
 
+//		$st = Stroke::find(6);
+//		echo $st->toSvg();
+//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$in = $outline->toSvg(false);
+//		echo $in;
+//		$svgList[] = $in;
 
-		$st = Stroke::find(6);
+
+		$st = Stroke::find(5);
 		echo $st->toSvg();
-		$outline = new \FontObscure\Libs\Outline($st->data);
-		$in = $outline->toSvg(false);
-		echo $in;
-		$svgList[] = $in;
+		$outline = new Outline($st->data);
+		$ai = $outline->toSvg(false);
+		echo $ai;
+		$svgList[] = $ai;
 
 //		$st = Stroke::find(7);
 //		echo $st->toSvg();
-//		$outline = new \FontObscure\Libs\Outline($st->data);
+//		$outline = new Outline($st->data);
 //		$kan = $outline->toSvg(false);
 //		echo $kan;
 //		$svgList[] = $kan;
-
-//		$st = Stroke::find(5);
-//		echo $st->toSvg();
-//		$outline = new \FontObscure\Libs\Outline($st->data);
-//		$ai = $outline->toSvg(false);
-//		echo $ai;
-//		$svgList[] = $ai;
+//		echo '<hr />';
 
 		echo '<hr />';
 		foreach ($svgList as $svg) {

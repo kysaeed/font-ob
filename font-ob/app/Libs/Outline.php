@@ -10,20 +10,20 @@ class Outline
 {
 	public $shapes = [];
 
-	public function __construct($strokes)
+	public function __construct($strokes = null)
 	{
-		$this->shapes = $this->getOutlineFromStroke($strokes);
+		if (!is_null($strokes)) {
+			$this->shapes = $this->getOutlineFromStroke($strokes)->shapes;
+		}
 	}
 
-	public function getOutlineFromStroke($strokes)
+	public static function createFromShapeList($shapeList)
 	{
-echo '<h1>getOutlineFromStroke</h1>';
-		$shapeList = self::strokeToShapeList($strokes);
 
 echo '<h4 >$shapeList..</h4>';
 foreach ($shapeList as $s) {
-	echo '<svg>';
-	echo $s->toSvg();
+	echo '<svg width="400px" height="400px">';
+	echo $s->toSvg(false, 1.0);
 	echo '</svg>';
 }
 
@@ -36,7 +36,7 @@ foreach ($shapeList as $s) {
 		$anticlockwiseShapeList = [];
 		foreach ($slicedShapeOutlineList as $shape) {
 			$direction = $shape->getShapeDirection();
-			if ($direction > 0) {
+			if ($direction >= 0) {
 				$clockwiseShapeList[] = $shape;
 			} else if ($direction < 0) {
 				$anticlockwiseShapeList[] = $shape;
@@ -45,26 +45,27 @@ foreach ($shapeList as $s) {
 
 
 
+$mag = 1.0;
 echo '<h3 >sliced..</h3>';
 echo '<h4 >clock -------------------------------------------</h4>';
 foreach ($clockwiseShapeList as $cws) {
 	echo '<svg>';
-	echo $cws->toSvg();
+	echo $cws->toSvg(true, $mag);
 	echo '</svg>';
 }
 echo '<h4 >anti-clock --------------------------------------</h4>';
 foreach ($anticlockwiseShapeList as $cws) {
 	echo '<svg>';
-	echo $cws->toSvg();
+	echo $cws->toSvg(true, $mag);
 	echo '</svg>';
 }
 echo '<hr />';
 echo '<svg>';
 foreach ($clockwiseShapeList as $cws) {
-	echo $cws->toSvg();
+	echo $cws->toSvg(true, $mag);
 }
 foreach ($anticlockwiseShapeList as $cws) {
-	echo $cws->toSvg();
+	echo $cws->toSvg(true, $mag);
 }
 echo '</svg>';
 
@@ -89,7 +90,7 @@ echo '<hr /><h1>合成</h1>';
 		$newClockwiseList = [];
 		$newAnticlockwiseList = $anticlockwiseShapeList;
 		while (!empty($clockwiseShapeList)) {
-echo '<h4>$clockwiseShapeList!!!</h4>';
+echo '<h4>$clockwiseShapeList!!!'.count($clockwiseShapeList).'</h4>';
 //dump($clockwiseShapeList);
 echo '<svg>';
 foreach ($clockwiseShapeList as $c) {
@@ -97,11 +98,10 @@ echo $c->tosvg();
 }
 echo '</svg>';
 echo '<hr />';
-echo '<h4>$anticlockwiseShapeList!!!</h4>';
-//dump($anticlockwiseShapeList);
+echo '<h4>$anticlockwiseShapeList!!! x '.count($newAnticlockwiseList).'</h4>';
 echo '<svg>';
-foreach ($anticlockwiseShapeList as $c) {
-echo $c->tosvg();
+foreach ($newAnticlockwiseList as $c) {
+	echo $c->tosvg();
 }
 echo '</svg>';
 echo '<hr />';
@@ -109,6 +109,16 @@ echo '<hr />';
 			$s = array_shift($clockwiseShapeList);
 echo '<p><h1>$s=</h1><br />';
 echo '<svg>'.$s->tosvg().'</svg>';
+echo '<hr />';
+echo '$clockwiseShapeList x '.count($clockwiseShapeList).'<br />';
+foreach ($clockwiseShapeList as $_s) {
+echo '<svg>'.$_s->tosvg().'</svg>';
+}
+echo '<br />';
+echo '$newAnticlockwiseList x '.count($newAnticlockwiseList).'<br />';
+foreach ($newAnticlockwiseList as $_s) {
+echo '<svg>'.$_s->tosvg().'</svg>';
+}
 echo '</p>';
 
 			$na = [];
@@ -117,8 +127,17 @@ echo '</p>';
 				if (empty($composed)) {
 					$na[] = $a;
 				} else {
-					$na = array_merge($na, $composed);
-echo '<h4>first - $anticlockwiseShapeList!!!</h4>';
+					foreach ($composed as $c) {
+						if ($c->getShapeDirection() < 0) {
+							$na[] = $c;
+						} else {
+							$s = $c;
+						}
+					}
+
+//					$na = array_merge($na, $composed);
+
+echo '<h4>first-$anticlockwiseShapeList!!!</h4>';
 foreach ($composed as $c) {
 	echo '<svg>'.$c->tosvg().'</svg>';
 }
@@ -132,7 +151,7 @@ echo '<hr />';
 				$isComposed = false;
 				$nc = [];
 				foreach ($clockwiseShapeList as $index => $addition) {
-echo '<p>$addition=<br />';
+echo '<p><h2>$addition=</h2><br />';
 echo '<svg>'.$addition->tosvg().'</svg>';
 echo '</p>';
 					if (!$isComposed) {
@@ -221,11 +240,12 @@ foreach ($newAnticlockwiseList as $cws) {
 }
 echo '<hr />';
 
-		$this->shapes = array_merge($newClockwiseList, $newAnticlockwiseList);
-		$outline = $this->removeLostedShape();
+		$outline = new Outline();
+		$outline->shapes = array_merge($newClockwiseList, $newAnticlockwiseList);
+		$outline->shapes = $outline->removeLostedShape();
 
 echo '<h4>shapes....</h4>';
-foreach ($outline as $cws) {
+foreach ($outline->shapes as $cws) {
 	echo '<svg>';
 	echo $cws->toSvg();
 	echo '</svg>';
@@ -233,6 +253,13 @@ foreach ($outline as $cws) {
 echo '<hr />';
 
 		return $outline;
+	}
+
+	public function getOutlineFromStroke($strokes)
+	{
+echo '<h1>getOutlineFromStroke</h1>';
+		$shapeList = self::strokeToShapeList($strokes);
+		return self::createFromShapeList($shapeList);
 	}
 
 	protected static function strokeToShapeList($strokes)
@@ -476,7 +503,7 @@ echo '<hr />';
 	{
 		$svg = '<path d="';
 		foreach ($this->shapes as $shape) {
-			$svg .= $shape->toSvgPath($isPointEnabled);
+			$svg .= $shape->toSvgPath(1.0);
 			$svg .= ' ';
 		}
 		$svg .= '" fill="'.'rgba(200, 200, 200, 0.4)'.'" stroke="#000000" stroke-width="1" />';
