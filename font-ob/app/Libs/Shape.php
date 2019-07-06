@@ -27,7 +27,6 @@ class Shape
 			if ($index == 0) {
 				$lNext = $stroke['path'][($index + 1) % $lineCount];
 				$n = self::getNormal($l, $lNext);
-
 				$n2 = self::getNormalizedVector($l, $lNext);
 
 				$up = [
@@ -45,7 +44,6 @@ class Shape
 				$n = self::getNormal($lPrev, $l);
 				$n2 = self::getNormalizedVector($lPrev, $l);
 
-
 				$up = [
 					'x' => $l['x'] + ($n['x'] * $thickness) + ($n2['x'] * ($thickness * 1)),
 					'y' => $l['y'] + ($n['y'] * $thickness) + ($n2['y'] * ($thickness * 1)),
@@ -57,7 +55,6 @@ class Shape
 					'isOnCurvePoint' => $l['isOnCurvePoint'],
 				];
 			} else {
-
 				$lPrev = $stroke['path'][$prevIndex];
 				$lNext = $stroke['path'][($index + 1) % $lineCount];
 				$up = self::getOutlinePoint($lPrev, $l, $lNext, $thickness);
@@ -1827,10 +1824,12 @@ echo '<hr />';
 								$line = [$c, $m];
 								$otehrCross = self::getBezier2CrossPointByInfiniteLine($bezierList[1 - $i], $line);
 								if (!empty($otehrCross)) {
-									$crossLengthList[] = [
-										$oldCrossLengthList[$ci] + ($diff / 2),
-										$otehrCross[0]['bezierLength'],
-									];
+									if ($otehrCross[0]['bezierLength'] < 1.0) {
+										$crossLengthList[] = [
+											$oldCrossLengthList[$ci] + ($diff / 2),
+											$otehrCross[0]['bezierLength'],
+										];
+									}
 								}
 
 							} else {
