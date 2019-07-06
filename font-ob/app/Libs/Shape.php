@@ -16,7 +16,7 @@ class Shape
 
 	public static function createFromStroke($stroke)
 	{
-		$thickness = (float)3.00; // 太さ
+		$thickness = (float)4.30; // 太さ
 
 		$outlineUp = [];
 		$outlineDown = [];
@@ -1814,24 +1814,27 @@ echo '<hr />';
 						$count = count($oldCrossLengthList);
 						for ($ci = 0; $ci < $count; $ci += 2) {
 							$diff =	 $oldCrossLengthList[$ci + 1] - $oldCrossLengthList[$ci];
-							if ($diff < 0.05) {
-								$diffCenter = $oldCrossLengthList[$ci] + ($diff * 0.5);
-								$c = self::getBezier2CurvePoint($bezierList[$i][0], $bezierList[$i][2], $bezierList[$i][1], $diffCenter);
-								$m = [
-									'x' => $bezierList[$i][0]['x'] + (($bezierList[$i][2]['x'] - $bezierList[$i][0]['x']) / 2),
-									'y' => $bezierList[$i][0]['y'] + (($bezierList[$i][2]['y'] - $bezierList[$i][0]['y']) / 2),
-								];
-								$line = [$c, $m];
-								$otehrCross = self::getBezier2CrossPointByInfiniteLine($bezierList[1 - $i], $line);
-								if (!empty($otehrCross)) {
-									if ($otehrCross[0]['bezierLength'] < 1.0) {
-										$crossLengthList[] = [
-											$oldCrossLengthList[$ci] + ($diff / 2),
-											$otehrCross[0]['bezierLength'],
-										];
+							if ($diff < 0.001) {
+								$t = $oldCrossLengthList[$ci] + ($diff / 2);
+								if ($t < 1.0) {
+									$diffCenter = $oldCrossLengthList[$ci] + ($diff * 0.5);
+									$c = self::getBezier2CurvePoint($bezierList[$i][0], $bezierList[$i][2], $bezierList[$i][1], $diffCenter);
+									$m = [
+										'x' => $bezierList[$i][0]['x'] + (($bezierList[$i][2]['x'] - $bezierList[$i][0]['x']) / 2),
+										'y' => $bezierList[$i][0]['y'] + (($bezierList[$i][2]['y'] - $bezierList[$i][0]['y']) / 2),
+									];
+									$line = [$c, $m];
+									$otehrCross = self::getBezier2CrossPointByInfiniteLine($bezierList[1 - $i], $line);
+
+									if (!empty($otehrCross)) {
+										if ($otehrCross[0]['bezierLength'] < 1.0) {
+											$crossLengthList[] = [
+												$t,
+												$otehrCross[0]['bezierLength'],
+											];
+										}
 									}
 								}
-
 							} else {
 								$isCrossedToTangential = true;
 								$crossLengthListToTangentials[] = $oldCrossLengthList[$ci];
